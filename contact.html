@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact | Bass Binge Jigs</title>
+    <meta
+      name="description"
+      content="Contact Bass Binge for product questions, custom color runs, and wholesale opportunities."
+    />
+    <meta property="og:title" content="Contact Bass Binge Jigs" />
+    <meta property="og:description" content="Reach out for support, custom requests, or partnership inquiries." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alegreya:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a href="index.html" class="brand" aria-label="Bass Binge homepage">
+          <img class="brand-logo" src="assets/img/bass-binge-logo.png" alt="Bass Binge Baits logo" />
+          <span>
+            <span class="brand-main">Bass Binge</span>
+            <span class="brand-sub">Tournament-Ready Jigs</span>
+          </span>
+        </a>
+        <button class="mobile-toggle" data-nav-toggle aria-expanded="false" aria-label="Toggle menu">☰</button>
+        <nav class="nav-links" data-nav-links>
+          <a href="index.html">Home</a>
+          <a href="shop.html">Shop</a>
+          <a href="about.html">About</a>
+          <a href="contact.html" aria-current="page">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container card-grid grid-2">
+        <article class="contact-card reveal">
+          <p class="section-kicker">Contact</p>
+          <h1 class="section-title">Let’s talk tackle, custom builds, or wholesale.</h1>
+          <p>
+            Fill out the form and include your fishery details so we can recommend the right jig profile and color direction.
+          </p>
+          <p><strong>Email:</strong> hello@bassbingejigs.com</p>
+          <p><strong>Response Window:</strong> Usually within 1 business day</p>
+        </article>
+
+        <article class="contact-card reveal">
+          <form data-contact-form>
+            <div class="form-row">
+              <label>
+                Name
+                <input type="text" name="name" required />
+              </label>
+              <label>
+                Email
+                <input type="email" name="email" required />
+              </label>
+            </div>
+            <div class="form-row" style="margin-top: 0.75rem">
+              <label>
+                Topic
+                <select name="topic" required>
+                  <option value="">Choose one...</option>
+                  <option>Product Question</option>
+                  <option>Custom Color Request</option>
+                  <option>Wholesale Inquiry</option>
+                  <option>Other</option>
+                </select>
+              </label>
+              <label>
+                Phone (optional)
+                <input type="tel" name="phone" />
+              </label>
+            </div>
+            <label style="display: block; margin-top: 0.75rem">
+              Message
+              <textarea name="message" required></textarea>
+            </label>
+            <button class="btn btn-primary" type="submit" style="margin-top: 0.75rem">Send Message</button>
+            <p data-form-note style="margin-bottom: 0"></p>
+          </form>
+        </article>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <p>© <span data-year></span> Bass Binge Jigs. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="contact.html">Contact</a>
+          <a href="about.html">About</a>
+          <a href="shop.html">Shop</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="assets/js/main.js" defer></script>
+  </body>
+</html>

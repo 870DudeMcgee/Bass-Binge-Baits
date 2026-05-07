@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shop | Bass Binge Jigs</title>
+    <meta
+      name="description"
+      content="Shop Bass Binge hand-poured jigs. Buy direct with secure Shopify checkout using the integrated Buy Button."
+    />
+    <meta property="og:title" content="Shop Bass Binge Jigs" />
+    <meta property="og:description" content="Secure checkout for premium handcrafted bass jigs." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Alegreya:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a href="index.html" class="brand" aria-label="Bass Binge homepage">
+          <img class="brand-logo" src="assets/img/bass-binge-logo.png" alt="Bass Binge Baits logo" />
+          <span>
+            <span class="brand-main">Bass Binge</span>
+            <span class="brand-sub">Tournament-Ready Jigs</span>
+          </span>
+        </a>
+        <button class="mobile-toggle" data-nav-toggle aria-expanded="false" aria-label="Toggle menu">☰</button>
+        <nav class="nav-links" data-nav-links>
+          <a href="index.html">Home</a>
+          <a href="shop.html" aria-current="page">Shop</a>
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container">
+        <p class="section-kicker">Shop</p>
+        <h1 class="section-title">Pick your lineup, then check out securely with Shopify.</h1>
+        <p>
+          Replace the placeholder product IDs in the integration script and these slots will render live Buy Buttons.
+          If the script cannot load, each card keeps a backup shop link.
+        </p>
+
+        <div class="card-grid grid-3" style="margin-top: 1.25rem">
+          <article class="product-card reveal">
+            <div class="product-top">
+              <h3>Shallow Grinder</h3>
+              <p class="product-price">$7.49</p>
+            </div>
+            <p>3/8 oz, compact profile, wood and dock specialist.</p>
+            <div class="buy-button-slot" data-buy-button="shallow-grinder"></div>
+            <a class="btn btn-secondary" href="https://example.myshopify.com" target="_blank" rel="noopener">Backup Store Link</a>
+          </article>
+
+          <article class="product-card reveal">
+            <div class="product-top">
+              <h3>Deep Dragger</h3>
+              <p class="product-price">$7.99</p>
+            </div>
+            <p>1/2 oz, bottom contact specialist for points and ledges.</p>
+            <div class="buy-button-slot" data-buy-button="deep-dragger"></div>
+            <a class="btn btn-secondary" href="https://example.myshopify.com" target="_blank" rel="noopener">Backup Store Link</a>
+          </article>
+
+          <article class="product-card reveal">
+            <div class="product-top">
+              <h3>Grass Punch</h3>
+              <p class="product-price">$8.29</p>
+            </div>
+            <p>5/8 oz, heavy hook and skirt for matted vegetation and thick cover.</p>
+            <div class="buy-button-slot" data-buy-button="grass-punch"></div>
+            <a class="btn btn-secondary" href="https://example.myshopify.com" target="_blank" rel="noopener">Backup Store Link</a>
+          </article>
+        </div>
+
+        <div class="notice">
+          Integration note: edit <strong>SHOPIFY_CONFIG</strong> in <strong>assets/js/shopify-buy-button.js</strong> with your domain,
+          storefront token, and product IDs.
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <p>© <span data-year></span> Bass Binge Jigs. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="contact.html">Contact</a>
+          <a href="about.html">About</a>
+          <a href="shop.html">Shop</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="assets/js/main.js" defer></script>
+    <script src="assets/js/shopify-buy-button.js" defer></script>
+  </body>
+</html>
