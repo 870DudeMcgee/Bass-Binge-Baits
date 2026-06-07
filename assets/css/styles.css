@@ -308,9 +308,10 @@ button:disabled {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: var(--space-6);
-  align-items: center;
+  grid-template-columns: 1fr;
+  gap: 0;
+  align-items: flex-start;
+  max-width: 60ch;
 }
 
 .hero h1 {
@@ -333,6 +334,25 @@ button:disabled {
   font-style: italic;
   margin: 0 0 0.75rem;
   opacity: 0.8;
+}
+
+.hero-cred {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.hero-cred img {
+  width: 60px;
+  height: auto;
+  object-fit: contain;
+}
+
+.hero-cred strong {
+  color: var(--ink);
 }
 .hero-card {
   background: linear-gradient(140deg, #12324a 0%, #294f63 100%);
