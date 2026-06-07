@@ -327,6 +327,13 @@ button:disabled {
   margin: 0 0 var(--space-4);
 }
 
+.hero-origin-sub {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0 0 0.75rem;
+  opacity: 0.8;
+}
 .hero-card {
   background: linear-gradient(140deg, #12324a 0%, #294f63 100%);
   color: var(--cream);
@@ -1002,6 +1009,20 @@ select:focus,
   justify-content: space-between;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.footer-origin {
+  font-size: 0.82rem;
+  color: rgba(244, 239, 227, 0.6);
+  font-style: italic;
+  margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .footer-links {
