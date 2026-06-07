@@ -199,3 +199,117 @@
   .product-hero-title {
     font-size: clamp(1.8rem, 4vw, 2.5rem);
   }
+}
+
+/* Interactive product selectors */
+.product-config-selector {
+  margin-bottom: var(--space-3);
+}
+
+.config-label {
+  display: block;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--rust);
+  margin-bottom: 0.5rem;
+}
+
+.variant-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 0.5rem;
+}
+
+.swatch-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.swatch-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--swatch);
+}
+
+.swatch-button::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(0,0,0,0.1));
+}
+
+.swatch-button:hover {
+  transform: scale(1.1);
+  border-color: rgba(176, 99, 63, 0.5);
+}
+
+.swatch-button.active {
+  border-color: var(--rust);
+  transform: scale(1.15);
+}
+
+.swatch-button.active::after {
+  border: 2px solid rgba(255,255,255,0.9);
+}
+
+.selected-color-name {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.weight-options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.weight-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(17, 40, 59, 0.14);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+}
+
+.weight-option input[type="radio"] {
+  display: none;
+}
+
+.weight-option.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--cream);
+}
+
+.weight-option.active .weight-label {
+  color: var(--cream);
+}
+
+.weight-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.price-suffix {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  opacity: 0.7;
+}

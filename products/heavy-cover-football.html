@@ -44,27 +44,68 @@
           <div class="product-hero-right">
             <p class="section-kicker">Heavy Cover Football</p>
             <h1 class="product-hero-title">3/4 Heavy Cover Football</h1>
-            <p class="product-hero-price">$5.00</p>
+            <p class="product-hero-price" data-price-display="$5.00">$5.00</p>
             <p class="product-hero-desc">
               Full-size Jewel Football jig for deep bass — flat spot and scoop head, Mustad Ultra Point hook.
               When bass go deep, this jig gives you the confidence to push through heavy cover and still land the fish.
             </p>
 
+            <!-- Interactive Product Config -->
+            <div class="product-config"
+              data-product-id="heavy-cover-football"
+              data-product-name="3/4 Heavy Cover Football"
+              data-base-price="5.00"
+              data-colors='["Magic Brownie Fine","Fruit Fly","RyRy Special Fine","Chartreuse","Black/Blue","Junebug"]'
+              data-color-images='["../assets/img/products/heavy-cover-football-3-4.jpg"]'
+              data-default-color="0"
+              data-weights='["3/4"]'
+              data-default-weight="0"
+              data-rattle="true">
+            </div>
+
+            <div class="product-config-selector">
+              <label class="config-label">Color:</label>
+              <div class="variant-swatches"></div>
+              <p class="selected-color-name" data-color-name>Fruit Fly</p>
+            </div>
+
+            <div class="product-config-selector" data-weight-group>
+              <label class="config-label">Weight:</label>
+              <div class="weight-options"></div>
+            </div>
+
+            <div class="product-config-selector" data-rattle-group>
+              <label class="config-label">Rattle:</label>
+              <div class="weight-options">
+                <label class="weight-option" data-rattle-value="yes">
+                  <input type="radio" name="rattle" value="yes" />
+                  <span class="weight-label">Yes <span class="price-suffix">(+ $0.50)</span></span>
+                </label>
+                <label class="weight-option active" data-rattle-value="no">
+                  <input type="radio" name="rattle" value="no" checked />
+                  <span class="weight-label">No</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Key Features -->
             <div class="product-specs">
               <h3>Key Features</h3>
               <ul>
                 <li><strong>Mustad Ultra Point hook</strong> — Jewel's custom design, optimized for penetration</li>
                 <li><strong>Football head</strong> — flat spot and scoop for correct stance and bottom action</li>
                 <li><strong>Full skirt</strong> — hand-tied with custom color, wider palette than stock jigs</li>
-                <li><strong>Hook & weedguard</strong> — fiber weedguard color-matched to skirt</li>
+                <li><strong>Hook &amp; weedguard</strong> — fiber weedguard color-matched to skirt</li>
               </ul>
             </div>
 
+            <!-- Add to Cart Button -->
             <div class="product-purchase">
-              <a href="#">Add to Cart</a>
-              <a href="#" class="btn btn-secondary">Full Specs</a>
+              <button class="btn btn-primary" type="button" data-add-cart>Add to Cart</button>
+              <a href="../shop.html" class="btn btn-secondary">View All Colors</a>
             </div>
 
+            <!-- Co-brand -->
             <div class="product-co-brand">
               <img src="../assets/img/jewel-bait-logo.png" alt="Jewel Bait Company" />
               <div>
@@ -81,7 +122,7 @@
           <p>
             The Heavy Cover Football is our full-size football jig, built for the deepest, thickest water. The Jewel Football
             head features a flat spot and scoop design that gives the jig correct stance and maximum bottom action. Jewel's
-            full skirt design is available with a rattle option for extra vibration in stained or deep water. The Maximize
+            full skirt is available with a rattle option for extra vibration in stained or deep water. The Maximize
             hook-up-and-landing-ratio Jewel Football jig design ensures more bass make it to the boat.
           </p>
           <div class="product-meta">
@@ -106,6 +147,40 @@
       </div>
     </main>
 
+    <!-- Cart Drawer -->
+    <div class="cart-overlay" data-cart-overlay hidden></div>
+    <aside class="cart-drawer" data-cart-drawer aria-hidden="true" aria-labelledby="cart-title">
+      <div class="cart-drawer-header">
+        <div>
+          <p class="section-kicker">Checkout</p>
+          <h2 id="cart-title">Your Bass Binge Cart</h2>
+        </div>
+        <button class="icon-button" type="button" data-cart-close aria-label="Close cart">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+      <div class="cart-drawer-body">
+        <div class="cart-empty" data-cart-empty>
+          <h3>Your cart is ready when you are.</h3>
+          <p>Add a jig color and quantity, then you can review everything here before checkout.</p>
+          <button class="btn btn-secondary" type="button" data-cart-close>Keep Shopping</button>
+        </div>
+        <div class="cart-items" data-cart-items></div>
+      </div>
+      <div class="cart-drawer-footer">
+        <div class="cart-total-row">
+          <span>Subtotal</span>
+          <strong data-cart-subtotal>$0.00</strong>
+        </div>
+        <p class="cart-note">Shipping and taxes are calculated during checkout.</p>
+        <a class="btn btn-primary" href="../shop.html" data-checkout-link>Continue to Checkout</a>
+      </div>
+    </aside>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+
     <footer class="site-footer">
       <div class="container footer-row">
         <div class="footer-left">
@@ -121,5 +196,7 @@
     </footer>
 
     <script src="../assets/js/main.js" defer></script>
+    <script src="../assets/js/cart.js" defer></script>
+    <script src="../assets/js/product-page.js" defer></script>
   </body>
 </html>
