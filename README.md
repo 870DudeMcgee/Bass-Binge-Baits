@@ -22,9 +22,11 @@ Then visit `http://localhost:8080`.
 
 ## Shopify Setup
 
-The shop page links to published product pages on `bassbingebaits.myshopify.com`.
+The shop page now keeps product selection and cart review on the Bass Binge site, then sends customers to Shopify only for secure checkout.
 
-Product handles live in `assets/js/shopify-buy-button.js`. This static GitHub Pages site does not store Shopify admin credentials, passwords, or private API tokens.
+Product handles, variant IDs, color names, prices, and checkout URL generation live in `assets/js/shopify-buy-button.js`. This static site does not store Shopify admin credentials, passwords, or private API tokens. If Shopify products or variants change, refresh the embedded catalog in that file or replace it with Storefront API-backed catalog loading.
+
+For a Storefront API checkout handoff, add a public Storefront access token to `SHOPIFY_STORE.storefrontAccessToken` in `assets/js/shopify-buy-button.js`. Without that public token, the checkout button falls back to a Shopify cart permalink built from the embedded variant IDs.
 
 ## Form Setup
 
