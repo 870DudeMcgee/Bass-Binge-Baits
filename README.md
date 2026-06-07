@@ -20,14 +20,11 @@ python3 -m http.server 8080
 
 Then visit `http://localhost:8080`.
 
-## Shopify Buy Button Setup
+## Shopify Setup
 
-1. Open `assets/js/shopify-buy-button.js`.
-2. Replace `domain` with your Shopify domain.
-3. Replace `storefrontAccessToken` with your storefront API token.
-4. Replace product IDs in `products`.
+The shop page links to published product pages on `bassbingebaits.myshopify.com`.
 
-If placeholders remain, the page shows a message and product inquiry links.
+Product handles live in `assets/js/shopify-buy-button.js`. This static GitHub Pages site does not store Shopify admin credentials, passwords, or private API tokens.
 
 ## Form Setup
 
