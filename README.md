@@ -1,6 +1,6 @@
 # Bass Binge Website
 
-Static four-page marketing + commerce site for Bass Binge Jigs.
+Static four-page marketing + commerce site for Bass Binge Baits.
 
 ## Pages
 
@@ -27,7 +27,7 @@ Then visit `http://localhost:8080`.
 3. Replace `storefrontAccessToken` with your storefront API token.
 4. Replace product IDs in `products`.
 
-If placeholders remain, the page shows a message and fallback store links.
+If placeholders remain, the page shows a message and product inquiry links.
 
 ## Form Setup
 

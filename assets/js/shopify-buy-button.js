@@ -2,9 +2,10 @@ const SHOPIFY_CONFIG = {
   domain: 'example.myshopify.com',
   storefrontAccessToken: 'REPLACE_WITH_STOREFRONT_ACCESS_TOKEN',
   products: {
-    'shallow-grinder': 'REPLACE_WITH_PRODUCT_ID_1',
-    'deep-dragger': 'REPLACE_WITH_PRODUCT_ID_2',
-    'grass-punch': 'REPLACE_WITH_PRODUCT_ID_3'
+    'pro-spider-5-16': 'REPLACE_WITH_PRODUCT_ID_PRO_SPIDER_5_16',
+    'peewee-football-hd-1-2': 'REPLACE_WITH_PRODUCT_ID_PEEWEE_FOOTBALL_HD_1_2',
+    'heavy-cover-football-3-4': 'REPLACE_WITH_PRODUCT_ID_HEAVY_COVER_FOOTBALL_3_4',
+    'peewee-football-7-16': 'REPLACE_WITH_PRODUCT_ID_PEEWEE_FOOTBALL_7_16'
   }
 };
 
