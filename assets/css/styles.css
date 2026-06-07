@@ -1009,6 +1009,92 @@ select:focus,
   gap: var(--space-3);
 }
 
+/* Jewel Bait Company co-brand */
+.co-brand-logo {
+  width: clamp(80px, 18vw, 130px);
+  height: auto;
+  object-fit: contain;
+  opacity: 0.95;
+}
+
+.co-brand-header {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--sand);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.co-brand-header .cb-name {
+  font-family: "Alegreya", Georgia, serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+
+.co-brand-header .cb-sub {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--earth);
+}
+
+.co-brand-badge img {
+  width: 90px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.co-brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.co-brand-badge strong {
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .co-brand-header {
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+  }
+  .co-brand-header .cb-name {
+    font-size: 0.6rem;
+  }
+  .co-brand-header .cb-sub {
+    font-size: 0.55rem;
+  }
+  .co-brand-logo {
+    width: clamp(70px, 20vw, 100px);
+  }
+}
+
+@media (max-width: 520px) {
+  .co-brand-header {
+    display: none;
+  }
+  .co-brand-badge img {
+    width: 70px;
+  }
+  .co-brand-badge {
+    font-size: 0.72rem;
+  }
+  .co-brand-badge strong {
+    font-size: 0.78rem;
+  }
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(12px);
