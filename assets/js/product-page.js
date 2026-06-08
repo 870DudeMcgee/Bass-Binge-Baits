@@ -224,9 +224,11 @@
     index = Math.max(0, Math.min(index, totalImages - 1));
     currentSlide = index;
 
-    // Update track position
-    track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
-    track.style.webkitTransform = 'translateX(-' + (currentSlide * 100) + '%)';
+    // Track width = totalImages * 100%. Each slide occupies 1/totalImages of that width.
+    // translateX offset as a percentage of the track's own width:
+    var pct = (currentSlide / totalImages) * 100;
+    track.style.transform = 'translateX(-' + pct + '%)';
+    track.style.webkitTransform = 'translateX(-' + pct + '%)';
 
     // Update counter
     if (counterEl) {
