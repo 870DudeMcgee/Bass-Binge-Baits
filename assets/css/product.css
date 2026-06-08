@@ -337,6 +337,11 @@
   touch-action: none;
 }
 
+.product-gallery-slide {
+  width: 100%;
+  flex-shrink: 0;
+}
+
 .product-gallery-track img {
   width: 100%;
   height: auto;

@@ -276,6 +276,7 @@
   var touchStartX = 0;
   var touchStartY = 0;
   var touchEnded = false;
+  var touchEndX = null; // fallback for iOS Safari where preventDefault can clear changedTouches
   var SWIPE_THRESHOLD = 50; // minimum px to count as swipe
   var isTouching = false;
 
@@ -286,6 +287,7 @@
       if (totalImages <= 1) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
+      touchEndX = e.touches[0].clientX; // initial fallback value
       isTouching = true;
       touchEnded = false;
       // CRITICAL: preventDefault in touchstart (not touchmove) is needed on iOS Safari
@@ -295,6 +297,7 @@
 
     track.addEventListener('touchmove', function(e) {
       if (totalImages <= 1 || !isTouching) return;
+      touchEndX = e.touches[0].clientX; // continuous fallback for iOS
       // Unconditionally prevent page scroll while touching gallery
       e.preventDefault();
     }, { passive: false });
@@ -304,7 +307,9 @@
       touchEnded = true;
       isTouching = false;
       if (touchStartX === 0) return;
-      var endX = changedTouchesFor(e)[0].clientX;
+      var changed = changedTouchesFor(e);
+      var endX = (changed && changed.length > 0 ? changed[0].clientX : touchEndX);
+      if (endX === null || endX === 0) return;
       var delta = endX - touchStartX;
       if (Math.abs(delta) > SWIPE_THRESHOLD) {
         if (delta < 0) goNext();   // swipe left = next
