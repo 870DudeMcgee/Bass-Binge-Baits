@@ -279,28 +279,27 @@
   var SWIPE_THRESHOLD = 50; // minimum px to count as swipe
   var isTouching = false;
 
-  // Disable default swipe scrolling on gallery area
-  var galleryMain = galleryEl.querySelector('.product-gallery-main');
-  if (galleryMain) {
-    galleryMain.addEventListener('touchstart', function(e) {
+  // Disable default swipe scrolling on gallery track and listen on track (not galleryMain)
+  // touch-action: none is on .product-gallery-track (not parent), so listeners must be on track
+  if (track && totalImages > 1) {
+    track.addEventListener('touchstart', function(e) {
       if (totalImages <= 1) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       isTouching = true;
       touchEnded = false;
+      // CRITICAL: preventDefault in touchstart (not touchmove) is needed on iOS Safari
+      // to block the initial scroll gesture before the OS decides to page-scroll
+      e.preventDefault();
     }, { passive: false });
 
-    galleryMain.addEventListener('touchmove', function(e) {
+    track.addEventListener('touchmove', function(e) {
       if (totalImages <= 1 || !isTouching) return;
-      // Prevent vertical page scroll during gallery swipe
-      var deltaX = e.touches[0].clientX - touchStartX;
-      var deltaY = e.touches[0].clientY - touchStartY;
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        e.preventDefault();
-      }
+      // Unconditionally prevent page scroll while touching gallery
+      e.preventDefault();
     }, { passive: false });
 
-    galleryMain.addEventListener('touchend', function(e) {
+    track.addEventListener('touchend', function(e) {
       if (totalImages <= 1 || touchEnded) return;
       touchEnded = true;
       isTouching = false;
@@ -312,10 +311,6 @@
         else goPrev();              // swipe right = prev
       }
       touchStartX = 0;
-    });
-
-    galleryMain.addEventListener('touchstart', function() {
-      // reset touch state
     });
   }
 

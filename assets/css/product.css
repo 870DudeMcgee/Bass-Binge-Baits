@@ -333,6 +333,8 @@
   display: flex;
   transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform;
+  /* critical: must be on the element that receives touch events, NOT on parent galleryMain (which blocks child touches on iOS) */
+  touch-action: none;
 }
 
 .product-gallery-track img {
