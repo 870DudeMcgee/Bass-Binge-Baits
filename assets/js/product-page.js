@@ -288,7 +288,7 @@
       touchStartY = e.touches[0].clientY;
       isTouching = true;
       touchEnded = false;
-    }, { passive: true });
+    }, { passive: false });
 
     galleryMain.addEventListener('touchmove', function(e) {
       if (totalImages <= 1 || !isTouching) return;
