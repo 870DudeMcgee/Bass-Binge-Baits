@@ -40,7 +40,8 @@
     }
 
     if (addButton) {
-      addButton.disabled = !build;
+      addButton.disabled = !build || !build.isCheckoutable;
+      addButton.textContent = build && build.isCheckoutable ? 'Add to Cart' : 'Unavailable Online';
     }
 
     swatches.querySelectorAll('[data-color-key]').forEach(function (swatch) {
@@ -71,27 +72,41 @@
     label.textContent = 'Color';
     select.setAttribute('aria-label', 'Color for ' + product.title);
 
+    var defaultColor = catalog.firstCheckoutableColor(product, product.defaultWeightKey, 'no') ||
+      catalog.getColor(product, product.defaultColorKey) ||
+      product.colors[0];
+
     product.colors.forEach(function (color) {
       var option = document.createElement('option');
       var swatch = document.createElement('button');
       var swatchFill = document.createElement('span');
+      var isCheckoutable = catalog.isBuildCheckoutable({
+        productKey: product.key,
+        colorKey: color.key,
+        weightKey: product.defaultWeightKey,
+        rattleKey: 'no'
+      });
 
       option.value = color.key;
       option.textContent = color.name;
+      option.disabled = !isCheckoutable;
       select.appendChild(option);
 
       swatch.type = 'button';
       swatch.className = 'swatch-button';
       swatch.dataset.colorKey = color.key;
+      swatch.disabled = !isCheckoutable;
+      swatch.classList.toggle('is-unavailable', !isCheckoutable);
       swatch.style.setProperty('--swatch', color.swatch);
       swatch.setAttribute('aria-label', 'Select ' + color.name);
-      swatch.setAttribute('aria-pressed', String(color.key === product.defaultColorKey));
+      swatch.setAttribute('aria-pressed', String(defaultColor && color.key === defaultColor.key));
+      swatch.title = isCheckoutable ? color.name : color.name + ' is not available for online checkout yet';
       swatch.appendChild(swatchFill);
       swatches.appendChild(swatch);
     });
 
-    if (catalog.getColor(product, product.defaultColorKey)) {
-      select.value = product.defaultColorKey;
+    if (defaultColor) {
+      select.value = defaultColor.key;
     }
 
     decrease.type = 'button';
@@ -147,7 +162,7 @@
 
     swatches.addEventListener('click', function (event) {
       var swatch = event.target.closest('[data-color-key]');
-      if (!swatch) return;
+      if (!swatch || swatch.disabled) return;
 
       select.value = swatch.dataset.colorKey;
       updateSelectedProduct(card, product, select, swatches, addButton);

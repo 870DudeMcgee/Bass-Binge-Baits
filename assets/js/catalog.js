@@ -98,7 +98,7 @@
       search: '1/2 peewee football hd fruit fly bad bo craw essence lit pbj lite smokin pb',
       basePrice: 5,
       featuredImage: 'assets/img/products/pwf-hd-12-bad-bo.jpg',
-      defaultColorKey: 'fruit-fly',
+      defaultColorKey: 'craw-essence',
       defaultWeightKey: '1-2',
       rattle: {
         available: false,
@@ -165,7 +165,7 @@
       search: '3/4 heavy cover football fruit fly bad bo craw essence lit pbj lite smokin pb',
       basePrice: 5,
       featuredImage: 'assets/img/products/heavy-cover-football-3-4.jpg',
-      defaultColorKey: 'fruit-fly',
+      defaultColorKey: 'craw-essence',
       defaultWeightKey: '3-4',
       rattle: {
         available: true,
@@ -381,6 +381,24 @@
     return color.checkout;
   }
 
+  function isBuildCheckoutable(selection) {
+    var build = getJigBuild(selection);
+    return Boolean(build && build.isCheckoutable);
+  }
+
+  function firstCheckoutableColor(product, weightKey, rattleKey) {
+    if (!product) return null;
+
+    return product.colors.find(function (color) {
+      return isBuildCheckoutable({
+        productKey: product.key,
+        colorKey: color.key,
+        weightKey: weightKey || product.defaultWeightKey,
+        rattleKey: rattleKey || (product.rattle && product.rattle.defaultKey) || 'no'
+      });
+    }) || null;
+  }
+
   function getJigBuild(selection) {
     var product = getProduct(selection && selection.productKey);
     if (!product) return null;
@@ -466,6 +484,8 @@
     getRattleOptions: getRattleOptions,
     getRattleOption: getRattleOption,
     getCheckoutMapping: getCheckoutMapping,
+    isBuildCheckoutable: isBuildCheckoutable,
+    firstCheckoutableColor: firstCheckoutableColor,
     getJigBuild: getJigBuild,
     findProductByVariantId: findProductByVariantId,
     getSearchText: getSearchText,

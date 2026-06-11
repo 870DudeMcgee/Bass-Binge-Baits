@@ -673,6 +673,13 @@ button:disabled {
   transform: translateY(-1px);
 }
 
+.swatch-button.is-unavailable,
+.swatch-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  transform: none;
+}
+
 .product-purchase-row {
   display: grid;
   grid-template-columns: 1fr;

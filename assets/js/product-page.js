@@ -32,6 +32,7 @@
   var rattleGroup = document.querySelector('[data-rattle-group]');
   var colorNameDisplay = document.querySelector('[data-color-name]');
   var priceDisplay = document.querySelector('[data-price-display]');
+  var availabilityNode = document.querySelector('[data-product-availability]');
   var addCartBtn = document.querySelector('[data-add-cart]');
   var heroImg = document.querySelector('.product-hero-img');
 
@@ -110,6 +111,21 @@
     }) || rattleOptions[0];
   }
 
+  function isSelectionCheckoutable(color, weight, rattleKey) {
+    if (!usingCatalog || !catalog.isBuildCheckoutable) return true;
+
+    return catalog.isBuildCheckoutable({
+      productKey: product.key,
+      colorKey: color && color.key,
+      weightKey: weight && weight.key,
+      rattleKey: rattleKey || 'no'
+    });
+  }
+
+  function unavailableTitle(name) {
+    return name + ' is not available for online checkout yet';
+  }
+
   function selectedBuild() {
     var color = selectedColorOption();
     var weight = selectedWeightOption();
@@ -136,14 +152,15 @@
       rattleLabel: rattle.label,
       hasRattle: rattle.key === 'yes',
       price: basePrice + (rattle.priceDelta || 0),
-      image: color.image
+      image: color.image,
+      isCheckoutable: true
     };
   }
 
   function setSelectedColor(index, shouldSyncGallery) {
     selectedColor = Math.max(0, Math.min(index, colorOptions.length - 1));
+    updateOptionAvailability();
     updateColorDisplay();
-    updateSwatchStates();
 
     if (shouldSyncGallery) {
       updateGallery(selectedColor);
@@ -154,9 +171,62 @@
     if (!swatchesContainer) return;
 
     swatchesContainer.querySelectorAll('.swatch-button').forEach(function (swatch, index) {
+      var color = colorOptions[index];
+      var isCheckoutable = isSelectionCheckoutable(color, selectedWeightOption(), selectedRattleKey());
+
       swatch.classList.toggle('active', index === selectedColor);
+      swatch.classList.toggle('is-unavailable', !isCheckoutable);
+      swatch.disabled = !isCheckoutable;
       swatch.setAttribute('aria-pressed', String(index === selectedColor));
+      swatch.title = isCheckoutable ? color.name : unavailableTitle(color.name);
     });
+  }
+
+  function updateWeightStates() {
+    var container = optionContainer(weightGroup);
+    if (!container) return;
+
+    container.querySelectorAll('.weight-option').forEach(function (option, index) {
+      var input = option.querySelector('input');
+      var weight = weightOptions[index];
+      var label = weight ? weight.label + ' oz' : 'This weight';
+      var isCheckoutable = isSelectionCheckoutable(selectedColorOption(), weight, selectedRattleKey());
+
+      option.classList.toggle('active', index === selectedWeight);
+      option.classList.toggle('is-unavailable', !isCheckoutable);
+      option.title = isCheckoutable ? label : unavailableTitle(label);
+
+      if (input) {
+        input.disabled = !isCheckoutable;
+      }
+    });
+  }
+
+  function updateRattleStates() {
+    var container = optionContainer(rattleGroup);
+    if (!container) return;
+
+    container.querySelectorAll('.weight-option').forEach(function (option, index) {
+      var input = option.querySelector('input');
+      var rattle = rattleOptions[index];
+      var key = rattle ? rattle.key : 'no';
+      var label = rattle ? 'Rattle: ' + rattle.label : 'This rattle option';
+      var isCheckoutable = isSelectionCheckoutable(selectedColorOption(), selectedWeightOption(), key);
+
+      option.classList.toggle('active', selectedRattleKey() === key);
+      option.classList.toggle('is-unavailable', !isCheckoutable);
+      option.title = isCheckoutable ? label : unavailableTitle(label);
+
+      if (input) {
+        input.disabled = !isCheckoutable;
+      }
+    });
+  }
+
+  function updateOptionAvailability() {
+    updateSwatchStates();
+    updateWeightStates();
+    updateRattleStates();
   }
 
   function renderSwatches() {
@@ -224,9 +294,7 @@
 
       input.addEventListener('change', function () {
         selectedWeight = index;
-        container.querySelectorAll('.weight-option').forEach(function (option, optionIndex) {
-          option.classList.toggle('active', optionIndex === index);
-        });
+        updateOptionAvailability();
         updatePrice();
       });
 
@@ -268,10 +336,7 @@
         : rattle.label;
 
       input.addEventListener('change', function () {
-        container.querySelectorAll('.weight-option').forEach(function (option) {
-          option.classList.remove('active');
-        });
-        label.classList.add('active');
+        updateOptionAvailability();
         updatePrice();
       });
 
@@ -283,9 +348,23 @@
 
   function updatePrice() {
     var build = selectedBuild();
-    if (!build || !priceDisplay) return;
+    if (!build) return;
 
-    priceDisplay.textContent = catalog ? catalog.formatMoney(build.price) : '$' + build.price.toFixed(2);
+    if (priceDisplay) {
+      priceDisplay.textContent = catalog ? catalog.formatMoney(build.price) : '$' + build.price.toFixed(2);
+    }
+
+    if (availabilityNode) {
+      availabilityNode.textContent = build.isCheckoutable
+        ? 'Available for secure online checkout.'
+        : 'This option is not available for online checkout yet. Choose another option or contact us for availability.';
+      availabilityNode.classList.toggle('is-unavailable', !build.isCheckoutable);
+    }
+
+    if (addCartBtn) {
+      addCartBtn.disabled = !build.isCheckoutable;
+      addCartBtn.textContent = build.isCheckoutable ? 'Add to Cart' : 'Unavailable Online';
+    }
   }
 
   if (addCartBtn) {
@@ -294,7 +373,7 @@
       var added = null;
 
       event.preventDefault();
-      if (!build) return;
+      if (!build || !build.isCheckoutable) return;
 
       if (window.BassBingeCart && window.BassBingeCart.addJigBuild) {
         added = window.BassBingeCart.addJigBuild(build, 1);
@@ -327,6 +406,7 @@
     renderSwatches();
     renderWeights();
     renderRattleOptions();
+    updateOptionAvailability();
     updateColorDisplay();
     return;
   }
@@ -994,5 +1074,6 @@
   renderWeights();
   renderRattleOptions();
   updateGallery(currentSlide);
+  updateOptionAvailability();
   updateColorDisplay();
 })();
