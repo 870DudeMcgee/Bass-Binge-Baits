@@ -991,3 +991,24 @@ body.product-zoom-open {
     padding: 0.6rem 0.75rem;
   }
 }
+
+@media (max-width: 640px) {
+  .product-gallery-arrow,
+  .product-gallery-zoom-toggle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .product-gallery-arrow.prev {
+    left: 8px;
+  }
+
+  .product-gallery-arrow.next {
+    right: 8px;
+  }
+
+  .product-gallery-thumbs {
+    max-width: 100%;
+    grid-auto-columns: minmax(82px, 92px);
+  }
+}
