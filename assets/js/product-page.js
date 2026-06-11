@@ -1,27 +1,32 @@
 /*
- * Bass Binge Product Page — interactive color swatches, weight selectors, Add to Cart,
- * and swipeable product image gallery
- * Binds to .product-config element, populates swatches/weights dynamically
+ * Bass Binge Product Page
+ * Renders product options from the Bass Binge Product Catalog and keeps the
+ * selected Jig Build synchronized with the gallery and cart.
  */
 
 (function () {
+  'use strict';
+
   var configEl = document.querySelector('.product-config');
-  if (!configEl) return; // No product config found — not a product page
+  if (!configEl) return;
 
-  var productId = configEl.dataset.productId;
-  var productName = configEl.dataset.productName;
-  var basePrice = parseFloat(configEl.dataset.basePrice);
-  var colors = JSON.parse(configEl.dataset.colors);
-  var colorImages = JSON.parse(configEl.dataset.colorImages);
-  var defaultColor = parseInt(configEl.dataset.defaultColor);
-  var weights = JSON.parse(configEl.dataset.weights);
-  var defaultWeight = parseInt(configEl.dataset.defaultWeight);
-  var rattleAvailable = configEl.dataset.rattle === 'true';
+  var catalog = window.BassBingeCatalog;
+  var productKey = configEl.dataset.productKey || configEl.dataset.productId;
+  var product = catalog && catalog.getProduct(productKey);
+  var usingCatalog = Boolean(catalog && product);
+  var productName = usingCatalog ? product.title : configEl.dataset.productName;
+  var basePrice = usingCatalog ? product.basePrice : parseFloat(configEl.dataset.basePrice);
+  var colorOptions = usingCatalog ? product.colors : legacyColors();
+  var weightOptions = usingCatalog ? product.weights : legacyWeights();
+  var rattleAvailable = usingCatalog ? product.rattle.available : configEl.dataset.rattle === 'true';
+  var rattleOptions = usingCatalog ? catalog.getRattleOptions(product) : legacyRattleOptions();
+  var defaultRattleKey = usingCatalog ? product.rattle.defaultKey : 'no';
+  var selectedColor = usingCatalog ? indexForKey(colorOptions, product.defaultColorKey) : parseInt(configEl.dataset.defaultColor, 10);
+  var selectedWeight = usingCatalog ? indexForKey(weightOptions, product.defaultWeightKey) : parseInt(configEl.dataset.defaultWeight, 10);
 
-  var selectedColor = defaultColor;
-  var selectedWeight = defaultWeight;
+  if (selectedColor < 0 || Number.isNaN(selectedColor)) selectedColor = 0;
+  if (selectedWeight < 0 || Number.isNaN(selectedWeight)) selectedWeight = 0;
 
-  // DOM elements
   var swatchesContainer = document.querySelector('.variant-swatches');
   var weightGroup = document.querySelector('[data-weight-group]');
   var rattleGroup = document.querySelector('[data-rattle-group]');
@@ -30,224 +35,377 @@
   var addCartBtn = document.querySelector('[data-add-cart]');
   var heroImg = document.querySelector('.product-hero-img');
 
-  // ---- Render color swatches ----
+  function legacyColors() {
+    var names = parseDatasetJson('colors', []);
+    var images = parseDatasetJson('colorImages', []);
+
+    return names.map(function (name, index) {
+      return {
+        key: String(index),
+        name: name,
+        swatch: 'hsl(' + ((index / Math.max(names.length, 1)) * 360) + ', 45%, 42%)',
+        image: images[index] || images[0] || ''
+      };
+    });
+  }
+
+  function legacyWeights() {
+    return parseDatasetJson('weights', []).map(function (label, index) {
+      return {
+        key: String(index),
+        label: label,
+        priceDelta: 0
+      };
+    });
+  }
+
+  function legacyRattleOptions() {
+    return [
+      { key: 'no', label: 'No', priceDelta: 0 },
+      { key: 'yes', label: 'Yes', priceDelta: 0.5 }
+    ];
+  }
+
+  function parseDatasetJson(key, fallback) {
+    try {
+      return JSON.parse(configEl.dataset[key]) || fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  function indexForKey(options, key) {
+    return options.findIndex(function (option) {
+      return option.key === key;
+    });
+  }
+
+  function optionContainer(group) {
+    return group ? group.querySelector('.weight-options') || group : null;
+  }
+
+  function imagePath(path) {
+    return catalog ? catalog.assetPath(path) : path;
+  }
+
+  function selectedColorOption() {
+    return colorOptions[selectedColor] || colorOptions[0];
+  }
+
+  function selectedWeightOption() {
+    return weightOptions[selectedWeight] || weightOptions[0];
+  }
+
+  function selectedRattleKey() {
+    if (!rattleAvailable) return 'no';
+
+    var checked = document.querySelector('[name="rattle"]:checked');
+    return checked ? checked.value : defaultRattleKey;
+  }
+
+  function selectedRattleOption() {
+    var key = selectedRattleKey();
+    return rattleOptions.find(function (option) {
+      return option.key === key;
+    }) || rattleOptions[0];
+  }
+
+  function selectedBuild() {
+    var color = selectedColorOption();
+    var weight = selectedWeightOption();
+    var rattle = selectedRattleOption();
+
+    if (usingCatalog) {
+      return catalog.getJigBuild({
+        productKey: product.key,
+        colorKey: color.key,
+        weightKey: weight.key,
+        rattleKey: rattle.key
+      });
+    }
+
+    return {
+      id: [productKey, color.key, weight.key, rattle.key].join(':'),
+      productKey: productKey,
+      productTitle: productName,
+      colorKey: color.key,
+      colorName: color.name,
+      weightKey: weight.key,
+      weightLabel: weight.label,
+      rattleKey: rattle.key,
+      rattleLabel: rattle.label,
+      hasRattle: rattle.key === 'yes',
+      price: basePrice + (rattle.priceDelta || 0),
+      image: color.image
+    };
+  }
+
+  function setSelectedColor(index, shouldSyncGallery) {
+    selectedColor = Math.max(0, Math.min(index, colorOptions.length - 1));
+    updateColorDisplay();
+    updateSwatchStates();
+
+    if (shouldSyncGallery) {
+      updateGallery(selectedColor);
+    }
+  }
+
+  function updateSwatchStates() {
+    if (!swatchesContainer) return;
+
+    swatchesContainer.querySelectorAll('.swatch-button').forEach(function (swatch, index) {
+      swatch.classList.toggle('active', index === selectedColor);
+      swatch.setAttribute('aria-pressed', String(index === selectedColor));
+    });
+  }
+
   function renderSwatches() {
     if (!swatchesContainer) return;
-    swatchesContainer.innerHTML = '';
 
-    colors.forEach(function(colorName, i) {
-      var hue = (i / colors.length) * 360;
+    swatchesContainer.textContent = '';
+
+    colorOptions.forEach(function (color, index) {
       var swatch = document.createElement('button');
       swatch.type = 'button';
-      swatch.className = 'swatch-button' + (i === selectedColor ? ' active' : '');
-      swatch.setAttribute('aria-pressed', String(i === selectedColor));
-      swatch.setAttribute('aria-label', colorName);
-      swatch.title = colorName;
-      swatch.style.setProperty('--swatch', 'hsl(' + hue + ', 45%, 42%)');
-      swatchesContainer.appendChild(swatch);
-
-      swatch.addEventListener('click', function() {
-        selectedColor = i;
-        updateColorDisplay();
-        updateGallery(selectedColor);
-        // Update active class
-        swatchesContainer.querySelectorAll('.swatch-button').forEach(function(s, j) {
-          s.classList.toggle('active', j === i);
-          s.setAttribute('aria-pressed', String(j === i));
-        });
+      swatch.className = 'swatch-button' + (index === selectedColor ? ' active' : '');
+      swatch.setAttribute('aria-pressed', String(index === selectedColor));
+      swatch.setAttribute('aria-label', color.name);
+      swatch.title = color.name;
+      swatch.style.setProperty('--swatch', color.swatch);
+      swatch.addEventListener('click', function () {
+        setSelectedColor(index, true);
       });
+      swatchesContainer.appendChild(swatch);
     });
   }
 
   function updateColorDisplay() {
-    var name = colors[selectedColor];
-    if (colorNameDisplay) colorNameDisplay.textContent = name;
+    var color = selectedColorOption();
 
-    // Update image if we have color-specific images
-    if (heroImg && colorImages.length > 0) {
-      var idx = Math.min(selectedColor, colorImages.length - 1);
-      heroImg.src = colorImages[idx];
-      heroImg.alt = productName + ' in ' + name;
+    if (colorNameDisplay) colorNameDisplay.textContent = color.name;
+
+    if (heroImg && color.image) {
+      heroImg.src = imagePath(color.image);
+      heroImg.alt = productName + ' in ' + color.name;
     }
 
-    // Update price if rattle changes total
     updatePrice();
   }
 
-  // ---- Render weight selectors ----
   function renderWeights() {
-    if (!weightGroup) return;
-    weightGroup.innerHTML = '';
+    var container = optionContainer(weightGroup);
+    if (!container) return;
 
-    weights.forEach(function(w, i) {
+    container.textContent = '';
+
+    weightOptions.forEach(function (weight, index) {
       var label = document.createElement('label');
-      label.className = 'weight-option' + (i === selectedWeight ? ' active' : '');
-      label.innerHTML = '<input type="radio" name="weight" value="' + i + '"' + (i === selectedWeight ? ' checked' : '') + ' /><span class="weight-label">' + w + ' oz</span>';
-      weightGroup.appendChild(label);
+      var input = document.createElement('input');
+      var span = document.createElement('span');
 
-      label.addEventListener('click', function() {
-        selectedWeight = i;
-        // Update active class
-        weightGroup.querySelectorAll('.weight-option').forEach(function(w, j) {
-          w.classList.toggle('active', j === i);
+      label.className = 'weight-option' + (index === selectedWeight ? ' active' : '');
+      input.type = 'radio';
+      input.name = 'weight';
+      input.value = weight.key;
+      input.checked = index === selectedWeight;
+      span.className = 'weight-label';
+      span.textContent = weight.label + ' oz';
+
+      input.addEventListener('change', function () {
+        selectedWeight = index;
+        container.querySelectorAll('.weight-option').forEach(function (option, optionIndex) {
+          option.classList.toggle('active', optionIndex === index);
         });
         updatePrice();
       });
+
+      label.appendChild(input);
+      label.appendChild(span);
+      container.appendChild(label);
     });
   }
 
-  // ---- Update price ----
-  function updatePrice() {
-    var price = basePrice;
-    if (rattleAvailable) {
-      var rattleChecked = document.querySelector('[name="rattle"]:checked');
-      if (rattleChecked && rattleChecked.value === 'yes') price += 0.5;
+  function renderRattleOptions() {
+    if (!rattleGroup) return;
+
+    var container = optionContainer(rattleGroup);
+
+    if (!rattleAvailable) {
+      if (container) container.textContent = '';
+      rattleGroup.hidden = true;
+      return;
     }
-    if (priceDisplay) priceDisplay.textContent = '$' + price.toFixed(2);
-  }
 
-  // ---- Add to Cart ----
-  if (addCartBtn) {
-    addCartBtn.addEventListener('click', function(e) {
-      e.preventDefault();
+    if (!container) return;
 
-      var colorName = colors[selectedColor];
-      var weightName = weights[selectedWeight];
-      var price = basePrice;
+    rattleGroup.hidden = false;
+    container.textContent = '';
 
-      // Check rattle
-      var rattleChecked = document.querySelector('[name="rattle"]:checked');
-      if (rattleChecked && rattleChecked.value === 'yes') {
-        price += 0.5;
-      }
+    rattleOptions.forEach(function (rattle) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      var span = document.createElement('span');
 
-      var qty = 1;
-      var qtyInput = document.querySelector('[data-qty]');
-      if (qtyInput) qty = parseInt(qtyInput.value) || 1;
+      label.className = 'weight-option' + (rattle.key === defaultRattleKey ? ' active' : '');
+      input.type = 'radio';
+      input.name = 'rattle';
+      input.value = rattle.key;
+      input.checked = rattle.key === defaultRattleKey;
+      span.className = 'weight-label';
+      span.textContent = rattle.priceDelta
+        ? rattle.label + ' (+ $' + rattle.priceDelta.toFixed(2) + ')'
+        : rattle.label;
 
-      var itemId = productId + '-' + selectedColor + '-' + selectedWeight;
-      var itemFull = productName + ' — ' + colorName + ' / ' + weightName + ' oz';
+      input.addEventListener('change', function () {
+        container.querySelectorAll('.weight-option').forEach(function (option) {
+          option.classList.remove('active');
+        });
+        label.classList.add('active');
+        updatePrice();
+      });
 
-      // Add to cart
-      if (typeof cart !== 'undefined' && cart.addItem) {
-        cart.addItem(itemId, itemFull, colorName, weightName,
-          rattleChecked ? rattleChecked.value : 'No', price, qty,
-          heroImg ? heroImg.src : '');
-      }
-
-      // Show toast
-      var toast = document.querySelector('[data-toast]');
-      if (toast) {
-        toast.textContent = itemFull + ' added to cart';
-        toast.classList.add('visible');
-        setTimeout(function() { toast.classList.remove('visible'); }, 2500);
-      }
-
-      // Open cart drawer
-      var drawer = document.querySelector('[data-cart-drawer]');
-      var overlay = document.querySelector('[data-cart-overlay]');
-      if (drawer) drawer.setAttribute('aria-hidden', 'false');
-      if (overlay) overlay.removeAttribute('hidden');
+      label.appendChild(input);
+      label.appendChild(span);
+      container.appendChild(label);
     });
   }
 
-  // ============================================================
-  // Swipeable Product Gallery
-  // ============================================================
+  function updatePrice() {
+    var build = selectedBuild();
+    if (!build || !priceDisplay) return;
+
+    priceDisplay.textContent = catalog ? catalog.formatMoney(build.price) : '$' + build.price.toFixed(2);
+  }
+
+  if (addCartBtn) {
+    addCartBtn.addEventListener('click', function (event) {
+      var build = selectedBuild();
+      var added = null;
+
+      event.preventDefault();
+      if (!build) return;
+
+      if (window.BassBingeCart && window.BassBingeCart.addJigBuild) {
+        added = window.BassBingeCart.addJigBuild(build, 1);
+      } else if (typeof cart !== 'undefined' && cart.addItem) {
+        cart.addItem(
+          build.id,
+          build.productTitle + ' - ' + build.colorName + ' / ' + build.weightLabel + ' oz',
+          build.colorName,
+          build.weightLabel,
+          build.rattleKey,
+          build.price,
+          1,
+          heroImg ? heroImg.src : ''
+        );
+        added = build;
+      }
+
+      if (added && window.BassBingeCart && window.BassBingeCart.showToast) {
+        window.BassBingeCart.showToast(build.colorName + ' added to cart');
+      }
+
+      if (window.BassBingeCart && window.BassBingeCart.openCart) {
+        window.BassBingeCart.openCart();
+      }
+    });
+  }
 
   var galleryEl = document.querySelector('[data-gallery]');
-  if (!galleryEl) return; // No gallery element — skip
+  if (!galleryEl) {
+    renderSwatches();
+    renderWeights();
+    renderRattleOptions();
+    updateColorDisplay();
+    return;
+  }
 
   var track = galleryEl.querySelector('.product-gallery-track');
   var thumbs = galleryEl.querySelector('.product-gallery-thumbs');
   var prevBtn = galleryEl.querySelector('.product-gallery-arrow.prev');
   var nextBtn = galleryEl.querySelector('.product-gallery-arrow.next');
   var counterEl = galleryEl.querySelector('.product-gallery-counter');
+  var images = colorOptions.map(function (color) {
+    return {
+      src: imagePath(color.image),
+      alt: productName + ' in ' + color.name,
+      colorName: color.name
+    };
+  });
+  var totalImages = images.length;
+  var currentSlide = selectedColor;
 
-  // Build gallery images from colorImages (one per color)
-  var totalImages = colorImages.length; // effectively 6 for all products
-  var currentSlide = defaultColor;
-  var images = []; // { src, alt }
-  for (var gi = 0; gi < colors.length; gi++) {
-    var colorSrc = colorImages[gi];
-    var colorAlt = productName + ' in ' + colors[gi];
-    images.push({ src: colorSrc, alt: colorAlt });
-  }
-
-  // Build track slides
   function buildTrack() {
-    track.innerHTML = '';
-    for (var i = 0; i < images.length; i++) {
-      (function(idx) {
-        var wrapper = document.createElement('div');
-        wrapper.className = 'product-gallery-slide';
-        var img = document.createElement('img');
-        img.src = images[idx].src;
-        img.alt = images[idx].alt;
-        img.draggable = false;
-        img.loading = idx === currentSlide ? 'eager' : 'lazy';
-        wrapper.appendChild(img);
-        track.appendChild(wrapper);
-      })(i);
-    }
+    if (!track) return;
+
+    track.textContent = '';
+
+    images.forEach(function (image, index) {
+      var wrapper = document.createElement('div');
+      var img = document.createElement('img');
+
+      wrapper.className = 'product-gallery-slide';
+      img.src = image.src;
+      img.alt = image.alt;
+      img.draggable = false;
+      img.loading = index === currentSlide ? 'eager' : 'lazy';
+      wrapper.appendChild(img);
+      track.appendChild(wrapper);
+    });
   }
 
-  // Build thumbnails
   function buildThumbs() {
-    thumbs.innerHTML = '';
-    for (var i = 0; i < images.length; i++) {
-      (function(idx) {
-        var thumbBtn = document.createElement('button');
-        thumbBtn.type = 'button';
-        thumbBtn.className = 'product-gallery-thumb' + (idx === currentSlide ? ' active' : '');
-        thumbBtn.setAttribute('aria-label', 'View ' + (idx + 1));
-        thumbBtn.setAttribute('aria-pressed', String(idx === currentSlide));
+    if (!thumbs) return;
 
-        var thumbImg = document.createElement('img');
-        thumbImg.src = images[idx].src;
-        thumbImg.alt = 'Thumbnail for ' + colors[idx];
-        thumbImg.draggable = false;
-        thumbBtn.appendChild(thumbImg);
+    thumbs.textContent = '';
 
-        thumbBtn.addEventListener('click', function() {
-          goToSlide(idx);
-        });
+    images.forEach(function (image, index) {
+      var thumbBtn = document.createElement('button');
+      var thumbImg = document.createElement('img');
 
-        thumbs.appendChild(thumbBtn);
-      })(i);
-    }
+      thumbBtn.type = 'button';
+      thumbBtn.className = 'product-gallery-thumb' + (index === currentSlide ? ' active' : '');
+      thumbBtn.setAttribute('aria-label', 'View ' + image.colorName);
+      thumbBtn.setAttribute('aria-pressed', String(index === currentSlide));
+
+      thumbImg.src = image.src;
+      thumbImg.alt = 'Thumbnail for ' + image.colorName;
+      thumbImg.draggable = false;
+      thumbBtn.appendChild(thumbImg);
+
+      thumbBtn.addEventListener('click', function () {
+        goToSlide(index);
+      });
+
+      thumbs.appendChild(thumbBtn);
+    });
   }
 
-  // Update position
   function updateGallery(index) {
-    if (totalImages <= 1) return;
+    if (!track || totalImages < 1) return;
+
     index = Math.max(0, Math.min(index, totalImages - 1));
     currentSlide = index;
 
-    // Track width = totalImages * 100%. Each slide occupies 1/totalImages of that width.
-    // translateX offset as a percentage of the track's own width:
-    var pct = (currentSlide / totalImages) * 100;
-    track.style.transform = 'translateX(-' + pct + '%)';
-    track.style.webkitTransform = 'translateX(-' + pct + '%)';
+    // Update track position
+    track.style.transform = 'translateX(-' + (currentSlide * 100 / totalImages) + '%)';
+    track.style.webkitTransform = 'translateX(-' + (currentSlide * 100 / totalImages) + '%)';
 
-    // Update counter
     if (counterEl) {
       counterEl.textContent = (currentSlide + 1) + ' / ' + totalImages;
     }
 
-    // Update thumbnails
-    var thumbBtns = thumbs.querySelectorAll('.product-gallery-thumb');
-    thumbBtns.forEach(function(btn, j) {
-      btn.classList.toggle('active', j === currentSlide);
-      btn.setAttribute('aria-pressed', String(j === currentSlide));
-    });
+    if (thumbs) {
+      thumbs.querySelectorAll('.product-gallery-thumb').forEach(function (button, buttonIndex) {
+        button.classList.toggle('active', buttonIndex === currentSlide);
+        button.setAttribute('aria-pressed', String(buttonIndex === currentSlide));
+      });
+    }
 
-    // Update arrows visibility
     if (prevBtn) prevBtn.style.display = currentSlide === 0 ? 'none' : '';
     if (nextBtn) nextBtn.style.display = currentSlide === totalImages - 1 ? 'none' : '';
 
-    // Update hero fallback image
-    if (heroImg) {
+    if (heroImg && images[currentSlide]) {
       heroImg.src = images[currentSlide].src;
       heroImg.alt = images[currentSlide].alt;
     }
@@ -255,8 +413,10 @@
 
   function goToSlide(index) {
     index = Math.max(0, Math.min(index, totalImages - 1));
-    currentSlide = index;
-    updateGallery(currentSlide);
+    selectedColor = index;
+    updateColorDisplay();
+    updateSwatchStates();
+    updateGallery(index);
   }
 
   function goPrev() {
@@ -274,80 +434,77 @@
   if (prevBtn) prevBtn.addEventListener('click', goPrev);
   if (nextBtn) nextBtn.addEventListener('click', goNext);
 
-  // ---- Touch/swipe support ----
   var touchStartX = 0;
-  var touchStartY = 0;
+  var touchEndX = null;
   var touchEnded = false;
-  var touchEndX = null; // fallback for iOS Safari where preventDefault can clear changedTouches
-  var SWIPE_THRESHOLD = 50; // minimum px to count as swipe
+  var swipeThreshold = 50;
   var isTouching = false;
 
-  // Disable default swipe scrolling on gallery track and listen on track (not galleryMain)
-  // touch-action: none is on .product-gallery-track (not parent), so listeners must be on track
   if (track && totalImages > 1) {
-    track.addEventListener('touchstart', function(e) {
-      if (totalImages <= 1) return;
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      touchEndX = e.touches[0].clientX; // initial fallback value
+    track.addEventListener('touchstart', function (event) {
+      touchStartX = event.touches[0].clientX;
+      touchEndX = event.touches[0].clientX;
       isTouching = true;
       touchEnded = false;
-      // CRITICAL: preventDefault in touchstart (not touchmove) is needed on iOS Safari
-      // to block the initial scroll gesture before the OS decides to page-scroll
-      e.preventDefault();
+      event.preventDefault();
     }, { passive: false });
 
-    track.addEventListener('touchmove', function(e) {
-      if (totalImages <= 1 || !isTouching) return;
-      touchEndX = e.touches[0].clientX; // continuous fallback for iOS
-      // Unconditionally prevent page scroll while touching gallery
-      e.preventDefault();
+    track.addEventListener('touchmove', function (event) {
+      if (!isTouching) return;
+      touchEndX = event.touches[0].clientX;
+      event.preventDefault();
     }, { passive: false });
 
-    track.addEventListener('touchend', function(e) {
-      if (totalImages <= 1 || touchEnded) return;
+    track.addEventListener('touchend', function (event) {
+      var changed = changedTouchesFor(event);
+      var endX;
+      var delta;
+
+      if (touchEnded) return;
       touchEnded = true;
       isTouching = false;
       if (touchStartX === 0) return;
-      var changed = changedTouchesFor(e);
-      var endX = (changed && changed.length > 0 ? changed[0].clientX : touchEndX);
+
+      endX = changed && changed.length > 0 ? changed[0].clientX : touchEndX;
       if (endX === null || endX === 0) return;
-      var delta = endX - touchStartX;
-      if (Math.abs(delta) > SWIPE_THRESHOLD) {
-        if (delta < 0) goNext();   // swipe left = next
-        else goPrev();              // swipe right = prev
+
+      delta = endX - touchStartX;
+      if (Math.abs(delta) > swipeThreshold) {
+        if (delta < 0) goNext();
+        else goPrev();
       }
+
       touchStartX = 0;
     });
   }
 
-  function changedTouchesFor(e) {
-    return e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches : [e];
+  function changedTouchesFor(event) {
+    return event.changedTouches && event.changedTouches.length > 0 ? event.changedTouches : [event];
   }
 
-  // ---- Mouse drag support for desktop ----
   var mouseDown = false;
   var mouseStartX = 0;
-  var galleryMainEl = track || galleryEl;
 
-  function mouseDownHandler(e) {
+  function mouseDownHandler(event) {
     mouseDown = true;
-    mouseStartX = e.clientX;
+    mouseStartX = event.clientX;
     track.classList.add('dragging');
   }
 
-  function mouseMoveHandler(e) {
+  function mouseMoveHandler() {
     if (!mouseDown) return;
-    // allow horizontal drag visual feedback if CSS supports it
   }
 
-  function mouseUpHandler(e) {
+  function mouseUpHandler(event) {
+    var delta;
+
     if (!mouseDown) return;
     mouseDown = false;
     track.classList.remove('dragging');
     if (totalImages <= 1) return;
-    var delta = e.clientX - mouseStartX;
-    if (Math.abs(delta) > SWIPE_THRESHOLD) {
+
+    delta = event.clientX - mouseStartX;
+    if (Math.abs(delta) > swipeThreshold) {
       if (delta < 0) goNext();
       else goPrev();
     }
@@ -359,21 +516,23 @@
     document.addEventListener('mouseup', mouseUpHandler);
   }
 
-  // ---- Keyboard support ----
-  galleryEl.addEventListener('keydown', function(e) {
+  galleryEl.addEventListener('keydown', function (event) {
     if (totalImages <= 1) return;
-    if (e.key === 'ArrowLeft') { goPrev(); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { goNext(); e.preventDefault(); }
+    if (event.key === 'ArrowLeft') {
+      goPrev();
+      event.preventDefault();
+    }
+    if (event.key === 'ArrowRight') {
+      goNext();
+      event.preventDefault();
+    }
   });
 
-  // ---- Init gallery ----
   buildTrack();
   buildThumbs();
-  updateGallery(currentSlide);
-
-  // ---- Init ----
   renderSwatches();
   renderWeights();
+  renderRattleOptions();
+  updateGallery(currentSlide);
   updateColorDisplay();
-  updatePrice();
 })();
