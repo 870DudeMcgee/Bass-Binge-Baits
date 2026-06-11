@@ -90,6 +90,10 @@
       swatches.appendChild(swatch);
     });
 
+    if (catalog.getColor(product, product.defaultColorKey)) {
+      select.value = product.defaultColorKey;
+    }
+
     decrease.type = 'button';
     decrease.textContent = '-';
     decrease.setAttribute('aria-label', 'Decrease quantity');

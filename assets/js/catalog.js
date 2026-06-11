@@ -95,10 +95,10 @@
       pagePath: 'products/peewee-football-hd.html',
       title: '1/2 PeeWee Football HD',
       shortTitle: 'PeeWee Football HD',
-      search: '1/2 peewee football hd magic brownie fine bad bo craw essence lit pbj lite smokin pb',
+      search: '1/2 peewee football hd fruit fly bad bo craw essence lit pbj lite smokin pb',
       basePrice: 5,
-      featuredImage: 'assets/img/products/peewee-football-hd-1-2.jpg',
-      defaultColorKey: 'magic-brownie-fine',
+      featuredImage: 'assets/img/products/pwf-hd-12-bad-bo.jpg',
+      defaultColorKey: 'fruit-fly',
       defaultWeightKey: '1-2',
       rattle: {
         available: false,
@@ -110,45 +110,45 @@
       ],
       colors: [
         {
-          key: 'magic-brownie-fine',
-          name: 'Magic Brownie Fine',
-          swatch: '#5b3f2f',
-          image: 'assets/img/products/pwf-hd-12-magic-brownie.jpg',
-          checkout: null
-        },
-        {
-          key: 'bad-bo',
-          name: 'Bad B.O.',
-          swatch: '#22352a',
+          key: 'fruit-fly',
+          name: 'Fruit Fly',
+          swatch: '#6b7365',
           image: 'assets/img/products/pwf-hd-12-bad-bo.jpg',
-          checkout: { variantId: 50149134336167, title: 'BAD B.O.' }
+          checkout: null
         },
         {
           key: 'craw-essence',
           name: 'Craw Essence',
           swatch: '#8a4830',
-          image: 'assets/img/products/pwf-hd-12-craw-essence.jpg',
+          image: 'assets/img/products/pwf-hd-12-pbj-lite.jpg',
           checkout: { variantId: 50121430335655, title: 'Craw Essence' }
+        },
+        {
+          key: 'bad-bo',
+          name: 'Bad B.O.',
+          swatch: '#22352a',
+          image: 'assets/img/products/pwf-hd-12-smokin-pb.jpg',
+          checkout: { variantId: 50149134336167, title: 'BAD B.O.' }
         },
         {
           key: 'lit',
           name: 'Lit',
           swatch: '#a75c32',
-          image: 'assets/img/products/pwf-hd-12-lit.jpg',
+          image: 'assets/img/products/pwf-hd-12-lit-single.jpg',
           checkout: { variantId: 50149443502247, title: 'Lit' }
         },
         {
           key: 'pbj-lite',
           name: 'PBJ Lite',
           swatch: '#5d4a67',
-          image: 'assets/img/products/pwf-hd-12-pbj-lite.jpg',
+          image: 'assets/img/products/pwf-hd-12-extras.jpg',
           checkout: { variantId: 50149978341543, title: 'PBJ Lite' }
         },
         {
           key: 'smokin-pb',
           name: 'Smokin PB',
           swatch: '#4d4138',
-          image: 'assets/img/products/pwf-hd-12-smokin-pb.jpg',
+          image: 'assets/img/products/pwf-hd-12-smokin-pb-single.jpg',
           checkout: { variantId: 50150079266983, title: 'Smokin PB' }
         }
       ]
@@ -162,10 +162,10 @@
       pagePath: 'products/heavy-cover-football.html',
       title: '3/4 Heavy Cover Football',
       shortTitle: 'Heavy Cover Football',
-      search: '3/4 heavy cover football magic brownie bad bo craw essence lit pbj lite smokin pb',
+      search: '3/4 heavy cover football fruit fly bad bo craw essence lit pbj lite smokin pb',
       basePrice: 5,
       featuredImage: 'assets/img/products/heavy-cover-football-3-4.jpg',
-      defaultColorKey: 'magic-brownie',
+      defaultColorKey: 'fruit-fly',
       defaultWeightKey: '3-4',
       rattle: {
         available: true,
@@ -177,18 +177,11 @@
       ],
       colors: [
         {
-          key: 'magic-brownie',
-          name: 'Magic Brownie',
-          swatch: '#5b3f2f',
-          image: 'assets/img/products/hcf-34-magic-brownie.jpg',
+          key: 'fruit-fly',
+          name: 'Fruit Fly',
+          swatch: '#6b7365',
+          image: 'assets/img/products/heavy-cover-football-3-4.jpg',
           checkout: null
-        },
-        {
-          key: 'bad-bo',
-          name: 'Bad B.O.',
-          swatch: '#22352a',
-          image: 'assets/img/products/hcf-34-bad-bo.jpg',
-          checkout: { variantId: 50212502536359, title: 'BAD B.O.' }
         },
         {
           key: 'craw-essence',
@@ -198,24 +191,31 @@
           checkout: { variantId: 50212502503591, title: 'Craw Essence' }
         },
         {
+          key: 'bad-bo',
+          name: 'Bad B.O.',
+          swatch: '#22352a',
+          image: 'assets/img/products/hcf-34-lit.jpg',
+          checkout: { variantId: 50212502536359, title: 'BAD B.O.' }
+        },
+        {
           key: 'lit',
           name: 'Lit',
           swatch: '#a75c32',
-          image: 'assets/img/products/hcf-34-lit.jpg',
+          image: 'assets/img/products/hcf-34-pbj-lite.jpg',
           checkout: { variantId: 50212502569127, title: 'Lit' }
         },
         {
           key: 'pbj-lite',
           name: 'PBJ Lite',
           swatch: '#5d4a67',
-          image: 'assets/img/products/hcf-34-pbj-lite.jpg',
+          image: 'assets/img/products/hcf-34-smokin-pb.jpg',
           checkout: { variantId: 50212502601895, title: 'PBJ Lite' }
         },
         {
           key: 'smokin-pb',
           name: 'Smokin PB',
           swatch: '#4d4138',
-          image: 'assets/img/products/hcf-34-smokin-pb.jpg',
+          image: 'assets/img/products/hcf-34-extras.jpg',
           checkout: { variantId: 50212502634663, title: 'Smokin PB' }
         }
       ]
@@ -231,7 +231,7 @@
       shortTitle: 'PeeWee Football',
       search: '7/16 peewee football blackberry smoothie magic brownie fine ryry special fine biggie smalls a little lit ogre 5/16 3/16',
       basePrice: 5,
-      featuredImage: 'assets/img/products/peewee-football-7-16.jpg',
+      featuredImage: 'assets/img/products/pwf-716-a-little-lit.jpg',
       defaultColorKey: 'blackberry-smoothie',
       defaultWeightKey: '7-16',
       rattle: {
@@ -246,45 +246,45 @@
       ],
       colors: [
         {
-          key: 'magic-brownie-fine',
-          name: 'Magic Brownie Fine',
-          swatch: '#5b3f2f',
-          image: 'assets/img/products/pwf-716-magic-brownie.jpg',
-          checkout: { variantId: 50250725687463, title: 'Magic Brownie' }
-        },
-        {
           key: 'blackberry-smoothie',
           name: 'Blackberry Smoothie',
           swatch: '#2d1631',
-          image: 'assets/img/products/pwf-716-blackberry-smoothie.jpg',
+          image: 'assets/img/products/pwf-716-a-little-lit.jpg',
           checkout: { variantId: 50250391388327, title: 'Blackberry Smoothie' }
+        },
+        {
+          key: 'magic-brownie-fine',
+          name: 'Magic Brownie Fine',
+          swatch: '#5b3f2f',
+          image: 'assets/img/products/pwf-716-ryry-special.jpg',
+          checkout: { variantId: 50250725687463, title: 'Magic Brownie' }
         },
         {
           key: 'ryry-special-fine',
           name: 'RyRy Special Fine',
           swatch: '#6a4e43',
-          image: 'assets/img/products/pwf-716-ryry-special.jpg',
+          image: 'assets/img/products/pwf-716-ogre.jpg',
           checkout: { variantId: 50250725720231, title: 'RyRy Special' }
-        },
-        {
-          key: 'a-little-lit',
-          name: 'A Little Lit',
-          swatch: '#79513a',
-          image: 'assets/img/products/pwf-716-a-little-lit.jpg',
-          checkout: { variantId: 50250877632679, title: 'A Little Lit' }
         },
         {
           key: 'biggie-smalls',
           name: 'Biggie Smalls',
           swatch: '#2f2b25',
-          image: 'assets/img/products/pwf-716-biggie-smalls.jpg',
+          image: 'assets/img/products/pwf-716-blackberry-smoothie.jpg',
           checkout: { variantId: 50250877599911, title: 'Biggie Smalls' }
+        },
+        {
+          key: 'a-little-lit',
+          name: 'A Little Lit',
+          swatch: '#79513a',
+          image: 'assets/img/products/pwf-716-biggie-smalls.jpg',
+          checkout: { variantId: 50250877632679, title: 'A Little Lit' }
         },
         {
           key: 'ogre',
           name: 'Ogre',
           swatch: '#505237',
-          image: 'assets/img/products/pwf-716-ogre.jpg',
+          image: 'assets/img/products/pwf-716-extras.jpg',
           checkout: { variantId: 50250877665447, title: 'Ogre' }
         }
       ]
