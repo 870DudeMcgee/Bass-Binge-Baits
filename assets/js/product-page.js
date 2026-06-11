@@ -360,6 +360,9 @@
   var zoomNextBtn = null;
   var zoomReturnFocus = null;
   var zoomTouchPointerId = null;
+  var zoomTouchStartX = 0;
+  var zoomTouchStartY = 0;
+  var zoomTouchMoved = false;
 
   if (galleryEl) {
     galleryEl.setAttribute('tabindex', '0');
@@ -427,9 +430,13 @@
     if (!zoomStage) return;
 
     zoomStage.classList.remove('is-zooming');
+    zoomStage.classList.remove('is-zoom-locked');
     zoomStage.style.setProperty('--zoom-x', '50%');
     zoomStage.style.setProperty('--zoom-y', '50%');
     zoomTouchPointerId = null;
+    zoomTouchStartX = 0;
+    zoomTouchStartY = 0;
+    zoomTouchMoved = false;
   }
 
   function updateZoomViewer() {
@@ -487,28 +494,74 @@
     setZoomPosition(event, zoomImg, zoomStage);
   }
 
+  function isTouchZoomEvent(event) {
+    return event && (event.pointerType === 'touch' || event.pointerType === 'pen');
+  }
+
   function startModalZoom(event) {
     if (!zoomStage || !zoomImg) return;
-    if (event.pointerType === 'touch' && zoomTouchPointerId !== null) return;
-
-    if (event.pointerType === 'touch') {
-      zoomTouchPointerId = event.pointerId;
-      if (zoomStage.setPointerCapture) zoomStage.setPointerCapture(event.pointerId);
-    }
+    if (isTouchZoomEvent(event)) return;
 
     zoomStage.classList.add('is-zooming');
     setModalZoomPosition(event);
   }
 
+  function startModalTouchTracking(event) {
+    if (!isTouchZoomEvent(event) || !zoomStage || !zoomImg) return;
+    if (zoomTouchPointerId !== null) return;
+
+    zoomTouchPointerId = event.pointerId;
+    zoomTouchStartX = event.clientX;
+    zoomTouchStartY = event.clientY;
+    zoomTouchMoved = false;
+
+    if (zoomStage.setPointerCapture) {
+      zoomStage.setPointerCapture(event.pointerId);
+    }
+
+    event.preventDefault();
+  }
+
   function moveModalZoom(event) {
-    if (!zoomStage || !zoomStage.classList.contains('is-zooming')) return;
-    if (zoomTouchPointerId !== null && event.pointerId !== zoomTouchPointerId) return;
+    var deltaX, deltaY;
+
+    if (!zoomStage || !zoomImg) return;
+
+    if (isTouchZoomEvent(event)) {
+      if (event.pointerId !== zoomTouchPointerId) return;
+
+      deltaX = event.clientX - zoomTouchStartX;
+      deltaY = event.clientY - zoomTouchStartY;
+      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+        zoomTouchMoved = true;
+      }
+
+      if (zoomStage.classList.contains('is-zoom-locked')) {
+        setModalZoomPosition(event);
+      }
+
+      event.preventDefault();
+      return;
+    }
+
+    if (!zoomStage.classList.contains('is-zooming')) return;
 
     setModalZoomPosition(event);
   }
 
   function endModalZoom(event) {
-    if (event && event.pointerType === 'touch' && event.pointerId !== zoomTouchPointerId) return;
+    if (!zoomStage) return;
+
+    if (!isTouchZoomEvent(event)) {
+      zoomStage.classList.remove('is-zooming');
+      if (!zoomStage.classList.contains('is-zoom-locked')) {
+        zoomStage.style.setProperty('--zoom-x', '50%');
+        zoomStage.style.setProperty('--zoom-y', '50%');
+      }
+      return;
+    }
+
+    if (event.type !== 'pointerup' || event.pointerId !== zoomTouchPointerId) return;
 
     if (event && zoomStage && zoomStage.releasePointerCapture) {
       try {
@@ -518,7 +571,39 @@
       }
     }
 
-    resetModalZoom();
+    if (!zoomTouchMoved) {
+      if (zoomStage.classList.contains('is-zoom-locked')) {
+        zoomStage.classList.remove('is-zoom-locked');
+        zoomStage.style.setProperty('--zoom-x', '50%');
+        zoomStage.style.setProperty('--zoom-y', '50%');
+      } else {
+        setModalZoomPosition(event);
+        zoomStage.classList.add('is-zoom-locked');
+      }
+    }
+
+    zoomTouchPointerId = null;
+    zoomTouchStartX = 0;
+    zoomTouchStartY = 0;
+    zoomTouchMoved = false;
+    event.preventDefault();
+  }
+
+  function cancelModalTouchTracking(event) {
+    if (!isTouchZoomEvent(event) || event.pointerId !== zoomTouchPointerId) return;
+
+    if (zoomStage && zoomStage.releasePointerCapture) {
+      try {
+        zoomStage.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        // Some browsers throw if pointer capture has already been released.
+      }
+    }
+
+    zoomTouchPointerId = null;
+    zoomTouchStartX = 0;
+    zoomTouchStartY = 0;
+    zoomTouchMoved = false;
   }
 
   function ensureZoomViewer() {
@@ -583,13 +668,12 @@
           endModalZoom(event);
         }
       });
-      zoomStage.addEventListener('pointerdown', function (event) {
-        if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-          startModalZoom(event);
-        }
-      });
+      zoomStage.addEventListener('pointerdown', startModalTouchTracking);
       zoomStage.addEventListener('pointerup', endModalZoom);
-      zoomStage.addEventListener('pointercancel', endModalZoom);
+      zoomStage.addEventListener('pointercancel', cancelModalTouchTracking);
+      zoomStage.addEventListener('contextmenu', function (event) {
+        event.preventDefault();
+      });
     }
   }
 

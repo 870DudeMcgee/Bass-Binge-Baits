@@ -437,6 +437,8 @@
   display: block;
   flex-shrink: 0;
   -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  user-select: none;
   transform-origin: var(--zoom-x, 50%) var(--zoom-y, 50%);
   transition: transform 0.2s ease;
   will-change: transform;
@@ -721,10 +723,13 @@ body.product-zoom-open {
     #fff;
   cursor: zoom-in;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
-.product-zoom-stage.is-zooming {
+.product-zoom-stage.is-zooming,
+.product-zoom-stage.is-zoom-locked {
   cursor: zoom-out;
 }
 
@@ -740,9 +745,13 @@ body.product-zoom-open {
   transition: transform 0.16s ease;
   will-change: transform;
   -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  pointer-events: none;
+  user-select: none;
 }
 
-.product-zoom-stage.is-zooming .product-zoom-img {
+.product-zoom-stage.is-zooming .product-zoom-img,
+.product-zoom-stage.is-zoom-locked .product-zoom-img {
   transform: scale(2.55);
 }
 
@@ -945,7 +954,8 @@ body.product-zoom-open {
     padding: 0.75rem;
   }
 
-  .product-zoom-stage.is-zooming .product-zoom-img {
+  .product-zoom-stage.is-zooming .product-zoom-img,
+  .product-zoom-stage.is-zoom-locked .product-zoom-img {
     transform: scale(2.25);
   }
 
