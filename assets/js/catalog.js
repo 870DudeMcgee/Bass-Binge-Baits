@@ -60,7 +60,7 @@
           key: 'ryry-special-fine',
           name: 'RyRy Special Fine',
           swatch: '#6a4e43',
-          image: 'assets/img/products/pshd-ryry-special-fine.jpg',
+          image: 'assets/img/products/pshd-ryry-special-fine-tight.jpg',
           checkout: { variantId: 50253364330663, title: 'RyRy Special' }
         },
         {
