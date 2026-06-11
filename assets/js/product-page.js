@@ -348,6 +348,18 @@
   });
   var totalImages = images.length;
   var currentSlide = selectedColor;
+  var suppressZoomClick = false;
+  var zoomToggle = null;
+  var zoomModal = null;
+  var zoomStage = null;
+  var zoomImg = null;
+  var zoomCaption = null;
+  var zoomCounter = null;
+  var zoomCloseBtn = null;
+  var zoomPrevBtn = null;
+  var zoomNextBtn = null;
+  var zoomReturnFocus = null;
+  var zoomTouchPointerId = null;
 
   if (galleryEl) {
     galleryEl.setAttribute('tabindex', '0');
@@ -358,6 +370,267 @@
     colorBadge = document.createElement('span');
     colorBadge.className = 'product-gallery-color-name';
     galleryMain.appendChild(colorBadge);
+  }
+
+  function clampPercent(value) {
+    return Math.max(0, Math.min(100, value));
+  }
+
+  function setZoomPosition(event, image, target) {
+    var rect, x, y;
+
+    if (!event || !image || !target) return;
+
+    rect = image.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    x = clampPercent(((event.clientX - rect.left) / rect.width) * 100);
+    y = clampPercent(((event.clientY - rect.top) / rect.height) * 100);
+
+    target.style.setProperty('--zoom-x', x + '%');
+    target.style.setProperty('--zoom-y', y + '%');
+  }
+
+  function activeGalleryImage() {
+    var activeSlide = track ? track.querySelector('.product-gallery-slide.active') : null;
+    return activeSlide ? activeSlide.querySelector('img') : null;
+  }
+
+  function resetInlineZoom() {
+    if (!galleryMain) return;
+
+    galleryMain.classList.remove('is-zooming');
+    galleryMain.style.setProperty('--zoom-x', '50%');
+    galleryMain.style.setProperty('--zoom-y', '50%');
+  }
+
+  function startInlineZoom(event) {
+    if (!galleryMain || !event || (event.pointerType && event.pointerType === 'touch')) return;
+
+    galleryMain.classList.add('is-zooming');
+    setZoomPosition(event, activeGalleryImage(), galleryMain);
+  }
+
+  function moveInlineZoom(event) {
+    if (!galleryMain || !galleryMain.classList.contains('is-zooming')) return;
+    if (event.pointerType && event.pointerType === 'touch') return;
+
+    setZoomPosition(event, activeGalleryImage(), galleryMain);
+  }
+
+  function endInlineZoom(event) {
+    if (event && event.pointerType && event.pointerType === 'touch') return;
+    resetInlineZoom();
+  }
+
+  function resetModalZoom() {
+    if (!zoomStage) return;
+
+    zoomStage.classList.remove('is-zooming');
+    zoomStage.style.setProperty('--zoom-x', '50%');
+    zoomStage.style.setProperty('--zoom-y', '50%');
+    zoomTouchPointerId = null;
+  }
+
+  function updateZoomViewer() {
+    var image = images[currentSlide];
+
+    if (!zoomModal || zoomModal.hidden || !image) return;
+
+    if (zoomImg) {
+      zoomImg.src = image.src;
+      zoomImg.alt = image.alt;
+    }
+
+    if (zoomCaption) zoomCaption.textContent = image.colorName;
+    if (zoomCounter) zoomCounter.textContent = (currentSlide + 1) + ' / ' + totalImages;
+    if (zoomPrevBtn) zoomPrevBtn.disabled = currentSlide === 0;
+    if (zoomNextBtn) zoomNextBtn.disabled = currentSlide === totalImages - 1;
+
+    resetModalZoom();
+  }
+
+  function closeZoomViewer() {
+    if (!zoomModal || zoomModal.hidden) return;
+
+    zoomModal.classList.remove('active');
+    zoomModal.hidden = true;
+    document.body.classList.remove('product-zoom-open');
+    document.removeEventListener('keydown', zoomKeydownHandler);
+    resetModalZoom();
+
+    if (zoomReturnFocus && zoomReturnFocus.focus) {
+      zoomReturnFocus.focus({ preventScroll: true });
+    }
+  }
+
+  function zoomKeydownHandler(event) {
+    if (!zoomModal || zoomModal.hidden) return;
+
+    if (event.key === 'Escape') {
+      closeZoomViewer();
+      event.preventDefault();
+    }
+
+    if (event.key === 'ArrowLeft' && currentSlide > 0) {
+      goPrev();
+      event.preventDefault();
+    }
+
+    if (event.key === 'ArrowRight' && currentSlide < totalImages - 1) {
+      goNext();
+      event.preventDefault();
+    }
+  }
+
+  function setModalZoomPosition(event) {
+    setZoomPosition(event, zoomImg, zoomStage);
+  }
+
+  function startModalZoom(event) {
+    if (!zoomStage || !zoomImg) return;
+    if (event.pointerType === 'touch' && zoomTouchPointerId !== null) return;
+
+    if (event.pointerType === 'touch') {
+      zoomTouchPointerId = event.pointerId;
+      if (zoomStage.setPointerCapture) zoomStage.setPointerCapture(event.pointerId);
+    }
+
+    zoomStage.classList.add('is-zooming');
+    setModalZoomPosition(event);
+  }
+
+  function moveModalZoom(event) {
+    if (!zoomStage || !zoomStage.classList.contains('is-zooming')) return;
+    if (zoomTouchPointerId !== null && event.pointerId !== zoomTouchPointerId) return;
+
+    setModalZoomPosition(event);
+  }
+
+  function endModalZoom(event) {
+    if (event && event.pointerType === 'touch' && event.pointerId !== zoomTouchPointerId) return;
+
+    if (event && zoomStage && zoomStage.releasePointerCapture) {
+      try {
+        zoomStage.releasePointerCapture(event.pointerId);
+      } catch (error) {
+        // Some browsers throw if pointer capture has already been released.
+      }
+    }
+
+    resetModalZoom();
+  }
+
+  function ensureZoomViewer() {
+    if (zoomModal) return;
+
+    zoomModal = document.createElement('div');
+    zoomModal.className = 'product-zoom-modal';
+    zoomModal.hidden = true;
+    zoomModal.setAttribute('role', 'dialog');
+    zoomModal.setAttribute('aria-modal', 'true');
+    zoomModal.setAttribute('aria-label', productName + ' enlarged product photo');
+    zoomModal.innerHTML =
+      '<div class="product-zoom-backdrop" data-product-zoom-close></div>' +
+      '<div class="product-zoom-panel">' +
+        '<button class="product-zoom-close" type="button" aria-label="Close product photo zoom">' +
+          '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>' +
+        '</button>' +
+        '<button class="product-zoom-arrow prev" type="button" aria-label="Previous image">' +
+          '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></svg>' +
+        '</button>' +
+        '<div class="product-zoom-stage">' +
+          '<img class="product-zoom-img" src="" alt="" draggable="false" />' +
+        '</div>' +
+        '<button class="product-zoom-arrow next" type="button" aria-label="Next image">' +
+          '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" /></svg>' +
+        '</button>' +
+        '<div class="product-zoom-meta">' +
+          '<span class="product-zoom-caption"></span>' +
+          '<span class="product-zoom-counter"></span>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(zoomModal);
+
+    zoomStage = zoomModal.querySelector('.product-zoom-stage');
+    zoomImg = zoomModal.querySelector('.product-zoom-img');
+    zoomCaption = zoomModal.querySelector('.product-zoom-caption');
+    zoomCounter = zoomModal.querySelector('.product-zoom-counter');
+    zoomCloseBtn = zoomModal.querySelector('.product-zoom-close');
+    zoomPrevBtn = zoomModal.querySelector('.product-zoom-arrow.prev');
+    zoomNextBtn = zoomModal.querySelector('.product-zoom-arrow.next');
+
+    zoomModal.addEventListener('click', function (event) {
+      if (event.target && event.target.hasAttribute('data-product-zoom-close')) {
+        closeZoomViewer();
+      }
+    });
+
+    if (zoomCloseBtn) zoomCloseBtn.addEventListener('click', closeZoomViewer);
+    if (zoomPrevBtn) zoomPrevBtn.addEventListener('click', goPrev);
+    if (zoomNextBtn) zoomNextBtn.addEventListener('click', goNext);
+
+    if (zoomStage) {
+      zoomStage.addEventListener('pointerenter', function (event) {
+        if (!event.pointerType || event.pointerType !== 'touch') {
+          startModalZoom(event);
+        }
+      });
+      zoomStage.addEventListener('pointermove', moveModalZoom);
+      zoomStage.addEventListener('pointerleave', function (event) {
+        if (!event.pointerType || event.pointerType !== 'touch') {
+          endModalZoom(event);
+        }
+      });
+      zoomStage.addEventListener('pointerdown', function (event) {
+        if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+          startModalZoom(event);
+        }
+      });
+      zoomStage.addEventListener('pointerup', endModalZoom);
+      zoomStage.addEventListener('pointercancel', endModalZoom);
+    }
+  }
+
+  function openZoomViewer() {
+    if (!images[currentSlide]) return;
+
+    ensureZoomViewer();
+    zoomReturnFocus = document.activeElement && document.activeElement.focus ? document.activeElement : null;
+    zoomModal.hidden = false;
+    document.body.classList.add('product-zoom-open');
+    updateZoomViewer();
+    window.requestAnimationFrame(function () {
+      zoomModal.classList.add('active');
+    });
+    document.addEventListener('keydown', zoomKeydownHandler);
+
+    if (zoomCloseBtn) {
+      zoomCloseBtn.focus({ preventScroll: true });
+    }
+  }
+
+  if (galleryMain) {
+    galleryMain.style.setProperty('--zoom-x', '50%');
+    galleryMain.style.setProperty('--zoom-y', '50%');
+
+    zoomToggle = document.createElement('button');
+    zoomToggle.type = 'button';
+    zoomToggle.className = 'product-gallery-zoom-toggle';
+    zoomToggle.setAttribute('aria-label', 'Open larger product photo');
+    zoomToggle.innerHTML =
+      '<svg aria-hidden="true" viewBox="0 0 24 24">' +
+        '<circle cx="11" cy="11" r="6" />' +
+        '<path d="m16 16 4 4" />' +
+        '<path d="M11 8v6M8 11h6" />' +
+      '</svg>';
+    zoomToggle.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      openZoomViewer();
+    });
+    galleryMain.appendChild(zoomToggle);
   }
 
   function buildTrack() {
@@ -425,6 +698,7 @@
 
     index = Math.max(0, Math.min(index, totalImages - 1));
     currentSlide = index;
+    resetInlineZoom();
 
     track.querySelectorAll('.product-gallery-slide').forEach(function (slide, slideIndex) {
       slide.classList.toggle('active', slideIndex === currentSlide);
@@ -459,6 +733,8 @@
       heroImg.src = images[currentSlide].src;
       heroImg.alt = images[currentSlide].alt;
     }
+
+    updateZoomViewer();
   }
 
   function goToSlide(index) {
@@ -546,8 +822,11 @@
       deltaY = clientY - touchStartY;
 
       if (Math.abs(deltaX) > swipeThreshold && Math.abs(deltaX) > Math.abs(deltaY)) {
+        suppressZoomClick = true;
         if (deltaX < 0) goNext();
         else goPrev();
+      } else if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+        suppressZoomClick = true;
       }
 
       resetTouchTracking();
@@ -581,6 +860,8 @@
     if (totalImages <= 1) return;
 
     delta = mouseEndX - mouseStartX;
+    if (Math.abs(delta) > 8) suppressZoomClick = true;
+
     if (Math.abs(delta) > swipeThreshold) {
       if (delta < 0) goNext();
       else goPrev();
@@ -591,6 +872,20 @@
     track.addEventListener('mousedown', mouseDownHandler);
     document.addEventListener('mousemove', mouseMoveHandler);
     document.addEventListener('mouseup', mouseUpHandler);
+  }
+
+  if (track) {
+    track.addEventListener('pointerenter', startInlineZoom);
+    track.addEventListener('pointermove', moveInlineZoom);
+    track.addEventListener('pointerleave', endInlineZoom);
+    track.addEventListener('click', function () {
+      if (suppressZoomClick) {
+        suppressZoomClick = false;
+        return;
+      }
+
+      openZoomViewer();
+    });
   }
 
   window.addEventListener('resize', function () {
