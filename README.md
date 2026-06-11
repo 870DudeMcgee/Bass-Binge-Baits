@@ -34,6 +34,13 @@ Validate catalog data after editing it:
 node scripts/validate-catalog.js
 ```
 
+Run both checks before release:
+
+```bash
+node scripts/validate-catalog.js
+node scripts/audit-release.js
+```
+
 ## Form Setup
 
 The contact form is placeholder-only and currently handled client-side.
