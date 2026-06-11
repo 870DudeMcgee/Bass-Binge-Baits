@@ -166,15 +166,26 @@
 
     colorOptions.forEach(function (color, index) {
       var swatch = document.createElement('button');
+      var swatchDot = document.createElement('span');
+      var swatchName = document.createElement('span');
+
       swatch.type = 'button';
       swatch.className = 'swatch-button' + (index === selectedColor ? ' active' : '');
       swatch.setAttribute('aria-pressed', String(index === selectedColor));
       swatch.setAttribute('aria-label', color.name);
       swatch.title = color.name;
       swatch.style.setProperty('--swatch', color.swatch);
+
+      swatchDot.className = 'swatch-dot';
+      swatchName.className = 'swatch-name';
+      swatchName.textContent = color.name;
+
       swatch.addEventListener('click', function () {
         setSelectedColor(index, true);
       });
+
+      swatch.appendChild(swatchDot);
+      swatch.appendChild(swatchName);
       swatchesContainer.appendChild(swatch);
     });
   }
@@ -182,7 +193,7 @@
   function updateColorDisplay() {
     var color = selectedColorOption();
 
-    if (colorNameDisplay) colorNameDisplay.textContent = color.name;
+    if (colorNameDisplay) colorNameDisplay.textContent = 'Selected color: ' + color.name;
 
     if (heroImg && color.image) {
       heroImg.src = imagePath(color.image);
@@ -296,7 +307,7 @@
           build.rattleKey,
           build.price,
           1,
-          heroImg ? heroImg.src : ''
+          build.image ? imagePath(build.image) : (heroImg ? heroImg.src : '')
         );
         added = build;
       }
@@ -321,19 +332,33 @@
   }
 
   var track = galleryEl.querySelector('.product-gallery-track');
+  var galleryMain = galleryEl.querySelector('.product-gallery-main');
   var thumbs = galleryEl.querySelector('.product-gallery-thumbs');
   var prevBtn = galleryEl.querySelector('.product-gallery-arrow.prev');
   var nextBtn = galleryEl.querySelector('.product-gallery-arrow.next');
   var counterEl = galleryEl.querySelector('.product-gallery-counter');
+  var colorBadge = galleryMain ? galleryMain.querySelector('.product-gallery-color-name') : null;
   var images = colorOptions.map(function (color) {
     return {
       src: imagePath(color.image),
       alt: productName + ' in ' + color.name,
-      colorName: color.name
+      colorName: color.name,
+      colorKey: color.key
     };
   });
   var totalImages = images.length;
   var currentSlide = selectedColor;
+
+  if (galleryEl) {
+    galleryEl.setAttribute('tabindex', '0');
+    galleryEl.setAttribute('aria-label', productName + ' image gallery');
+  }
+
+  if (!colorBadge && galleryMain) {
+    colorBadge = document.createElement('span');
+    colorBadge.className = 'product-gallery-color-name';
+    galleryMain.appendChild(colorBadge);
+  }
 
   function buildTrack() {
     if (!track) return;
@@ -344,10 +369,18 @@
       var wrapper = document.createElement('div');
       var img = document.createElement('img');
 
-      wrapper.className = 'product-gallery-slide';
+      wrapper.className = 'product-gallery-slide' + (index === currentSlide ? ' active' : '');
+      wrapper.dataset.colorKey = image.colorKey;
+      wrapper.setAttribute('role', 'group');
+      wrapper.setAttribute('aria-label', image.colorName);
+      wrapper.setAttribute('aria-hidden', String(index !== currentSlide));
       img.src = image.src;
       img.alt = image.alt;
       img.draggable = false;
+      img.decoding = 'async';
+      if (index === currentSlide && 'fetchPriority' in img) {
+        img.fetchPriority = 'high';
+      }
       img.loading = index === currentSlide ? 'eager' : 'lazy';
       wrapper.appendChild(img);
       track.appendChild(wrapper);
@@ -362,16 +395,22 @@
     images.forEach(function (image, index) {
       var thumbBtn = document.createElement('button');
       var thumbImg = document.createElement('img');
+      var thumbName = document.createElement('span');
 
       thumbBtn.type = 'button';
       thumbBtn.className = 'product-gallery-thumb' + (index === currentSlide ? ' active' : '');
       thumbBtn.setAttribute('aria-label', 'View ' + image.colorName);
       thumbBtn.setAttribute('aria-pressed', String(index === currentSlide));
+      thumbBtn.dataset.colorKey = image.colorKey;
 
       thumbImg.src = image.src;
       thumbImg.alt = 'Thumbnail for ' + image.colorName;
       thumbImg.draggable = false;
+      thumbImg.loading = 'lazy';
+      thumbName.className = 'product-gallery-thumb-name';
+      thumbName.textContent = image.colorName;
       thumbBtn.appendChild(thumbImg);
+      thumbBtn.appendChild(thumbName);
 
       thumbBtn.addEventListener('click', function () {
         goToSlide(index);
@@ -387,23 +426,34 @@
     index = Math.max(0, Math.min(index, totalImages - 1));
     currentSlide = index;
 
-    // Update track position
-    track.style.transform = 'translateX(-' + (currentSlide * 100 / totalImages) + '%)';
-    track.style.webkitTransform = 'translateX(-' + (currentSlide * 100 / totalImages) + '%)';
+    track.querySelectorAll('.product-gallery-slide').forEach(function (slide, slideIndex) {
+      slide.classList.toggle('active', slideIndex === currentSlide);
+      slide.setAttribute('aria-hidden', String(slideIndex !== currentSlide));
+    });
 
     if (counterEl) {
       counterEl.textContent = (currentSlide + 1) + ' / ' + totalImages;
     }
 
+    if (colorBadge && images[currentSlide]) {
+      colorBadge.textContent = images[currentSlide].colorName;
+    }
+
     if (thumbs) {
       thumbs.querySelectorAll('.product-gallery-thumb').forEach(function (button, buttonIndex) {
+        var isActive = buttonIndex === currentSlide;
+
         button.classList.toggle('active', buttonIndex === currentSlide);
-        button.setAttribute('aria-pressed', String(buttonIndex === currentSlide));
+        button.setAttribute('aria-pressed', String(isActive));
+
+        if (isActive && button.scrollIntoView) {
+          button.scrollIntoView({ block: 'nearest', inline: 'center' });
+        }
       });
     }
 
-    if (prevBtn) prevBtn.style.display = currentSlide === 0 ? 'none' : '';
-    if (nextBtn) nextBtn.style.display = currentSlide === totalImages - 1 ? 'none' : '';
+    if (prevBtn) prevBtn.disabled = currentSlide === 0;
+    if (nextBtn) nextBtn.disabled = currentSlide === totalImages - 1;
 
     if (heroImg && images[currentSlide]) {
       heroImg.src = images[currentSlide].src;
@@ -434,65 +484,92 @@
   if (prevBtn) prevBtn.addEventListener('click', goPrev);
   if (nextBtn) nextBtn.addEventListener('click', goNext);
 
-  var touchStartX = 0;
-  var touchEndX = null;
-  var touchEnded = false;
   var swipeThreshold = 50;
-  var isTouching = false;
+  var touchStartX = 0;
+  var touchStartY = 0;
+  var touchEndX = 0;
+  var touchEndY = 0;
+  var touchIsHorizontal = false;
+
+  function resetTouchTracking() {
+    touchStartX = 0;
+    touchStartY = 0;
+    touchEndX = 0;
+    touchEndY = 0;
+    touchIsHorizontal = false;
+  }
 
   if (track && totalImages > 1) {
     track.addEventListener('touchstart', function (event) {
+      if (!event.touches || !event.touches[0]) { return; }
       touchStartX = event.touches[0].clientX;
-      touchEndX = event.touches[0].clientX;
-      isTouching = true;
-      touchEnded = false;
-      event.preventDefault();
-    }, { passive: false });
+      touchStartY = event.touches[0].clientY;
+      touchEndX = touchStartX;
+      touchEndY = touchStartY;
+      touchIsHorizontal = false;
+    }, { passive: true });
 
     track.addEventListener('touchmove', function (event) {
-      if (!isTouching) return;
+      var deltaX, deltaY;
+
+      if (!event.touches || !event.touches[0]) { return; }
       touchEndX = event.touches[0].clientX;
-      event.preventDefault();
+      touchEndY = event.touches[0].clientY;
+
+      deltaX = touchEndX - touchStartX;
+      deltaY = touchEndY - touchStartY;
+
+      if (!touchIsHorizontal && Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        touchIsHorizontal = true;
+      }
+
+      if (touchIsHorizontal) {
+        event.preventDefault();
+      }
     }, { passive: false });
 
     track.addEventListener('touchend', function (event) {
-      var changed = changedTouchesFor(event);
-      var endX;
-      var delta;
+      var touch = event.changedTouches && event.changedTouches[0];
+      var clientX, clientY;
+      var deltaX, deltaY;
 
-      if (touchEnded) return;
-      touchEnded = true;
-      isTouching = false;
-      if (touchStartX === 0) return;
+      // Use changedTouches if available, otherwise fall back to moved tracking
+      if (touch) {
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      } else {
+        clientX = touchEndX;
+        clientY = touchEndY;
+      }
 
-      endX = changed && changed.length > 0 ? changed[0].clientX : touchEndX;
-      if (endX === null || endX === 0) return;
+      deltaX = clientX - touchStartX;
+      deltaY = clientY - touchStartY;
 
-      delta = endX - touchStartX;
-      if (Math.abs(delta) > swipeThreshold) {
-        if (delta < 0) goNext();
+      if (Math.abs(deltaX) > swipeThreshold && Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX < 0) goNext();
         else goPrev();
       }
 
-      touchStartX = 0;
-    });
-  }
+      resetTouchTracking();
+    }, { passive: true });
 
-  function changedTouchesFor(event) {
-    return event.changedTouches && event.changedTouches.length > 0 ? event.changedTouches : [event];
+    track.addEventListener('touchcancel', resetTouchTracking, { passive: true });
   }
 
   var mouseDown = false;
   var mouseStartX = 0;
+  var mouseEndX = 0;
 
   function mouseDownHandler(event) {
     mouseDown = true;
     mouseStartX = event.clientX;
+    mouseEndX = event.clientX;
     track.classList.add('dragging');
   }
 
-  function mouseMoveHandler() {
+  function mouseMoveHandler(event) {
     if (!mouseDown) return;
+    mouseEndX = event.clientX;
   }
 
   function mouseUpHandler(event) {
@@ -503,7 +580,7 @@
     track.classList.remove('dragging');
     if (totalImages <= 1) return;
 
-    delta = event.clientX - mouseStartX;
+    delta = mouseEndX - mouseStartX;
     if (Math.abs(delta) > swipeThreshold) {
       if (delta < 0) goNext();
       else goPrev();
@@ -515,6 +592,10 @@
     document.addEventListener('mousemove', mouseMoveHandler);
     document.addEventListener('mouseup', mouseUpHandler);
   }
+
+  window.addEventListener('resize', function () {
+    updateGallery(currentSlide);
+  });
 
   galleryEl.addEventListener('keydown', function (event) {
     if (totalImages <= 1) return;
