@@ -46,42 +46,42 @@
           key: 'blackberry-smoothie',
           name: 'Blackberry Smoothie',
           swatch: '#2d1631',
-          image: 'assets/img/products/pshd-blackberry-smoothie.jpg',
+          image: 'assets/img/products/pshd-a-little-lit.jpg',
           checkout: { variantId: 50253364265127, title: 'Blackberry Smoothie' }
         },
         {
           key: 'magic-brownie-fine',
           name: 'Magic Brownie Fine',
           swatch: '#5b3f2f',
-          image: 'assets/img/products/pshd-magic-brownie.jpg',
+          image: 'assets/img/products/pro-spider-5-16.jpg',
           checkout: { variantId: 50253364297895, title: 'Magic Brownie' }
         },
         {
           key: 'ryry-special-fine',
           name: 'RyRy Special Fine',
           swatch: '#6a4e43',
-          image: 'assets/img/products/pshd-ryry-special.jpg',
+          image: 'assets/img/products/pshd-ryry-special-fine.jpg',
           checkout: { variantId: 50253364330663, title: 'RyRy Special' }
         },
         {
           key: 'biggie-smalls',
           name: 'Biggie Smalls',
           swatch: '#2f2b25',
-          image: 'assets/img/products/pshd-biggie-smalls.jpg',
+          image: 'assets/img/products/pshd-ogre.jpg',
           checkout: { variantId: 50253364363431, title: 'Biggie Smalls' }
         },
         {
           key: 'a-little-lit',
           name: 'A Little Lit',
           swatch: '#79513a',
-          image: 'assets/img/products/pshd-a-little-lit.jpg',
+          image: 'assets/img/products/pshd-blackberry-smoothie.jpg',
           checkout: { variantId: 50253364396199, title: 'A Little Lit' }
         },
         {
           key: 'ogre',
           name: 'Ogre',
           swatch: '#505237',
-          image: 'assets/img/products/pshd-ogre.jpg',
+          image: 'assets/img/products/pshd-biggie-smalls.jpg',
           checkout: { variantId: 50253364428967, title: 'Ogre' }
         }
       ]
