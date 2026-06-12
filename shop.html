@@ -65,11 +65,34 @@
             <span>Find a jig</span>
             <input type="search" data-product-search placeholder="Search by style, weight, or color" autocomplete="off" />
           </label>
-          <div class="shop-filters" aria-label="Product filters">
+          <div class="shop-filters" aria-label="Filter by jig type">
             <button class="filter-chip active" type="button" data-product-filter="all">All</button>
             <button class="filter-chip" type="button" data-product-filter="football">Football</button>
             <button class="filter-chip" type="button" data-product-filter="peewee">PeeWee</button>
             <button class="filter-chip" type="button" data-product-filter="heavy">Heavy Cover</button>
+          </div>
+          <div class="shop-refiners" aria-label="Additional product filters">
+            <label>
+              <span>Color</span>
+              <select data-color-filter>
+                <option value="all">All checkout-ready colors</option>
+              </select>
+            </label>
+            <label>
+              <span>Price</span>
+              <select data-price-filter>
+                <option value="all">All prices</option>
+                <option value="under-525">Under $5.25</option>
+                <option value="5">Exactly $5.00</option>
+              </select>
+            </label>
+            <label>
+              <span>Availability</span>
+              <select data-availability-filter>
+                <option value="checkout-ready">Checkout-ready only</option>
+                <option value="all">Show all colors</option>
+              </select>
+            </label>
           </div>
           <button class="btn btn-secondary shop-cart-shortcut" type="button" data-cart-open>
             View Cart <span data-cart-summary-count>0 items</span>

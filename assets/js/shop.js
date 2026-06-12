@@ -9,7 +9,13 @@
   var productSearch = document.querySelector('[data-product-search]');
   var productEmpty = document.querySelector('[data-shop-empty]');
   var filterButtons = Array.from(document.querySelectorAll('[data-product-filter]'));
+  var colorFilter = document.querySelector('[data-color-filter]');
+  var priceFilter = document.querySelector('[data-price-filter]');
+  var availabilityFilter = document.querySelector('[data-availability-filter]');
   var activeFilter = 'all';
+  var activeColor = 'all';
+  var activePrice = 'all';
+  var activeAvailability = 'checkout-ready';
 
   function selectedColor(product, select) {
     return catalog.getColor(product, select.value) ||
@@ -46,6 +52,71 @@
 
     swatches.querySelectorAll('[data-color-key]').forEach(function (swatch) {
       swatch.setAttribute('aria-pressed', String(swatch.dataset.colorKey === color.key));
+    });
+  }
+
+  function hasColor(product, colorKey, checkoutReadyOnly) {
+    return product.colors.some(function (color) {
+      if (color.key !== colorKey) return false;
+      if (!checkoutReadyOnly) return true;
+
+      return catalog.isBuildCheckoutable({
+          productKey: product.key,
+          colorKey: color.key,
+          weightKey: product.defaultWeightKey,
+          rattleKey: 'no'
+        });
+    });
+  }
+
+  function hasCheckoutableColor(product, colorKey) {
+    return hasColor(product, colorKey, true);
+  }
+
+  function priceMatches(product) {
+    if (activePrice === 'under-525') {
+      return product.basePrice < 5.25;
+    }
+
+    if (activePrice === '5') {
+      return product.basePrice === 5;
+    }
+
+    return true;
+  }
+
+  function hasCheckoutableDefault(product) {
+    return Boolean(catalog.firstCheckoutableColor(product, product.defaultWeightKey, 'no'));
+  }
+
+  function populateColorFilter() {
+    var colorMap = {};
+
+    if (!colorFilter) return;
+
+    colorFilter.textContent = '';
+    var defaultOption = document.createElement('option');
+    defaultOption.value = 'all';
+    defaultOption.textContent = activeAvailability === 'checkout-ready' ? 'All checkout-ready colors' : 'All colors';
+    colorFilter.appendChild(defaultOption);
+
+    catalog.listProducts().forEach(function (product) {
+      product.colors.forEach(function (color) {
+        if (activeAvailability === 'checkout-ready' && !hasCheckoutableColor(product, color.key)) {
+          return;
+        }
+
+        colorMap[color.key] = color.name;
+      });
+    });
+
+    Object.keys(colorMap).sort(function (a, b) {
+      return colorMap[a].localeCompare(colorMap[b]);
+    }).forEach(function (key) {
+      var option = document.createElement('option');
+      option.value = key;
+      option.textContent = colorMap[key];
+      colorFilter.appendChild(option);
     });
   }
 
@@ -144,6 +215,11 @@
       controls.appendChild(detail);
     }
 
+    var quickAddNote = document.createElement('p');
+    quickAddNote.className = 'quick-add-note';
+    quickAddNote.textContent = 'Quick add a checkout-ready color, or open details for weight and rattle options.';
+    controls.insertBefore(quickAddNote, purchaseRow);
+
     decrease.addEventListener('click', function () {
       quantityInput.value = String(Math.max(1, Number(quantityInput.value) - 1 || 1));
     });
@@ -207,10 +283,14 @@
     var visibleCount = 0;
 
     document.querySelectorAll('.product-card').forEach(function (card) {
+      var product = catalog.getProduct(card.dataset.shopProduct);
       var haystack = (card.textContent + ' ' + (card.dataset.productSearch || '')).toLowerCase();
       var matchesSearch = !query || haystack.indexOf(query) >= 0;
       var matchesFilter = activeFilter === 'all' || haystack.indexOf(activeFilter) >= 0;
-      var isVisible = matchesSearch && matchesFilter;
+      var matchesColor = activeColor === 'all' || (product && hasColor(product, activeColor, activeAvailability === 'checkout-ready'));
+      var matchesPrice = !product || priceMatches(product);
+      var matchesAvailability = activeAvailability !== 'checkout-ready' || (product && hasCheckoutableDefault(product));
+      var isVisible = matchesSearch && matchesFilter && matchesColor && matchesPrice && matchesAvailability;
 
       card.hidden = !isVisible;
       visibleCount += isVisible ? 1 : 0;
@@ -222,6 +302,7 @@
   }
 
   setupProductCards();
+  populateColorFilter();
   applyProductFilters();
 
   if (productSearch) {
@@ -233,8 +314,35 @@
       activeFilter = button.dataset.productFilter;
       filterButtons.forEach(function (filterButton) {
         filterButton.classList.toggle('active', filterButton === button);
+        filterButton.setAttribute('aria-pressed', String(filterButton === button));
       });
       applyProductFilters();
     });
   });
+
+  if (colorFilter) {
+    colorFilter.addEventListener('change', function () {
+      activeColor = colorFilter.value;
+      applyProductFilters();
+    });
+  }
+
+  if (priceFilter) {
+    priceFilter.addEventListener('change', function () {
+      activePrice = priceFilter.value;
+      applyProductFilters();
+    });
+  }
+
+  if (availabilityFilter) {
+    availabilityFilter.addEventListener('change', function () {
+      activeAvailability = availabilityFilter.value;
+      if (colorFilter && activeColor !== 'all') {
+        activeColor = 'all';
+        colorFilter.value = 'all';
+      }
+      populateColorFilter();
+      applyProductFilters();
+    });
+  }
 })(window);
