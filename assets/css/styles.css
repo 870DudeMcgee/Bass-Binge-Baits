@@ -514,8 +514,12 @@ button:disabled {
 
 .proof-card div {
   display: grid;
-  gap: 0.4rem;
-  padding: var(--space-3);
+  position: relative;
+  z-index: 1;
+  gap: 0.55rem;
+  padding: var(--space-3) var(--space-3) var(--space-4);
+  border-top: 1px solid rgba(17, 40, 59, 0.08);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .proof-card span {
@@ -531,16 +535,17 @@ button:disabled {
   margin: 0;
   font-family: "Alegreya", Georgia, serif;
   font-size: 1.35rem;
-  line-height: 1.05;
+  line-height: 1.12;
 }
 
 .proof-card p {
   margin: 0;
   color: var(--ink-soft);
+  line-height: 1.45;
 }
 
 .social-proof-card {
-  grid-template-rows: 260px auto;
+  grid-template-rows: 220px auto;
 }
 
 .social-proof-card img {
@@ -550,6 +555,15 @@ button:disabled {
 
 .social-proof-card:first-child img {
   object-position: center 34%;
+}
+
+.social-proof-card:nth-child(2) img {
+  object-position: center top;
+}
+
+.social-proof-card:nth-child(3) img {
+  object-fit: contain;
+  padding: var(--space-3);
 }
 
 .facebook-proof {
@@ -1570,7 +1584,7 @@ select:focus,
   }
 
   .social-proof-card {
-    grid-template-rows: 240px auto;
+    grid-template-rows: 210px auto;
   }
 
   .section-title {
