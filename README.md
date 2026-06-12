@@ -34,10 +34,17 @@ Validate catalog data after editing it:
 node scripts/validate-catalog.js
 ```
 
+Run both checks before release:
+
+```bash
+node scripts/validate-catalog.js
+node scripts/audit-release.js
+```
+
 ## Form Setup
 
-The contact form is placeholder-only and currently handled client-side.
-Hook it to your preferred endpoint (Formspree, Basin, or a Vercel Serverless Function).
+The contact form uses a client-side `mailto:` fallback so messages open in the customer's email app with form fields prefilled.
+Replace it with a provider endpoint later if Bass Binge adds Formspree, Basin, or a Vercel Serverless Function.
 
 ## Deploy To Vercel
 

@@ -42,7 +42,21 @@ const formNote = document.querySelector('[data-form-note]');
 if (contactForm && formNote) {
   contactForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    formNote.textContent = 'Thanks for reaching out. This demo form is in placeholder mode; hook it to your preferred endpoint next.';
-    contactForm.reset();
+
+    const formData = new FormData(contactForm);
+    const subject = encodeURIComponent('Bass Binge contact: ' + (formData.get('topic') || 'Product Question'));
+    const body = encodeURIComponent(
+      [
+        'Name: ' + (formData.get('name') || ''),
+        'Email: ' + (formData.get('email') || ''),
+        'Phone: ' + (formData.get('phone') || ''),
+        'Topic: ' + (formData.get('topic') || ''),
+        '',
+        String(formData.get('message') || '')
+      ].join('\n')
+    );
+
+    formNote.textContent = 'Opening your email app... You can also email hello@bassbingejigs.com directly.';
+    window.location.href = 'mailto:hello@bassbingejigs.com?subject=' + subject + '&body=' + body;
   });
 }
