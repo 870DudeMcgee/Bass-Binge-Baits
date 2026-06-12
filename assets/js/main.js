@@ -41,9 +41,9 @@ const formNote = document.querySelector('[data-form-note]');
 const contactEmail = 'Bassbingebaits@gmail.com';
 
 if (contactForm && formNote) {
-  contactForm.addEventListener('submit', (event) => {
-    event.preventDefault();
+  const submitButton = contactForm.querySelector('button[type="submit"]');
 
+  function buildMailtoUrl() {
     const formData = new FormData(contactForm);
     const subject = encodeURIComponent('Bass Binge contact: ' + (formData.get('topic') || 'Product Question'));
     const body = encodeURIComponent(
@@ -57,7 +57,57 @@ if (contactForm && formNote) {
       ].join('\n')
     );
 
-    formNote.textContent = `Opening your email app... You can also email ${contactEmail} directly.`;
-    window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
+    return `mailto:${contactEmail}?subject=${subject}&body=${body}`;
+  }
+
+  function setFormNote(message, state) {
+    formNote.textContent = message;
+    formNote.dataset.state = state || '';
+  }
+
+  function setSubmitting(isSubmitting) {
+    if (!submitButton) {
+      return;
+    }
+
+    submitButton.disabled = isSubmitting;
+    submitButton.textContent = isSubmitting ? 'Sending...' : 'Send Message';
+  }
+
+  contactForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!contactForm.reportValidity()) {
+      return;
+    }
+
+    const formData = new FormData(contactForm);
+    const payload = Object.fromEntries(formData.entries());
+
+    setSubmitting(true);
+    setFormNote('Sending your message...', 'pending');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Message could not be sent.');
+      }
+
+      contactForm.reset();
+      setFormNote('Message sent. We will reply as soon as we can.', 'success');
+    } catch (error) {
+      setFormNote(`We could not send it from the site. Opening your email app, or email ${contactEmail} directly.`, 'error');
+      window.location.href = buildMailtoUrl();
+    } finally {
+      setSubmitting(false);
+    }
   });
 }

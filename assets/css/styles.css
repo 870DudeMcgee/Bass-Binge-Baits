@@ -1261,6 +1261,20 @@ button:disabled {
   font-size: 0.92rem;
 }
 
+.form-helper[data-state='success'] {
+  color: #236445;
+  font-weight: 700;
+}
+
+.form-helper[data-state='error'] {
+  color: #8b2e20;
+  font-weight: 700;
+}
+
+.honeypot-field {
+  display: none;
+}
+
 input,
 textarea,
 select {

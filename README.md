@@ -43,8 +43,17 @@ node scripts/audit-release.js
 
 ## Form Setup
 
-The contact form uses a client-side `mailto:` fallback so messages open in the customer's email app with form fields prefilled.
-Replace it with a provider endpoint later if Bass Binge adds Formspree, Basin, or a Vercel Serverless Function.
+The contact form posts to `api/contact.js`, a Vercel Function that sends email through Resend. The Resend API key stays server-side and is never exposed to the browser. If the function is not configured yet or delivery fails, the browser falls back to a prefilled email draft.
+
+Set these Vercel environment variables for Production and Preview:
+
+```bash
+RESEND_API_KEY=re_xxxxxxxxx
+CONTACT_FROM_EMAIL="Bass Binge Baits <contact@your-verified-domain.com>"
+CONTACT_TO_EMAIL=Bassbingebaits@gmail.com
+```
+
+`CONTACT_FROM_EMAIL` must use a sending address/domain verified in Resend. After setting the variables, redeploy the Vercel project and submit a test message from the live contact page.
 
 ## Deploy To Vercel
 
