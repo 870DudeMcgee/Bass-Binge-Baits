@@ -38,6 +38,7 @@ if (yearSlot) {
 
 const contactForm = document.querySelector('[data-contact-form]');
 const formNote = document.querySelector('[data-form-note]');
+const contactEmail = 'Bassbingebaits@gmail.com';
 
 if (contactForm && formNote) {
   contactForm.addEventListener('submit', (event) => {
@@ -56,7 +57,7 @@ if (contactForm && formNote) {
       ].join('\n')
     );
 
-    formNote.textContent = 'Opening your email app... You can also email hello@bassbingejigs.com directly.';
-    window.location.href = 'mailto:hello@bassbingejigs.com?subject=' + subject + '&body=' + body;
+    formNote.textContent = `Opening your email app... You can also email ${contactEmail} directly.`;
+    window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
   });
 }

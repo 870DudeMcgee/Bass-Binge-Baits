@@ -539,6 +539,49 @@ button:disabled {
   color: var(--ink-soft);
 }
 
+.social-proof-card {
+  grid-template-rows: 260px auto;
+}
+
+.social-proof-card img {
+  object-fit: cover;
+  padding: 0;
+}
+
+.social-proof-card:first-child img {
+  object-position: center 34%;
+}
+
+.facebook-proof {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid rgba(17, 40, 59, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: var(--shadow-card);
+}
+
+.facebook-proof p {
+  margin: 0;
+  font-family: "Alegreya", Georgia, serif;
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  line-height: 1.05;
+}
+
+.facebook-proof span {
+  color: var(--earth);
+  font-weight: 700;
+}
+
+.facebook-proof strong {
+  color: var(--rust);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .meta-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1510,6 +1553,10 @@ select:focus,
 
   .proof-card {
     grid-template-rows: 180px auto;
+  }
+
+  .social-proof-card {
+    grid-template-rows: 240px auto;
   }
 
   .section-title {
