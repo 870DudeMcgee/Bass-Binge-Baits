@@ -214,6 +214,12 @@
   }
 }
 
+@media (min-width: 901px) and (max-height: 780px) {
+  .product-hero-left {
+    position: static;
+  }
+}
+
 /* Interactive product selectors */
 .product-config-selector {
   display: grid;

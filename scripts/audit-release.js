@@ -6,6 +6,17 @@ const catalog = require('../assets/js/catalog.js');
 
 const root = path.resolve(__dirname, '..');
 const failures = [];
+const pages = [
+  'index.html',
+  'shop.html',
+  'about.html',
+  'contact.html',
+  'products/peewee-football.html',
+  'products/peewee-football-hd.html',
+  'products/peewee-spider-hd.html',
+  'products/heavy-cover-football.html'
+];
+const productPages = pages.filter((page) => page.startsWith('products/'));
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -43,17 +54,6 @@ function assertShopDefaultsCheckoutable() {
 }
 
 function assertFaviconLinks() {
-  const pages = [
-    'index.html',
-    'shop.html',
-    'about.html',
-    'contact.html',
-    'products/peewee-football.html',
-    'products/peewee-football-hd.html',
-    'products/peewee-spider-hd.html',
-    'products/heavy-cover-football.html'
-  ];
-
   pages.forEach((page) => {
     const source = read(page);
     if (!/rel="icon"/.test(source)) {
@@ -75,17 +75,6 @@ function assertSitemapProducts() {
 }
 
 function assertSharedAssetCacheBust() {
-  const pages = [
-    'index.html',
-    'shop.html',
-    'about.html',
-    'contact.html',
-    'products/peewee-football.html',
-    'products/peewee-football-hd.html',
-    'products/peewee-spider-hd.html',
-    'products/heavy-cover-football.html'
-  ];
-
   pages.forEach((page) => {
     const source = read(page);
     if (!/assets\/css\/styles\.css\?v=/.test(source)) {
@@ -93,6 +82,46 @@ function assertSharedAssetCacheBust() {
     }
     if (!/assets\/js\/main\.js\?v=/.test(source)) {
       fail(`${page} does not version main.js`);
+    }
+  });
+}
+
+function assertProductZoomAssets() {
+  const productScript = read('assets/js/product-page.js');
+  const productStyles = read('assets/css/product.css');
+
+  productPages.forEach((page) => {
+    const source = read(page);
+    if (!/\.\.\/assets\/css\/product\.css\?v=/.test(source)) {
+      fail(`${page} does not version product.css`);
+    }
+    if (!/\.\.\/assets\/js\/product-page\.js\?v=/.test(source)) {
+      fail(`${page} does not version product-page.js`);
+    }
+    if (!/data-gallery/.test(source) || !/product-gallery-track/.test(source)) {
+      fail(`${page} is missing the product gallery mount markup`);
+    }
+  });
+
+  [
+    'product-gallery-zoom-toggle',
+    'openZoomViewer',
+    'product-zoom-modal',
+    'product-zoom-stage'
+  ].forEach((token) => {
+    if (!productScript.includes(token)) {
+      fail(`assets/js/product-page.js is missing zoom token: ${token}`);
+    }
+  });
+
+  [
+    '.product-gallery-main.is-zooming',
+    '.product-zoom-modal',
+    '.product-zoom-stage.is-zooming',
+    '.product-zoom-stage.is-zoom-locked'
+  ].forEach((token) => {
+    if (!productStyles.includes(token)) {
+      fail(`assets/css/product.css is missing zoom selector: ${token}`);
     }
   });
 }
@@ -117,6 +146,7 @@ assertShopDefaultsCheckoutable();
 assertFaviconLinks();
 assertSitemapProducts();
 assertSharedAssetCacheBust();
+assertProductZoomAssets();
 assertScriptsAreNotImmutableCached();
 
 if (failures.length) {
