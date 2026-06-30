@@ -209,6 +209,7 @@
     controls.appendChild(purchaseRow);
 
     if (detail) {
+      detail.href = catalog.assetPath(product.pagePath);
       detail.textContent = product.rattle.available || product.weights.length > 1 ? 'Choose weight/rattle' : 'View details';
       detail.classList.remove('btn', 'btn-primary');
       detail.classList.add('text-button', 'product-detail-link');
@@ -265,16 +266,56 @@
     return controls;
   }
 
+  function isInteractiveCardTarget(target) {
+    return Boolean(target && target.closest([
+      'a',
+      'button',
+      'input',
+      'select',
+      'textarea',
+      'label',
+      '[role="button"]',
+      '[data-cart-open]',
+      '[data-color-key]',
+      '.product-selector',
+      '.variant-swatches',
+      '.quantity-stepper',
+      '.product-detail-link'
+    ].join(',')));
+  }
+
+  function wireCardNavigation(card, product) {
+    var pagePath = product && product.pagePath ? catalog.assetPath(product.pagePath) : '';
+
+    if (!pagePath || card.dataset.cardNavigationWired === 'true') {
+      return;
+    }
+
+    card.classList.add('is-clickable');
+    card.dataset.cardNavigationWired = 'true';
+    card.addEventListener('click', function (event) {
+      if (event.defaultPrevented || isInteractiveCardTarget(event.target)) {
+        return;
+      }
+
+      root.location.href = pagePath;
+    });
+  }
+
   function setupProductCards() {
     document.querySelectorAll('[data-shop-product]').forEach(function (card) {
       var product = catalog.getProduct(card.dataset.shopProduct);
       var link = card.querySelector('a[href]');
 
-      if (!product || card.querySelector('.product-selector')) {
+      if (!product) {
         return;
       }
 
-      card.appendChild(buildShopControls(card, product, link));
+      if (!card.querySelector('.product-selector')) {
+        card.appendChild(buildShopControls(card, product, link));
+      }
+
+      wireCardNavigation(card, product);
     });
   }
 

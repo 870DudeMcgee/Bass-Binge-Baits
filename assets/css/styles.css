@@ -665,7 +665,16 @@ button:disabled {
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
-.product-card:hover {
+.product-card.is-clickable {
+  cursor: pointer;
+}
+
+.product-card.is-clickable .product-selector {
+  cursor: auto;
+}
+
+.product-card:hover,
+.product-card:focus-within {
   border-color: rgba(176, 99, 63, 0.24);
   box-shadow: 0 16px 34px rgba(17, 40, 59, 0.14);
   transform: translateY(-3px);
