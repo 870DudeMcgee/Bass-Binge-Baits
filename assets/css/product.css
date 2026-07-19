@@ -591,6 +591,7 @@
   grid-auto-columns: minmax(98px, 118px);
   gap: 0.5rem;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scroll-behavior: smooth;
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
