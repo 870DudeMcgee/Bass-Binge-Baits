@@ -65,7 +65,7 @@
       search: '5/16 peewee spider hd finesse cut blackberry smoothie magic brownie fine ryry special fine biggie smalls a little lit ogre',
       basePrice: 5,
       featuredImage: 'assets/img/products/pro-spider-5-16.jpg',
-      defaultColorKey: 'magic-brownie-fine',
+      defaultColorKey: 'blackberry-smoothie',
       defaultWeightKey: '5-16',
       rattle: {
         available: false,
@@ -132,7 +132,7 @@
       search: '1/2 peewee football hd fruit fly bad bo craw essence lit pbj lite smokin pb',
       basePrice: 5,
       featuredImage: 'assets/img/products/pwf-hd-12-bad-bo.jpg',
-      defaultColorKey: 'craw-essence',
+      defaultColorKey: 'fruit-fly',
       defaultWeightKey: '1-2',
       rattle: {
         available: false,
@@ -199,7 +199,7 @@
       search: '3/4 heavy cover football fruit fly bad bo craw essence lit pbj lite smokin pb',
       basePrice: 5,
       featuredImage: 'assets/img/products/heavy-cover-football-3-4.jpg',
-      defaultColorKey: 'craw-essence',
+      defaultColorKey: 'fruit-fly',
       defaultWeightKey: '3-4',
       rattle: {
         available: true,
