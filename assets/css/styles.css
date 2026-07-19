@@ -615,17 +615,22 @@ button:disabled {
   padding: 0;
 }
 
-.social-proof-card:first-child img {
-  object-position: center 34%;
+.social-proof-image--colorado {
+  object-position: center 14%;
 }
 
-.social-proof-card:nth-child(2) img {
+.social-proof-image--catch {
   object-position: center top;
 }
 
-.social-proof-card:nth-child(3) img {
+.social-proof-card--product {
+  grid-template-rows: 180px auto;
+}
+
+.social-proof-card .social-proof-image--product {
   object-fit: contain;
-  padding: var(--space-3);
+  object-position: center;
+  padding: var(--space-2);
 }
 
 .facebook-proof {
@@ -1678,6 +1683,10 @@ select:focus,
 
   .social-proof-card {
     grid-template-rows: 210px auto;
+  }
+
+  .social-proof-card--product {
+    grid-template-rows: 170px auto;
   }
 
   .section-title {
