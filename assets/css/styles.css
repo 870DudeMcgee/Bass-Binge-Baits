@@ -616,21 +616,20 @@ button:disabled {
 }
 
 .social-proof-image--colorado {
-  object-position: center 14%;
+  /* Keep the angler's face in frame on the narrow mobile card crop. */
+  object-position: center 15%;
 }
 
 .social-proof-image--catch {
   object-position: center top;
 }
 
-.social-proof-card--product {
-  grid-template-rows: 180px auto;
-}
-
 .social-proof-card .social-proof-image--product {
-  object-fit: contain;
-  object-position: center;
-  padding: var(--space-2);
+  /* The source is a square product shot with its own white background.
+     Crop that canvas so the jig fills the landscape media slot. */
+  object-fit: cover;
+  object-position: center 72%;
+  padding: 0;
 }
 
 .facebook-proof {
@@ -1685,8 +1684,12 @@ select:focus,
     grid-template-rows: 210px auto;
   }
 
-  .social-proof-card--product {
-    grid-template-rows: 170px auto;
+  .social-proof-card--colorado {
+    grid-template-rows: 260px auto;
+  }
+
+  .social-proof-image--colorado {
+    object-position: center 5%;
   }
 
   .section-title {
