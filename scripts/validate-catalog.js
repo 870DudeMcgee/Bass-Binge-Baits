@@ -24,8 +24,8 @@ catalog.listProducts().forEach((product) => {
   assertUnique(seenProducts, product.key, 'product key');
 
   if (!product.title) fail(`${product.key} is missing a title`);
-  if (!product.pagePath) fail(`${product.key} is missing pagePath`);
-  if (!fs.existsSync(path.join(root, product.pagePath))) {
+  if (!product.pagePath && !product.isLimitedDrop) fail(`${product.key} is missing pagePath`);
+  if (product.pagePath && !fs.existsSync(path.join(root, product.pagePath))) {
     fail(`${product.key} page does not exist: ${product.pagePath}`);
   }
   if (product.featuredImage && !fs.existsSync(path.join(root, product.featuredImage))) {

@@ -100,7 +100,9 @@
     defaultOption.textContent = activeAvailability === 'checkout-ready' ? 'All checkout-ready colors' : 'All colors';
     colorFilter.appendChild(defaultOption);
 
-    catalog.listProducts().forEach(function (product) {
+    catalog.listProducts().filter(function (product) {
+      return product.shopVisible !== false;
+    }).forEach(function (product) {
       product.colors.forEach(function (color) {
         if (activeAvailability === 'checkout-ready' && !hasCheckoutableColor(product, color.key)) {
           return;

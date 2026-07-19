@@ -36,6 +36,28 @@ if (yearSlot) {
   yearSlot.textContent = String(new Date().getFullYear());
 }
 
+const limitedDropButton = document.querySelector('[data-add-limited-drop]');
+
+if (limitedDropButton) {
+  limitedDropButton.addEventListener('click', () => {
+    const cart = window.BassBingeCart;
+
+    if (!cart) return;
+
+    const build = cart.addJigBuild({
+      productKey: 'heartlander-limited-drop',
+      colorKey: 'heartlander',
+      weightKey: '5-8',
+      rattleKey: 'no'
+    }, 1);
+
+    if (build) {
+      cart.showToast('Heartlander added to cart');
+      cart.openCart();
+    }
+  });
+}
+
 const contactForm = document.querySelector('[data-contact-form]');
 const formNote = document.querySelector('[data-form-note]');
 const contactEmail = 'Bassbingebaits@gmail.com';

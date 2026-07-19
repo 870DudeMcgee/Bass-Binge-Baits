@@ -476,6 +476,68 @@ button:disabled {
   text-align: right;
 }
 
+.limited-drop-card {
+  position: relative;
+}
+
+.limited-drop-media {
+  position: relative;
+  background: #fff;
+}
+
+.limited-drop-media img {
+  height: clamp(300px, 34vw, 440px);
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+.drop-ribbon {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  background: var(--rust);
+  color: var(--cream);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 16px rgba(17, 40, 59, 0.16);
+}
+
+.limited-drop-card .hero-product-copy {
+  align-items: end;
+}
+
+.limited-drop-card .hero-product-copy > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.limited-drop-card .hero-product-copy strong,
+.limited-drop-card .hero-product-copy small {
+  display: block;
+  text-align: left;
+}
+
+.limited-drop-card .hero-product-copy small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.limited-drop-price {
+  color: var(--earth);
+  font-size: 1.1rem;
+}
+
+.limited-drop-cta {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.86rem;
+}
+
 .section-header-row {
   display: flex;
   justify-content: space-between;

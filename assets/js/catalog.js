@@ -20,6 +20,40 @@
 
   var PRODUCTS = [
     {
+      key: 'heartlander-limited-drop',
+      legacyProductId: 'heartlander-limited-drop',
+      legacyShopifyKey: 'limited-drop',
+      slug: 'heartlander-limited-drop',
+      handle: 'limited-drop',
+      pagePath: '',
+      shopVisible: false,
+      isLimitedDrop: true,
+      title: '5/8 oz Pee Wee Football HD — Heartlander',
+      shortTitle: 'Heartlander Limited Drop',
+      search: 'limited drop heartlander 5/8 pee wee peewee football hd stardust',
+      basePrice: 6.99,
+      featuredImage: 'assets/img/products/pwf-hd-58-heartlander.jpg',
+      defaultColorKey: 'heartlander',
+      defaultWeightKey: '5-8',
+      rattle: {
+        available: false,
+        defaultKey: 'no',
+        options: NO_RATTLE_OPTIONS
+      },
+      weights: [
+        { key: '5-8', label: '5/8', priceDelta: 0 }
+      ],
+      colors: [
+        {
+          key: 'heartlander',
+          name: 'Heartlander',
+          swatch: '#51433f',
+          image: 'assets/img/products/pwf-hd-58-heartlander.jpg',
+          checkout: { variantId: 50930219843751, title: 'Default Title' }
+        }
+      ]
+    },
+    {
       key: 'peewee-spider-hd',
       legacyProductId: 'peewee-spider-hd',
       legacyShopifyKey: 'peewee-spider-hd-5-16',
