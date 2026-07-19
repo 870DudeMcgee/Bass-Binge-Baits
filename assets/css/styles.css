@@ -1201,6 +1201,22 @@ button:disabled {
   white-space: nowrap;
 }
 
+.cart-item-child {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.45rem 0.55rem;
+  border-left: 3px solid var(--rust);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: rgba(179, 91, 55, 0.08);
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.cart-item-child strong {
+  color: var(--ink);
+}
+
 .cart-item-actions {
   display: flex;
   justify-content: space-between;

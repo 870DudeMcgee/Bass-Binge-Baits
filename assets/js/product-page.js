@@ -11,6 +11,9 @@
   if (!configEl) return;
 
   var catalog = window.BassBingeCatalog;
+  if (!catalog) return;
+
+  function init() {
   var productKey = configEl.dataset.productKey || configEl.dataset.productId;
   var product = catalog && catalog.getProduct(productKey);
   var usingCatalog = Boolean(catalog && product);
@@ -35,6 +38,11 @@
   var availabilityNode = document.querySelector('[data-product-availability]');
   var addCartBtn = document.querySelector('[data-add-cart]');
   var heroImg = document.querySelector('.product-hero-img');
+  var productTitleNode = document.querySelector('.product-hero-title');
+
+  if (usingCatalog && productTitleNode) {
+    productTitleNode.textContent = product.title;
+  }
 
   function legacyColors() {
     var names = parseDatasetJson('colors', []);
@@ -1076,4 +1084,7 @@
   updateGallery(currentSlide);
   updateOptionAvailability();
   updateColorDisplay();
+  }
+
+  Promise.resolve(catalog.ready).then(init);
 })();

@@ -24,9 +24,24 @@ Then visit `http://localhost:8080`.
 
 The shop page now keeps product selection and cart review on the Bass Binge site, then sends customers to Shopify only for secure checkout.
 
-Product handles, variant IDs, color names, swatches, image paths, weights, and prices live in `assets/js/catalog.js`. Cart persistence, cart rendering, legacy cart migration, and Shopify cart permalink generation live in `assets/js/cart-checkout.js`. This static site does not store Shopify admin credentials, passwords, or private API tokens. If Shopify products or variants change, refresh the embedded catalog or replace it with Storefront API-backed catalog loading.
+Shopify is the live source for product prices, variant availability, assigned variant images, and checkout merchandise IDs. `api/catalog.js` reads Shopify through the Storefront API, normalizes it into the approved storefront shape, and caches it for 45 seconds. `assets/js/catalog.js` remains a temporary browser fallback and supplies presentation metadata such as local page paths and swatch colors.
 
-Checkout is enabled only for cart lines that have verified Shopify variant mapping in `assets/js/catalog.js`. Selections without mapping stay in the local cart, but checkout is blocked until the mapping is added.
+Checkout is enabled only when every selected color/weight resolves to an available Shopify variant. `api/shopify-cart.js` creates a Storefront Cart and returns Shopify's checkout URL. Rattle selections use a separate Shopify variant and are attached as nested child lines beneath their jig parent.
+
+Public products and basic cart creation work through Shopify's tokenless Storefront API. Configure the Headless private token to enable product tags and limited-drop metafields without exposing a credential to the browser:
+
+```bash
+SHOPIFY_STORE_DOMAIN=bassbingebaits.myshopify.com
+SHOPIFY_STOREFRONT_API_VERSION=2026-01
+SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpss_xxxxxxxxx
+```
+
+The Headless storefront needs product, inventory, tag, metafield, and cart access. Publish sellable products, the hidden Rattle Add-on, and limited drops to that Headless sales channel.
+
+For client access and the one-time merchant handoff, use
+`docs/shopify-client-access-request.md` and
+`docs/shopify-implementation-runbook.md`. Never request or share the merchant's
+Shopify password.
 
 Validate catalog data after editing it:
 
@@ -39,6 +54,7 @@ Run both checks before release:
 ```bash
 node scripts/validate-catalog.js
 node scripts/audit-release.js
+node scripts/validate-shopify-integration.js
 ```
 
 ## Form Setup

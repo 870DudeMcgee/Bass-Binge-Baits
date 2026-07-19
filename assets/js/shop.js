@@ -6,6 +6,8 @@
 
   if (!catalog || !cart) return;
 
+  function init() {
+
   var productSearch = document.querySelector('[data-product-search]');
   var productEmpty = document.querySelector('[data-shop-empty]');
   var filterButtons = Array.from(document.querySelectorAll('[data-product-filter]'));
@@ -313,6 +315,9 @@
         return;
       }
 
+      var title = card.querySelector('.product-top h3');
+      if (title) title.textContent = product.title;
+
       if (!card.querySelector('.product-selector')) {
         card.appendChild(buildShopControls(card, product, link));
       }
@@ -388,4 +393,8 @@
       applyProductFilters();
     });
   }
+
+  }
+
+  Promise.resolve(catalog.ready).then(init);
 })(window);

@@ -6,6 +6,7 @@
     apiVersion: '2026-01',
     storefrontAccessToken: '',
     cartStorageKey: 'bass-binge-cart-v2',
+    shopifyCartStorageKey: 'bass-binge-shopify-cart-v1',
     legacyCartStorageKeys: ['bassbinge-cart', 'bass-binge-cart-v1']
   };
 
@@ -31,7 +32,7 @@
       title: '5/8 oz Pee Wee Football HD — Heartlander',
       shortTitle: 'Heartlander Limited Drop',
       search: 'limited drop heartlander 5/8 pee wee peewee football hd stardust',
-      basePrice: 6.99,
+      basePrice: 5.99,
       featuredImage: 'assets/img/products/pwf-hd-58-heartlander.jpg',
       defaultColorKey: 'heartlander',
       defaultWeightKey: '5-8',
@@ -148,7 +149,7 @@
           name: 'Fruit Fly',
           swatch: '#6b7365',
           image: 'assets/img/products/pwf-hd-12-bad-bo.jpg',
-          checkout: null
+          checkout: { variantId: 50121369551015, title: 'Fruit Fly' }
         },
         {
           key: 'craw-essence',
@@ -215,7 +216,7 @@
           name: 'Fruit Fly',
           swatch: '#6b7365',
           image: 'assets/img/products/heavy-cover-football-3-4.jpg',
-          checkout: null
+          checkout: { variantId: 50212502470823, title: 'Fruit Fly' }
         },
         {
           key: 'craw-essence',
@@ -324,6 +325,12 @@
       ]
     }
   ];
+  var RATTLE_ADD_ON = null;
+  var CATALOG_STATUS = {
+    source: 'fallback',
+    fetchedAt: null,
+    errors: []
+  };
 
   function normalizeKey(value) {
     return String(value || '')
@@ -400,9 +407,30 @@
   }
 
   function getCheckoutMapping(product, color, weight, rattle) {
-    if (!product || !color || !weight || !rattle || !color.checkout) {
+    if (!product || !color || !weight || !rattle) {
       return null;
     }
+    if (product.commerceDisabled) return null;
+
+    if (Array.isArray(product.variants)) {
+      var variant = product.variants.find(function (candidate) {
+        return candidate.colorKey === color.key && candidate.weightKey === weight.key;
+      });
+
+      if (!variant || !variant.available) return null;
+      if (rattle.key === 'yes' && (!RATTLE_ADD_ON || !RATTLE_ADD_ON.available)) return null;
+
+      return {
+        id: variant.id,
+        merchandiseId: variant.id,
+        variantId: variant.variantId,
+        title: variant.title,
+        price: variant.price,
+        available: variant.available
+      };
+    }
+
+    if (!color.checkout) return null;
 
     if (weight.key !== product.defaultWeightKey) {
       return null;
@@ -440,8 +468,14 @@
     var color = getColor(product, selection.colorKey) || getColor(product, product.defaultColorKey) || product.colors[0];
     var weight = getWeight(product, selection.weightKey) || getWeight(product, product.defaultWeightKey) || product.weights[0];
     var rattle = getRattleOption(product, selection.rattleKey);
-    var price = product.basePrice + (weight.priceDelta || 0) + (rattle.priceDelta || 0);
     var checkoutMapping = getCheckoutMapping(product, color, weight, rattle);
+    var jigPrice = checkoutMapping && Number.isFinite(Number(checkoutMapping.price))
+      ? Number(checkoutMapping.price)
+      : product.basePrice + (weight.priceDelta || 0);
+    var rattlePrice = rattle.key === 'yes' && RATTLE_ADD_ON
+      ? Number(RATTLE_ADD_ON.price || 0)
+      : Number(rattle.priceDelta || 0);
+    var price = jigPrice + rattlePrice;
     var id = [product.key, color.key, weight.key, rattle.key].join(':');
 
     return {
@@ -458,7 +492,12 @@
       price: price,
       image: color.image,
       checkoutMapping: checkoutMapping,
-      isCheckoutable: Boolean(checkoutMapping && checkoutMapping.variantId)
+      rattleMapping: rattle.key === 'yes' ? RATTLE_ADD_ON : null,
+      isCheckoutable: Boolean(
+        checkoutMapping &&
+        (checkoutMapping.merchandiseId || checkoutMapping.variantId) &&
+        (rattle.key !== 'yes' || (RATTLE_ADD_ON && RATTLE_ADD_ON.available))
+      )
     };
   }
 
@@ -467,6 +506,20 @@
     var match = null;
 
     PRODUCTS.some(function (product) {
+      var remoteVariant = Array.isArray(product.variants) && product.variants.find(function (variant) {
+        return String(variant.variantId) === id || String(variant.id) === id;
+      });
+
+      if (remoteVariant) {
+        match = {
+          product: product,
+          color: getColor(product, remoteVariant.colorKey),
+          weight: getWeight(product, remoteVariant.weightKey),
+          variant: remoteVariant
+        };
+        return true;
+      }
+
       return product.colors.some(function (color) {
         if (color.checkout && String(color.checkout.variantId) === id) {
           match = { product: product, color: color };
@@ -507,6 +560,78 @@
     return '$' + Number(value || 0).toFixed(2);
   }
 
+  function getCurrentDrop() {
+    return PRODUCTS.find(function (product) {
+      return product.isLimitedDrop;
+    }) || null;
+  }
+
+  function applyRemoteCatalog(payload) {
+    if (!payload || !payload.ok || !Array.isArray(payload.products)) {
+      return false;
+    }
+
+    payload.products.forEach(function (remoteProduct) {
+      var index = PRODUCTS.findIndex(function (product) {
+        return product.key === remoteProduct.key;
+      });
+      if (index >= 0) PRODUCTS[index] = remoteProduct;
+    });
+
+    if (payload.currentDrop) {
+      PRODUCTS = PRODUCTS.filter(function (product) {
+        return !product.isLimitedDrop;
+      });
+      PRODUCTS.unshift(payload.currentDrop);
+    } else {
+      var fallbackDrop = getCurrentDrop();
+      if (fallbackDrop) fallbackDrop.commerceDisabled = true;
+    }
+
+    RATTLE_ADD_ON = payload.rattle || null;
+    PRODUCTS.forEach(function (product) {
+      if (!product.rattle || !product.rattle.available || !RATTLE_ADD_ON) return;
+      product.rattle.options = [
+        { key: 'no', label: 'No', priceDelta: 0 },
+        { key: 'yes', label: 'Yes', priceDelta: Number(RATTLE_ADD_ON.price || 0) }
+      ];
+    });
+    CATALOG_STATUS = {
+      source: payload.source || 'shopify',
+      fetchedAt: payload.fetchedAt || null,
+      errors: Array.isArray(payload.errors) ? payload.errors : []
+    };
+    api.products = PRODUCTS;
+    api.rattleAddOn = RATTLE_ADD_ON;
+    api.status = CATALOG_STATUS;
+    return true;
+  }
+
+  function loadLiveCatalog() {
+    if (!root.document || typeof root.fetch !== 'function') {
+      return Promise.resolve(api);
+    }
+
+    return root.fetch('/api/catalog', { headers: { Accept: 'application/json' } })
+      .then(function (response) {
+        if (!response.ok) throw new Error('Catalog adapter returned ' + response.status);
+        return response.json();
+      })
+      .then(function (payload) {
+        applyRemoteCatalog(payload);
+        return api;
+      })
+      .catch(function (error) {
+        CATALOG_STATUS = {
+          source: 'fallback',
+          fetchedAt: null,
+          errors: [{ code: 'catalog_fallback', message: error.message }]
+        };
+        api.status = CATALOG_STATUS;
+        return api;
+      });
+  }
+
   var api = {
     store: STORE,
     products: PRODUCTS,
@@ -523,12 +648,17 @@
     getJigBuild: getJigBuild,
     findProductByVariantId: findProductByVariantId,
     getSearchText: getSearchText,
+    getCurrentDrop: getCurrentDrop,
+    applyRemoteCatalog: applyRemoteCatalog,
     assetPath: assetPath,
     formatMoney: formatMoney,
-    normalizeKey: normalizeKey
+    normalizeKey: normalizeKey,
+    rattleAddOn: RATTLE_ADD_ON,
+    status: CATALOG_STATUS
   };
 
   root.BassBingeCatalog = api;
+  api.ready = loadLiveCatalog();
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;

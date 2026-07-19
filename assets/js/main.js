@@ -39,20 +39,72 @@ if (yearSlot) {
 const limitedDropButton = document.querySelector('[data-add-limited-drop]');
 
 if (limitedDropButton) {
+  const catalog = window.BassBingeCatalog;
+
+  function currentDrop() {
+    return catalog && catalog.getCurrentDrop
+      ? catalog.getCurrentDrop()
+      : catalog && catalog.getProduct('heartlander-limited-drop');
+  }
+
+  function renderLimitedDrop() {
+    const drop = currentDrop();
+    const card = document.querySelector('[data-limited-drop-card]');
+    if (!drop || !card || !catalog) return;
+
+    const build = catalog.getJigBuild({
+      productKey: drop.key,
+      colorKey: drop.defaultColorKey,
+      weightKey: drop.defaultWeightKey,
+      rattleKey: 'no'
+    });
+    const state = drop.drop && drop.drop.state;
+    const canPurchase = build && build.isCheckoutable && (!state || state === 'live');
+    const badge = card.querySelector('[data-drop-badge]');
+    const image = card.querySelector('[data-drop-image]');
+    const title = card.querySelector('[data-drop-title]');
+    const description = card.querySelector('[data-drop-description]');
+    const price = card.querySelector('[data-drop-price]');
+
+    card.setAttribute('aria-label', drop.title + ' limited drop');
+    if (badge) {
+      badge.textContent = state === 'sold-out'
+        ? 'Sold out'
+        : state === 'expired' ? 'Drop ended' : (drop.badgeText || 'Limited-time drop');
+    }
+    if (image && drop.featuredImage) {
+      image.src = catalog.assetPath(drop.featuredImage);
+      image.alt = (build && build.productTitle ? build.productTitle : drop.title) +
+        (build && build.colorName ? ' in ' + build.colorName : '');
+    }
+    if (title) title.textContent = drop.title;
+    if (description && drop.shortDescription) description.textContent = drop.shortDescription;
+    if (price && build) price.textContent = catalog.formatMoney(build.price);
+    limitedDropButton.disabled = !canPurchase;
+    limitedDropButton.textContent = canPurchase
+      ? 'Add to Cart'
+      : state === 'expired' ? 'Drop Ended' : state === 'sold-out' ? 'Sold Out' : 'Unavailable';
+  }
+
+  if (catalog) {
+    Promise.resolve(catalog.ready).then(renderLimitedDrop);
+  }
+
   limitedDropButton.addEventListener('click', () => {
     const cart = window.BassBingeCart;
+    const drop = currentDrop();
 
-    if (!cart) return;
+    if (!cart || !drop) return;
 
     const build = cart.addJigBuild({
-      productKey: 'heartlander-limited-drop',
-      colorKey: 'heartlander',
-      weightKey: '5-8',
+      productKey: drop.key,
+      colorKey: drop.defaultColorKey,
+      weightKey: drop.defaultWeightKey,
       rattleKey: 'no'
     }, 1);
 
     if (build) {
-      cart.showToast('Heartlander added to cart');
+      cart.showToast((build.colorName || drop.shortTitle || drop.title) + ' added to cart');
       cart.openCart();
     }
   });

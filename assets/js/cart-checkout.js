@@ -9,6 +9,7 @@
     items: loadCart()
   };
   var toastTimer = null;
+  var checkoutPending = false;
 
   function readJson(key) {
     try {
@@ -215,14 +216,85 @@
 
     var checkoutLines = cartLines.map(function (line) {
       var mapping = line.build.checkoutMapping;
-      return mapping && mapping.variantId ? mapping.variantId + ':' + line.quantity : null;
+      return mapping && (mapping.merchandiseId || mapping.id || mapping.variantId) ? true : null;
     });
 
     if (checkoutLines.some(function (line) { return !line; })) {
       return null;
     }
 
-    return 'https://' + store.domain + '/cart/' + checkoutLines.join(',');
+    return '#shopify-checkout';
+  }
+
+  function variantGid(mapping) {
+    if (!mapping) return null;
+    var id = mapping.merchandiseId || mapping.id;
+    if (id && String(id).indexOf('gid://shopify/ProductVariant/') === 0) return String(id);
+    var numeric = mapping.variantId || id;
+    return numeric ? 'gid://shopify/ProductVariant/' + numeric : null;
+  }
+
+  function checkoutPayload(lines) {
+    return lines.map(function (line) {
+      return {
+        merchandiseId: variantGid(line.build.checkoutMapping),
+        rattleMerchandiseId: line.build.hasRattle
+          ? variantGid(line.build.rattleMapping)
+          : null,
+        quantity: line.quantity,
+        configurationId: line.id
+      };
+    });
+  }
+
+  async function beginCheckout() {
+    var lines = getLines();
+    var checkoutLink = document.querySelector('[data-checkout-link]');
+    var payload = checkoutPayload(lines);
+
+    if (checkoutPending || !lines.length || payload.some(function (line) { return !line.merchandiseId; })) {
+      return;
+    }
+
+    checkoutPending = true;
+    if (checkoutLink) {
+      checkoutLink.dataset.checkoutLabel = checkoutLink.textContent;
+      checkoutLink.classList.add('disabled');
+      checkoutLink.setAttribute('aria-busy', 'true');
+      checkoutLink.textContent = 'Preparing Checkout…';
+    }
+
+    try {
+      var response = await root.fetch('/api/shopify-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ lines: payload })
+      });
+      var result = await response.json();
+      if (!response.ok || !result.ok || !result.checkoutUrl) {
+        throw new Error(result.message || 'Shopify could not prepare checkout.');
+      }
+
+      try {
+        root.localStorage.setItem(store.shopifyCartStorageKey, JSON.stringify({
+          id: result.cartId,
+          checkoutUrl: result.checkoutUrl,
+          createdAt: new Date().toISOString()
+        }));
+      } catch (error) {
+        // Checkout still works when localStorage is unavailable.
+      }
+
+      root.location.assign(result.checkoutUrl);
+    } catch (error) {
+      checkoutPending = false;
+      if (checkoutLink) {
+        checkoutLink.classList.remove('disabled');
+        checkoutLink.removeAttribute('aria-busy');
+        checkoutLink.textContent = checkoutLink.dataset.checkoutLabel || 'Continue to Checkout';
+      }
+      showToast(error.message || 'Secure checkout is temporarily unavailable.');
+    }
   }
 
   function updateBadges() {
@@ -260,10 +332,6 @@
     var remove = document.createElement('button');
     var price = document.createElement('strong');
     var metaParts = [line.build.colorName, line.build.weightLabel + ' oz'];
-
-    if (line.build.hasRattle) {
-      metaParts.push('w/ rattle');
-    }
 
     itemNode.className = 'cart-item';
     itemNode.dataset.cartItemId = line.id;
@@ -313,6 +381,21 @@
     top.appendChild(titleWrap);
     top.appendChild(price);
     main.appendChild(top);
+
+    if (line.build.hasRattle && line.build.rattleMapping) {
+      var child = document.createElement('div');
+      var childLabel = document.createElement('span');
+      var childPrice = document.createElement('strong');
+      child.className = 'cart-item-child';
+      childLabel.textContent = '↳ Rattle Add-on × ' + line.quantity;
+      childPrice.textContent = catalog.formatMoney(
+        Number(line.build.rattleMapping.price || 0) * line.quantity
+      );
+      child.appendChild(childLabel);
+      child.appendChild(childPrice);
+      main.appendChild(child);
+    }
+
     main.appendChild(actions);
     itemNode.appendChild(image);
     itemNode.appendChild(main);
@@ -410,12 +493,15 @@
 
     document.querySelectorAll('[data-checkout-link]').forEach(function (link) {
       link.addEventListener('click', function (event) {
+        event.preventDefault();
         if (link.getAttribute('aria-disabled') === 'true') {
-          event.preventDefault();
           if (getCount() > 0) {
             showToast('Checkout needs Shopify mapping for every selected option.');
           }
+          return;
         }
+
+        beginCheckout();
       });
     });
 
@@ -436,6 +522,7 @@
     getCount: getCount,
     getSubtotal: getSubtotal,
     buildCheckoutUrl: buildCheckoutUrl,
+    beginCheckout: beginCheckout,
     renderCart: renderCart,
     openCart: openCart,
     closeCart: closeCart,
@@ -469,4 +556,5 @@
 
   bindCartChrome();
   renderCart();
+  Promise.resolve(catalog.ready).then(renderCart);
 })(window);
