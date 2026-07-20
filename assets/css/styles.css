@@ -1803,6 +1803,10 @@ select:focus,
     grid-template-rows: 180px auto;
   }
 
+  .social-proof-card {
+    grid-template-rows: auto auto;
+  }
+
   .section-title {
     font-size: clamp(1.75rem, 8vw, 2.2rem);
   }
