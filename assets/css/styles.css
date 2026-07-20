@@ -607,16 +607,18 @@ button:disabled {
 }
 
 .social-proof-card {
-  grid-template-rows: 280px auto;
+  align-self: start;
+  grid-template-rows: auto auto;
 }
 
 .social-proof-card img {
-  object-fit: cover;
+  height: auto;
+  object-fit: contain;
   padding: 0;
 }
 
 .social-proof-image--colorado {
-  object-position: center top;
+  object-position: center;
 }
 
 .social-proof-image--catch {
@@ -624,10 +626,8 @@ button:disabled {
 }
 
 .social-proof-card .social-proof-image--product {
-  /* The source is a square product shot with its own white background.
-     Crop that canvas so the jig fills the landscape media slot. */
-  object-fit: cover;
-  object-position: center 72%;
+  object-fit: contain;
+  object-position: center;
   padding: 0;
 }
 
@@ -1677,18 +1677,6 @@ select:focus,
 
   .proof-card {
     grid-template-rows: 180px auto;
-  }
-
-  .social-proof-card {
-    grid-template-rows: 240px auto;
-  }
-
-  .social-proof-card--colorado {
-    grid-template-rows: 430px auto;
-  }
-
-  .social-proof-image--colorado {
-    object-position: center top;
   }
 
   .section-title {
