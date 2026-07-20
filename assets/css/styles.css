@@ -607,7 +607,7 @@ button:disabled {
 }
 
 .social-proof-card {
-  grid-template-rows: 220px auto;
+  grid-template-rows: 280px auto;
 }
 
 .social-proof-card img {
@@ -616,8 +616,7 @@ button:disabled {
 }
 
 .social-proof-image--colorado {
-  /* Keep the angler's face in frame on the narrow mobile card crop. */
-  object-position: center 15%;
+  object-position: center top;
 }
 
 .social-proof-image--catch {
@@ -1681,15 +1680,15 @@ select:focus,
   }
 
   .social-proof-card {
-    grid-template-rows: 210px auto;
+    grid-template-rows: 240px auto;
   }
 
   .social-proof-card--colorado {
-    grid-template-rows: 260px auto;
+    grid-template-rows: 430px auto;
   }
 
   .social-proof-image--colorado {
-    object-position: center 5%;
+    object-position: center top;
   }
 
   .section-title {
