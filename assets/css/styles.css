@@ -732,7 +732,8 @@ body.product-zoom-open {
 
 .social-proof-card {
   align-self: start;
-  grid-template-rows: auto auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .social-proof-card img {
@@ -1801,10 +1802,6 @@ select:focus,
 
   .proof-card {
     grid-template-rows: 180px auto;
-  }
-
-  .social-proof-card {
-    grid-template-rows: auto auto;
   }
 
   .section-title {
