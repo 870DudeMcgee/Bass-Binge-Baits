@@ -110,6 +110,101 @@ if (limitedDropButton) {
   });
 }
 
+const limitedDropZoomOpen = document.querySelector('[data-drop-zoom-open]');
+
+if (limitedDropZoomOpen) {
+  const dropImage = limitedDropZoomOpen.querySelector('[data-drop-image]');
+  let zoomModal;
+  let zoomStage;
+  let zoomReturnFocus;
+
+  function setDropZoomPosition(event) {
+    const rect = zoomStage.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((event.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((event.clientY - rect.top) / rect.height) * 100));
+    zoomStage.style.setProperty('--zoom-x', x + '%');
+    zoomStage.style.setProperty('--zoom-y', y + '%');
+  }
+
+  function resetDropZoom() {
+    zoomStage.classList.remove('is-zooming');
+    zoomStage.style.setProperty('--zoom-x', '50%');
+    zoomStage.style.setProperty('--zoom-y', '50%');
+  }
+
+  function closeDropZoom() {
+    if (!zoomModal || zoomModal.hidden) return;
+    zoomModal.hidden = true;
+    document.body.classList.remove('product-zoom-open');
+    resetDropZoom();
+    if (zoomReturnFocus) zoomReturnFocus.focus({ preventScroll: true });
+  }
+
+  function handleDropZoomKeydown(event) {
+    if (event.key === 'Escape') {
+      closeDropZoom();
+    } else if (event.key === 'Tab') {
+      event.preventDefault();
+      zoomModal.querySelector('.drop-zoom-close').focus();
+    }
+  }
+
+  function ensureDropZoom() {
+    if (zoomModal) return;
+    zoomModal = document.createElement('div');
+    zoomModal.className = 'drop-zoom-modal';
+    zoomModal.hidden = true;
+    zoomModal.setAttribute('role', 'dialog');
+    zoomModal.setAttribute('aria-modal', 'true');
+    zoomModal.setAttribute('aria-label', 'Enlarged limited-drop product photo');
+    zoomModal.innerHTML =
+      '<div class="drop-zoom-backdrop" data-drop-zoom-close></div>' +
+      '<div class="drop-zoom-panel">' +
+        '<button class="drop-zoom-close" type="button" aria-label="Close product photo zoom">' +
+          '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>' +
+        '</button>' +
+        '<div class="drop-zoom-stage" tabindex="0" aria-label="Tap or click to zoom the product photo">' +
+          '<img class="drop-zoom-image" draggable="false" />' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(zoomModal);
+    zoomStage = zoomModal.querySelector('.drop-zoom-stage');
+
+    zoomModal.querySelector('.drop-zoom-image').src = dropImage.src;
+    zoomModal.querySelector('.drop-zoom-image').alt = dropImage.alt;
+    zoomModal.querySelector('.drop-zoom-close').addEventListener('click', closeDropZoom);
+    zoomModal.querySelector('[data-drop-zoom-close]').addEventListener('click', closeDropZoom);
+    zoomStage.addEventListener('pointermove', (event) => {
+      if (zoomStage.classList.contains('is-zooming')) setDropZoomPosition(event);
+    });
+    zoomStage.addEventListener('click', (event) => {
+      const isZooming = zoomStage.classList.toggle('is-zooming');
+      if (isZooming) setDropZoomPosition(event);
+      else resetDropZoom();
+    });
+    zoomModal.addEventListener('keydown', handleDropZoomKeydown);
+  }
+
+  function openDropZoom() {
+    ensureDropZoom();
+    const modalImage = zoomModal.querySelector('.drop-zoom-image');
+    modalImage.src = dropImage.src;
+    modalImage.alt = dropImage.alt;
+    zoomReturnFocus = limitedDropZoomOpen;
+    zoomModal.hidden = false;
+    document.body.classList.add('product-zoom-open');
+    zoomModal.querySelector('.drop-zoom-close').focus({ preventScroll: true });
+  }
+
+  limitedDropZoomOpen.addEventListener('click', openDropZoom);
+  limitedDropZoomOpen.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openDropZoom();
+    }
+  });
+}
+
 const contactForm = document.querySelector('[data-contact-form]');
 const formNote = document.querySelector('[data-form-note]');
 const contactEmail = 'Bassbingebaits@gmail.com';

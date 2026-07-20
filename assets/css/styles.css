@@ -483,12 +483,48 @@ button:disabled {
 .limited-drop-media {
   position: relative;
   background: #fff;
+  overflow: hidden;
+  cursor: zoom-in;
 }
 
 .limited-drop-media img {
   height: clamp(300px, 34vw, 440px);
   object-fit: contain;
   padding: 0.5rem;
+  transition: transform 0.25s ease;
+}
+
+.limited-drop-media:hover img {
+  transform: scale(1.025);
+}
+
+.limited-drop-media:focus-visible {
+  outline: 3px solid var(--rust);
+  outline-offset: -3px;
+}
+
+.limited-drop-zoom-icon {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(17, 40, 59, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.limited-drop-zoom-icon svg {
+  width: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
 }
 
 .drop-ribbon {
@@ -536,6 +572,94 @@ button:disabled {
   flex-shrink: 0;
   white-space: nowrap;
   font-size: 0.86rem;
+}
+
+body.product-zoom-open {
+  overflow: hidden;
+}
+
+.drop-zoom-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.drop-zoom-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 18, 26, 0.84);
+  backdrop-filter: blur(8px);
+}
+
+.drop-zoom-panel {
+  position: relative;
+  z-index: 1;
+  width: min(96vw, 1180px);
+  height: min(92vh, 880px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: calc(var(--radius) + 2px);
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+
+.drop-zoom-stage {
+  --zoom-x: 50%;
+  --zoom-y: 50%;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: zoom-in;
+  touch-action: none;
+  user-select: none;
+}
+
+.drop-zoom-stage.is-zooming {
+  cursor: zoom-out;
+}
+
+.drop-zoom-image {
+  max-width: 100%;
+  max-height: 100%;
+  padding: clamp(0.75rem, 2vw, 2rem);
+  object-fit: contain;
+  pointer-events: none;
+  transform-origin: var(--zoom-x) var(--zoom-y);
+  transition: transform 0.16s ease;
+}
+
+.drop-zoom-stage.is-zooming .drop-zoom-image {
+  transform: scale(2.55);
+}
+
+.drop-zoom-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 2;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(17, 40, 59, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+}
+
+.drop-zoom-close svg {
+  width: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.35;
 }
 
 .section-header-row {
