@@ -40,16 +40,6 @@
   var heroImg = document.querySelector('.product-hero-img');
   var productTitleNode = document.querySelector('.product-hero-title');
 
-  if (usingCatalog && window.BassBingeAnalytics) {
-    var initialBuild = catalog.getJigBuild({
-      productKey: product.key,
-      colorKey: product.defaultColorKey,
-      weightKey: product.defaultWeightKey,
-      rattleKey: product.rattle.defaultKey
-    });
-    window.BassBingeAnalytics.trackBuild('view_item', initialBuild, 1);
-  }
-
   if (usingCatalog && productTitleNode) {
     productTitleNode.textContent = product.title;
   }

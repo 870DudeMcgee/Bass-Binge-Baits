@@ -157,7 +157,7 @@ function matches(source, pattern) {
   return source.match(pattern) || [];
 }
 
-function assertCanonicalAndGoogleTags() {
+function assertCanonicalIndexing() {
   pages.forEach((page) => {
     const source = read(page);
     const expectedUrl = canonicalUrls[page];
@@ -170,12 +170,8 @@ function assertCanonicalAndGoogleTags() {
         !source.includes(`<meta property="og:url" content="${expectedUrl}"`)) {
       fail(`${page} must have exactly one matching og:url`);
     }
-    if (matches(source, /googletagmanager\.com\/gtag\/js/g).length !== 1 ||
-        matches(source, /gtag\('config', 'G-MEK0CBJWR0'\)/g).length !== 1) {
-      fail(`${page} must load and configure exactly one Bass Binge Google tag`);
-    }
-    if (!/assets\/js\/analytics\.js\?v=/.test(source)) {
-      fail(`${page} does not load the shared analytics helper`);
+    if (/googletagmanager\.com|G-MEK0CBJWR0|assets\/js\/analytics\.js/.test(source)) {
+      fail(`${page} contains unapproved Google Analytics tracking`);
     }
     if (/noindex/i.test(source)) {
       fail(`${page} contains noindex`);
@@ -213,33 +209,6 @@ function assertCanonicalSitemap() {
   }
 }
 
-function assertCommerceAnalytics() {
-  const analytics = read('assets/js/analytics.js');
-  const cart = read('assets/js/cart-checkout.js');
-  const product = read('assets/js/product-page.js');
-  const shop = read('assets/js/shop.js');
-  const main = read('assets/js/main.js');
-  const combined = [analytics, cart, product, shop, main].join('\n');
-
-  ['view_item_list', 'view_item', 'add_to_cart', 'remove_from_cart', 'view_cart', 'begin_checkout', 'generate_lead']
-    .forEach((eventName) => {
-      if (!combined.includes(eventName)) fail(`analytics integration is missing ${eventName}`);
-    });
-  ['item_id', 'item_name', 'item_variant', 'price', 'quantity', "currency: 'USD'"]
-    .forEach((field) => {
-      if (!analytics.includes(field)) fail(`analytics item payload is missing ${field}`);
-    });
-  if (/\b(?:email|phone|message|token|first_name|last_name|user_id)\s*:/.test(analytics)) {
-    fail('analytics helper contains a prohibited PII field');
-  }
-  if (!cart.includes("event_callback") && !analytics.includes('event_callback')) {
-    fail('begin_checkout does not use a callback-safe redirect');
-  }
-  if (!main.includes("send('generate_lead'") || !main.includes('if (!response.ok)')) {
-    fail('generate_lead is not gated behind a successful contact response');
-  }
-}
-
 assertNoDemoContactCopy();
 assertShopDefaultsCheckoutable();
 assertFaviconLinks();
@@ -247,9 +216,8 @@ assertSitemapProducts();
 assertSharedAssetCacheBust();
 assertProductZoomAssets();
 assertScriptsAreNotImmutableCached();
-assertCanonicalAndGoogleTags();
+assertCanonicalIndexing();
 assertCanonicalSitemap();
-assertCommerceAnalytics();
 
 if (failures.length) {
   console.error('Release audit failed:');

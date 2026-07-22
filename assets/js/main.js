@@ -272,9 +272,6 @@ if (contactForm && formNote) {
 
       contactForm.reset();
       setFormNote('Message sent. We will reply as soon as we can.', 'success');
-      if (window.BassBingeAnalytics) {
-        window.BassBingeAnalytics.send('generate_lead', { lead_source: 'contact_form' });
-      }
     } catch (error) {
       setFormNote(`We could not send it from the site. Opening your email app, or email ${contactEmail} directly.`, 'error');
       window.location.href = buildMailtoUrl();

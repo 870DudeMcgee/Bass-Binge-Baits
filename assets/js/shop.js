@@ -350,29 +350,6 @@
   }
 
   setupProductCards();
-  if (root.BassBingeAnalytics) {
-    var listItems = catalog.listProducts().filter(function (product) {
-      return product.shopVisible !== false;
-    }).map(function (product) {
-      return catalog.getJigBuild({
-        productKey: product.key,
-        colorKey: product.defaultColorKey,
-        weightKey: product.defaultWeightKey,
-        rattleKey: product.rattle.defaultKey
-      });
-    });
-    listItems.forEach(function (build) {
-      if (build) build.quantity = 1;
-    });
-    root.BassBingeAnalytics.send('view_item_list', {
-      item_list_id: 'shop',
-      item_list_name: 'Shop',
-      currency: 'USD',
-      items: listItems.map(function (build) {
-        return root.BassBingeAnalytics.itemFromBuild(build, 1);
-      }).filter(Boolean)
-    });
-  }
   populateColorFilter();
   applyProductFilters();
 

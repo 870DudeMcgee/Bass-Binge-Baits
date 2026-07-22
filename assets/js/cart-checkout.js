@@ -174,41 +174,28 @@
 
   function addJigBuild(selection, quantity) {
     var build = catalog.getJigBuild(selection);
-    var qty = normalizeQuantity(quantity);
     if (!build) return null;
 
-    upsertLine(state.items, build, qty);
+    upsertLine(state.items, build, quantity);
     saveCart();
     renderCart();
-    if (root.BassBingeAnalytics) {
-      root.BassBingeAnalytics.trackBuild('add_to_cart', build, qty);
-    }
     return build;
   }
 
   function setQuantity(id, quantity) {
     var qty = Number(quantity) || 0;
-    var nextQuantity = qty <= 0 ? 0 : Math.min(99, qty);
-    var previous = state.items.find(function (item) { return item.id === id; });
-    var previousQuantity = previous ? previous.quantity : 0;
-    var previousBuild = previous ? catalog.getJigBuild(previous) : null;
 
     state.items = state.items.filter(function (item) {
       if (item.id !== id) return true;
 
-      if (nextQuantity <= 0) return false;
+      if (qty <= 0) return false;
 
-      item.quantity = nextQuantity;
+      item.quantity = Math.min(99, qty);
       return true;
     });
 
     saveCart();
     renderCart();
-
-    if (previousBuild && nextQuantity !== previousQuantity && root.BassBingeAnalytics) {
-      var eventName = nextQuantity > previousQuantity ? 'add_to_cart' : 'remove_from_cart';
-      root.BassBingeAnalytics.trackBuild(eventName, previousBuild, Math.abs(nextQuantity - previousQuantity));
-    }
   }
 
   function removeItem(id) {
@@ -298,18 +285,7 @@
         // Checkout still works when localStorage is unavailable.
       }
 
-      var redirected = false;
-      var redirectToCheckout = function () {
-        if (redirected) return;
-        redirected = true;
-        root.location.assign(result.checkoutUrl);
-      };
-      if (root.BassBingeAnalytics) {
-        root.BassBingeAnalytics.trackLines('begin_checkout', lines, redirectToCheckout);
-        root.setTimeout(redirectToCheckout, 1000);
-      } else {
-        redirectToCheckout();
-      }
+      root.location.assign(result.checkoutUrl);
     } catch (error) {
       checkoutPending = false;
       if (checkoutLink) {
@@ -478,9 +454,6 @@
 
     if (overlay) overlay.hidden = false;
     document.body.classList.add('cart-open');
-    if (root.BassBingeAnalytics) {
-      root.BassBingeAnalytics.trackLines('view_cart', getLines());
-    }
   }
 
   function closeCart() {
