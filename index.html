@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MEK0CBJWR0"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-MEK0CBJWR0');
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bass Binge Baits | Premium Football & Spider Jigs</title>
@@ -11,6 +19,8 @@
     <meta property="og:title" content="Bass Binge Baits" />
     <meta property="og:description" content="Premium football and spider jigs for serious anglers." />
     <meta property="og:type" content="website" />
+    <link rel="canonical" href="https://www.bassbingebaits.com/" />
+    <meta property="og:url" content="https://www.bassbingebaits.com/" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/assets/img/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="icon" href="/assets/img/favicon.png" type="image/png" sizes="512x512" />
@@ -27,7 +37,7 @@
   <body>
     <header class="site-header">
       <div class="container nav-wrap">
-        <a href="index.html" class="brand" aria-label="Bass Binge homepage">
+        <a href="/" class="brand" aria-label="Bass Binge homepage">
           <img class="brand-logo" src="assets/img/bass-binge-logo.png?v=20260611" alt="Bass Binge Baits logo" />
           <span>
             <span class="brand-main">Bass Binge</span>
@@ -36,10 +46,10 @@
         </a>
         <button class="mobile-toggle" data-nav-toggle aria-expanded="false" aria-label="Toggle menu">☰</button>
         <nav class="nav-links" data-nav-links>
-          <a href="index.html" aria-current="page">Home</a>
-          <a href="shop.html">Shop</a>
-          <a href="about.html">About</a>
-          <a href="contact.html">Contact</a>
+          <a href="/" aria-current="page">Home</a>
+          <a href="/shop">Shop</a>
+          <a href="/about">About</a>
+          <a href="/contact">Contact</a>
           <button class="nav-cart-button" type="button" data-cart-open aria-label="Open cart">
             <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M6.2 6.4h15l-1.8 8.1H8L6.2 3.8H3" />
@@ -65,8 +75,8 @@
               for pressured bass.
             </p>
             <div class="stack-actions">
-              <a class="btn btn-primary hero-cta" href="shop.html">Shop The Collection</a>
-              <a class="btn btn-secondary" href="contact.html">Ask About Colors</a>
+              <a class="btn btn-primary hero-cta" href="/shop">Shop The Collection</a>
+              <a class="btn btn-secondary" href="/contact">Ask About Colors</a>
             </div>
             <ul class="trust-list" aria-label="Store trust signals">
               <li>Secure Shopify checkout</li>
@@ -176,7 +186,7 @@
             Click any product to see full specs and choose your color.
           </p>
           <div class="center-actions">
-            <a class="btn btn-primary" href="shop.html">Browse All Products</a>
+            <a class="btn btn-primary" href="/shop">Browse All Products</a>
           </div>
         </div>
       </section>
@@ -189,9 +199,10 @@
           <p class="footer-origin">Made in Bull Shoals, AR— tested against the hardest water.</p>
         </div>
         <div class="footer-links">
-          <a href="contact.html">Contact</a>
-          <a href="about.html">About</a>
-          <a href="shop.html">Shop</a>
+          <a href="/contact">Contact</a>
+          <a href="/about">About</a>
+          <a href="/shop">Shop</a>
+          <a href="/privacy">Privacy</a>
         </div>
       </div>
     </footer>
@@ -211,20 +222,21 @@
         <div class="cart-empty" data-cart-empty>
           <h3>Your cart is ready when you are.</h3>
           <p>Add a jig from the shop, then review everything here before checkout.</p>
-          <a class="btn btn-secondary" href="shop.html">Keep Shopping</a>
+          <a class="btn btn-secondary" href="/shop">Keep Shopping</a>
         </div>
         <div class="cart-items" data-cart-items></div>
       </div>
       <div class="cart-drawer-footer">
         <div class="cart-total-row"><span>Subtotal</span><strong data-cart-subtotal>$0.00</strong></div>
         <p class="cart-note">Shipping and taxes are calculated during checkout.</p>
-        <a class="btn btn-primary" href="shop.html" data-checkout-link>Continue to Checkout</a>
+        <a class="btn btn-primary" href="/shop" data-checkout-link>Continue to Checkout</a>
       </div>
     </aside>
     <div class="toast" data-toast role="status" aria-live="polite"></div>
 
     <script src="assets/js/catalog.js?v=20260719-drop" defer></script>
     <script src="assets/js/cart-checkout.js?v=20260719-drop" defer></script>
-    <script src="assets/js/main.js?v=20260719-dropzoom" defer></script>
+    <script src="assets/js/analytics.js?v=20260722" defer></script>
+    <script src="assets/js/main.js?v=20260722" defer></script>
   </body>
 </html>
