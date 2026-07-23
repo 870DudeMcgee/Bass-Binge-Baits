@@ -326,6 +326,85 @@
     });
   }
 
+  function createProductCard(product) {
+    var card = document.createElement('article');
+    card.className = 'product-card reveal';
+    card.dataset.shopProduct = product.key;
+
+    var media = document.createElement('div');
+    media.className = 'product-media';
+    var img = document.createElement('img');
+    img.src = catalog.assetPath(product.featuredImage || product.colors[0].image);
+    img.alt = product.title;
+    media.appendChild(img);
+    card.appendChild(media);
+
+    var top = document.createElement('div');
+    top.className = 'product-top';
+    var titleEl = document.createElement('h3');
+    titleEl.textContent = product.title;
+    var priceEl = document.createElement('p');
+    priceEl.className = 'product-price';
+    priceEl.textContent = catalog.formatMoney(product.basePrice);
+    top.appendChild(titleEl);
+    top.appendChild(priceEl);
+    card.appendChild(top);
+
+    if (product.description) {
+      var desc = document.createElement('p');
+      desc.textContent = product.description;
+      card.appendChild(desc);
+    }
+
+    var coBrand = document.createElement('div');
+    coBrand.className = 'co-brand-badge';
+    coBrand.innerHTML = '<img src="' + catalog.assetPath('assets/img/jewel-bait-logo.png') + '" alt="Jewel Bait Company" />' +
+      '<div><strong>Built with Jewel Bait Company jigheads</strong>' +
+      '<span class="co-brand-detail">Crafting quality fishing components in the Ozarks</span></div>';
+    card.appendChild(coBrand);
+
+    var tags = document.createElement('div');
+    tags.className = 'product-tags';
+    product.weights.forEach(function (weight) {
+      tags.appendChild(makeTag(weight.label + ' oz'));
+    });
+    tags.appendChild(makeTag(product.colors.length + ' colors'));
+    card.appendChild(tags);
+
+    var detailLink = document.createElement('a');
+    detailLink.className = 'btn btn-primary';
+    detailLink.href = catalog.assetPath(product.pagePath);
+    detailLink.textContent = 'Add Options';
+    card.appendChild(detailLink);
+
+    return card;
+  }
+
+  function makeTag(label) {
+    var span = document.createElement('span');
+    span.textContent = label;
+    return span;
+  }
+
+  function injectDynamicProducts() {
+    var grid = document.querySelector('.shop-product-grid');
+    if (!grid) return;
+
+    catalog.listProducts().forEach(function (product) {
+      if (product.isLimitedDrop || product.shopVisible === false) return;
+      var existing = grid.querySelector('[data-shop-product="' + product.key + '"]');
+      if (existing) return;
+
+      var card = createProductCard(product);
+      grid.appendChild(card);
+
+      if (!card.querySelector('.product-selector')) {
+        card.appendChild(buildShopControls(card, product, card.querySelector('a[href]')));
+      }
+      wireCardNavigation(card, product);
+    });
+  }
+
   function applyProductFilters() {
     var query = productSearch ? productSearch.value.trim().toLowerCase() : '';
     var visibleCount = 0;
@@ -350,6 +429,7 @@
   }
 
   setupProductCards();
+  injectDynamicProducts();
   populateColorFilter();
   applyProductFilters();
 

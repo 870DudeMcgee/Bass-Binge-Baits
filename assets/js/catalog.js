@@ -323,6 +323,80 @@
           checkout: { variantId: 50250877665447, title: 'Ogre' }
         }
       ]
+    },
+    {
+      key: 'finesse-jig',
+      legacyProductId: 'finesse-jig',
+      legacyShopifyKey: 'finesse-jig-5-16',
+      slug: 'finesse-jig',
+      handle: '5-16-oz-finesse-jig',
+      pagePath: 'products/finesse-jig',
+      title: '5/16 oz. Finesse Jig +',
+      shortTitle: 'Finesse Jig +',
+      search: '5/16 finesse jig ball head oshaunessy hook craw trailer blackberry smoothie magic brownie ryry special biggie smalls cool breeze ogre blue blood',
+      basePrice: 5,
+      featuredImage: 'assets/img/products/finesse-jig-5-16.jpg',
+      defaultColorKey: 'blackberry-smoothie',
+      defaultWeightKey: '5-16',
+      rattle: {
+        available: false,
+        defaultKey: 'no',
+        options: NO_RATTLE_OPTIONS
+      },
+      weights: [
+        { key: '5-16', label: '5/16', priceDelta: 0 }
+      ],
+      colors: [
+        {
+          key: 'blackberry-smoothie',
+          name: 'Blackberry Smoothie',
+          swatch: '#2d1631',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267283623, title: 'Blackberry Smoothie' }
+        },
+        {
+          key: 'magic-brownie-fine',
+          name: 'Magic Brownie',
+          swatch: '#5b3f2f',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267316391, title: 'Magic Brownie' }
+        },
+        {
+          key: 'ryry-special-fine',
+          name: 'RyRy Special',
+          swatch: '#6a4e43',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267349159, title: 'RyRy Special' }
+        },
+        {
+          key: 'biggie-smalls',
+          name: 'Biggie Smalls',
+          swatch: '#2f2b25',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267381927, title: 'Biggie Smalls' }
+        },
+        {
+          key: 'cool-breeze',
+          name: 'Cool Breeze',
+          swatch: '#4a7c8c',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267414695, title: 'Cool Breeze' }
+        },
+        {
+          key: 'ogre',
+          name: 'Ogre',
+          swatch: '#505237',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267447463, title: 'Ogre' }
+        },
+        {
+          key: 'blue-blood',
+          name: 'Blue Blood',
+          swatch: '#3a4a6c',
+          image: 'assets/img/products/finesse-jig-5-16.jpg',
+          checkout: { variantId: 51010267480231, title: 'Blue Blood' }
+        }
+      ]
     }
   ];
   var RATTLE_ADD_ON = null;
@@ -575,7 +649,11 @@
       var index = PRODUCTS.findIndex(function (product) {
         return product.key === remoteProduct.key;
       });
-      if (index >= 0) PRODUCTS[index] = remoteProduct;
+      if (index >= 0) {
+        PRODUCTS[index] = remoteProduct;
+      } else if (remoteProduct.handle) {
+        PRODUCTS.push(remoteProduct);
+      }
     });
 
     if (payload.currentDrop) {
