@@ -36,7 +36,17 @@
     var saved = readJson(store.cartStorageKey);
     if (Array.isArray(saved)) {
       return saved.filter(function (item) {
-        return item && item.id && item.productKey && item.colorKey && item.weightKey && item.quantity > 0;
+        if (!item || !item.id || !item.productKey || item.quantity <= 0) return false;
+        if (item.kind === 'shopify-variant') {
+          return Boolean(
+            item.checkoutMapping &&
+            item.checkoutMapping.merchandiseId &&
+            item.price &&
+            item.price.amount !== undefined &&
+            item.price.currencyCode
+          );
+        }
+        return Boolean(item.colorKey && item.weightKey);
       });
     }
 
@@ -146,9 +156,74 @@
     }
   }
 
+  function addExactVariant(line, quantity) {
+    if (
+      !line ||
+      !line.isCheckoutable ||
+      !line.id ||
+      !line.productKey ||
+      !line.checkoutMapping ||
+      !line.checkoutMapping.merchandiseId ||
+      !line.price ||
+      line.price.amount === undefined ||
+      !line.price.currencyCode
+    ) return null;
+
+    var qty = normalizeQuantity(quantity);
+    var existing = state.items.find(function (item) {
+      return item.kind === 'shopify-variant' && item.id === line.id;
+    });
+    if (existing) {
+      existing.quantity = Math.min(99, existing.quantity + qty);
+    } else {
+      state.items.push({
+        kind: 'shopify-variant',
+        id: line.id,
+        productKey: line.productKey,
+        productTitle: line.productTitle,
+        selectedOptions: (line.selectedOptions || []).map(function (option) {
+          return { name: option.name, value: option.value };
+        }),
+        price: {
+          amount: String(line.price.amount),
+          currencyCode: String(line.price.currencyCode)
+        },
+        image: line.image || null,
+        checkoutMapping: {
+          merchandiseId: line.checkoutMapping.merchandiseId,
+          price: {
+            amount: String(line.price.amount),
+            currencyCode: String(line.price.currencyCode)
+          }
+        },
+        quantity: qty
+      });
+    }
+    saveCart();
+    renderCart();
+    return line;
+  }
+
+  function exactBuild(item) {
+    if (!item || item.kind !== 'shopify-variant') return null;
+    return {
+      id: item.id,
+      productKey: item.productKey,
+      productTitle: item.productTitle,
+      selectedOptions: item.selectedOptions || [],
+      price: Number(item.price.amount),
+      money: item.price,
+      image: item.image,
+      checkoutMapping: item.checkoutMapping,
+      hasRattle: false,
+      rattleMapping: null,
+      isCheckoutable: true
+    };
+  }
+
   function getLines() {
     return state.items.map(function (item) {
-      var build = catalog.getJigBuild(item);
+      var build = exactBuild(item) || catalog.getJigBuild(item);
       if (!build) return null;
 
       return {
@@ -234,10 +309,25 @@
     return numeric ? 'gid://shopify/ProductVariant/' + numeric : null;
   }
 
+  function checkoutMoney(build) {
+    var money = build && (build.money || (build.checkoutMapping && build.checkoutMapping.price));
+    if (money && typeof money === 'object' && money.amount !== undefined && money.currencyCode) {
+      return {
+        amount: String(money.amount),
+        currencyCode: String(money.currencyCode)
+      };
+    }
+    var numeric = money === undefined || money === null ? build && build.price : money;
+    return Number.isFinite(Number(numeric))
+      ? { amount: Number(numeric).toFixed(2), currencyCode: 'USD' }
+      : null;
+  }
+
   function checkoutPayload(lines) {
     return lines.map(function (line) {
       return {
         merchandiseId: variantGid(line.build.checkoutMapping),
+        price: checkoutMoney(line.build),
         rattleMerchandiseId: line.build.hasRattle
           ? variantGid(line.build.rattleMapping)
           : null,
@@ -331,23 +421,33 @@
     var increase = document.createElement('button');
     var remove = document.createElement('button');
     var price = document.createElement('strong');
-    var metaParts = [line.build.colorName, line.build.weightLabel + ' oz'];
+    var metaParts = Array.isArray(line.build.selectedOptions)
+      ? line.build.selectedOptions.map(function (option) {
+          return option.name + ': ' + option.value;
+        })
+      : [line.build.colorName, line.build.weightLabel + ' oz'];
+    var itemDescription = metaParts.filter(Boolean).join(' · ');
 
     itemNode.className = 'cart-item';
     itemNode.dataset.cartItemId = line.id;
 
-    image.src = catalog.assetPath(line.build.image);
-    image.alt = line.build.productTitle + ' in ' + line.build.colorName;
+    if (line.build.image) {
+      image.src = catalog.assetPath(line.build.image);
+      image.alt = line.build.productTitle + (itemDescription ? ' — ' + itemDescription : '');
+    } else {
+      image.hidden = true;
+      image.alt = '';
+    }
     image.loading = 'lazy';
 
     main.className = 'cart-item-main';
     top.className = 'cart-item-top';
     actions.className = 'cart-item-actions';
     stepper.className = 'quantity-stepper compact';
-    stepper.setAttribute('aria-label', 'Quantity for ' + line.build.productTitle + ' in ' + line.build.colorName);
+    stepper.setAttribute('aria-label', 'Quantity for ' + line.build.productTitle + (itemDescription ? ' — ' + itemDescription : ''));
 
     appendText(titleWrap, 'h3', line.build.productTitle);
-    appendText(titleWrap, 'p', metaParts.join(' · '));
+    appendText(titleWrap, 'p', itemDescription);
     price.textContent = catalog.formatMoney(line.lineTotal);
 
     decrease.type = 'button';
@@ -515,6 +615,7 @@
 
   root.BassBingeCart = {
     addJigBuild: addJigBuild,
+    addExactVariant: addExactVariant,
     setQuantity: setQuantity,
     removeItem: removeItem,
     clear: clear,

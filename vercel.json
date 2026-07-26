@@ -1,6 +1,12 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/products/:handle",
+      "destination": "/api/product?handle=:handle"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/img/(.*)",

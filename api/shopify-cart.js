@@ -59,6 +59,18 @@ function isVariantGid(value) {
   return /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(String(value || ''));
 }
 
+function normalizeMoney(value) {
+  if (!value || value.amount === null || value.amount === undefined) return null;
+  const amount = String(value.amount);
+  const currencyCode = String(value.currencyCode || '');
+  if (
+    !/^\d+(?:\.\d+)?$/.test(amount) ||
+    Number(amount) < 0 ||
+    !/^[A-Z]{3}$/.test(currencyCode)
+  ) return null;
+  return { amount, currencyCode };
+}
+
 function normalizeLines(body) {
   const rawLines = body && Array.isArray(body.lines) ? body.lines : [];
   if (!rawLines.length || rawLines.length > 50) return null;
@@ -69,11 +81,13 @@ function normalizeLines(body) {
       ? String(line.rattleMerchandiseId)
       : null,
     quantity: Math.max(1, Math.min(99, Number(line && line.quantity) || 1)),
-    configurationId: String(line && line.configurationId || `line-${index}`).slice(0, 120)
+    configurationId: String(line && line.configurationId || `line-${index}`).slice(0, 120),
+    price: normalizeMoney(line && line.price)
   }));
 
   if (normalized.some((line) =>
     !isVariantGid(line.merchandiseId) ||
+    !line.price ||
     (line.rattleMerchandiseId && !isVariantGid(line.rattleMerchandiseId))
   )) return null;
 
@@ -173,3 +187,5 @@ module.exports = async function handler(request, response) {
     });
   }
 };
+
+module.exports.normalizeLines = normalizeLines;
