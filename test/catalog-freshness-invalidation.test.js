@@ -56,6 +56,130 @@ function responseRecorder() {
   };
 }
 
+function createSerializedRedisFixtureStore(options = {}) {
+  const values = new Map();
+  const now = options.now || Date.now;
+
+  function liveValue(key) {
+    const entry = values.get(key);
+    if (entry && entry.expiresAt !== null && entry.expiresAt <= now()) {
+      values.delete(key);
+      return null;
+    }
+    return entry ? entry.value : null;
+  }
+
+  const fetchImpl = async (url, requestOptions) => {
+    const command = JSON.parse(requestOptions.body);
+    let result = null;
+    if (command[0] === 'GET') {
+      result = liveValue(command[1]);
+    } else if (command[0] === 'PTTL') {
+      const entry = values.get(command[1]);
+      result = entry && liveValue(command[1]) !== null && entry.expiresAt !== null
+        ? Math.max(0, entry.expiresAt - now())
+        : -1;
+    } else if (command[0] === 'DEL') {
+      result = values.delete(command[1]) ? 1 : 0;
+    } else if (command[0] === 'SET') {
+      const key = command[1];
+      if (command.includes('NX') && liveValue(key) !== null) {
+        result = null;
+      } else {
+        const pxIndex = command.indexOf('PX');
+        values.set(key, {
+          value: command[2],
+          expiresAt: pxIndex === -1 ? null : now() + Number(command[pxIndex + 1])
+        });
+        result = 'OK';
+      }
+    } else if (command[0] === 'EVAL' && command[2] === 1) {
+      if (liveValue(command[3]) === command[4]) {
+        if (command[1].includes('PEXPIRE')) {
+          values.get(command[3]).expiresAt = now() + Number(command[5]);
+        } else {
+          values.delete(command[3]);
+        }
+        result = 1;
+      } else {
+        result = 0;
+      }
+    } else if (command[0] === 'EVAL' && command[2] === 3) {
+      const [webhookKey, dirtyKey, scheduleKey] = command.slice(3, 6);
+      const [acceptedRaw, dedupeMs, dirtyRaw, scheduleToken, scheduleTtlMs] =
+        command.slice(6);
+      if (liveValue(webhookKey) !== null) {
+        result = [0, 0];
+      } else {
+        values.set(webhookKey, {
+          value: acceptedRaw,
+          expiresAt: now() + Number(dedupeMs)
+        });
+        values.set(dirtyKey, { value: dirtyRaw, expiresAt: null });
+        let scheduled = 0;
+        if (liveValue(scheduleKey) === null) {
+          values.set(scheduleKey, {
+            value: scheduleToken,
+            expiresAt: now() + Number(scheduleTtlMs)
+          });
+          scheduled = 1;
+        }
+        result = [1, scheduled];
+      }
+    } else if (command[0] === 'EVAL' && command[2] === 4) {
+      const [recordKey, dirtyKey, leaseKey, scheduleKey] = command.slice(3, 7);
+      const [
+        recordRaw,
+        capturedDirtyRaw,
+        leaseToken,
+        scheduleToken,
+        followUpScheduleToken,
+        scheduleTtlMs
+      ] = command.slice(7);
+      if (liveValue(leaseKey) !== leaseToken) {
+        result = [0, 0];
+      } else {
+        values.set(recordKey, { value: recordRaw, expiresAt: null });
+        if (capturedDirtyRaw && liveValue(dirtyKey) === capturedDirtyRaw) {
+          values.delete(dirtyKey);
+        }
+        let scheduled = 0;
+        if (scheduleToken && liveValue(scheduleKey) === scheduleToken) {
+          values.delete(scheduleKey);
+          if (liveValue(dirtyKey) !== null) {
+            values.set(scheduleKey, {
+              value: followUpScheduleToken,
+              expiresAt: now() + Number(scheduleTtlMs)
+            });
+            scheduled = 1;
+          }
+        }
+        result = [1, scheduled];
+      }
+    }
+    return { ok: true, json: async () => ({ result }) };
+  };
+
+  return createRedisCatalogStore({
+    url: 'https://fixture.upstash.io',
+    token: 'fixture-token',
+    fetchImpl
+  });
+}
+
+test('catalog service rejects a durable store without fenced refresh commits', () => {
+  assert.throws(
+    () => createCatalogService({
+      store: {
+        async get() { return null; },
+        async set() { return true; }
+      },
+      loadCatalog: async () => fixtureEnvelope()
+    }),
+    /fenced commitRefresh/
+  );
+});
+
 test('independent catalog instances read one durable generation', async () => {
   const store = createMemoryCatalogStore();
   const now = () => Date.parse('2026-07-26T16:00:00.000Z');
@@ -322,6 +446,367 @@ test('periodic reconciliation replaces a fresh generation after a missed event',
   assert.equal(after.cache, 'reconcile');
 });
 
+test('an expired refresh owner cannot overwrite the successor generation', async () => {
+  let observedAt = Date.parse('2026-07-26T16:00:00.000Z');
+  const store = createMemoryCatalogStore({ now: () => observedAt });
+  let resumeFirstRefresh;
+  const firstRefreshBlocked = new Promise((resolve) => {
+    resumeFirstRefresh = resolve;
+  });
+  let firstRefreshStarted;
+  const firstRefreshLoading = new Promise((resolve) => {
+    firstRefreshStarted = resolve;
+  });
+  const first = createCatalogService({
+    store,
+    now: () => observedAt,
+    leaseMs: 100,
+    createId: (() => {
+      let id = 0;
+      return () => `first-${++id}`;
+    })(),
+    loadCatalog: async (request, options) => {
+      firstRefreshStarted();
+      await firstRefreshBlocked;
+      return {
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: 'generation-a'
+      };
+    }
+  });
+  const second = createCatalogService({
+    store,
+    now: () => observedAt,
+    leaseMs: 100,
+    createId: (() => {
+      let id = 0;
+      return () => `second-${++id}`;
+    })(),
+    loadCatalog: async (request, options) => ({
+      ...fixtureEnvelope(),
+      generatedAt: options.generatedAt,
+      generationId: 'generation-b'
+    })
+  });
+
+  const staleRefresh = first.reconcile({ headers: {} });
+  await firstRefreshLoading;
+  observedAt += 101;
+  await second.reconcile({ headers: {} });
+  resumeFirstRefresh();
+
+  await assert.rejects(
+    staleRefresh,
+    (error) => error.code === 'shopify_catalog_unavailable' &&
+      error.details.reason === 'refresh_lease_lost'
+  );
+  const durableRecord = await store.get('bass-binge:catalog:v2:envelope');
+  assert.equal(durableRecord.envelope.generationId, 'generation-b');
+});
+
+test('a newer dirty token owns exactly one follow-up scheduled refresh', async () => {
+  let observedAt = Date.parse('2026-07-26T16:00:00.000Z');
+  let loads = 0;
+  let nextId = 0;
+  let service;
+  const store = createMemoryCatalogStore({ now: () => observedAt });
+  service = createCatalogService({
+    store,
+    now: () => observedAt,
+    debounceMs: 25,
+    delay: async (delayMs) => {
+      observedAt += delayMs;
+    },
+    createId: () => `follow-up-${++nextId}`,
+    loadCatalog: async (request, options) => {
+      loads += 1;
+      if (loads === 2) {
+        const secondEvent = await service.acceptInvalidation({
+          webhookId: 'webhook-d2',
+          topic: 'products/update'
+        });
+        assert.equal(secondEvent.scheduled, false);
+      }
+      return {
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: `generation-${loads}`
+      };
+    }
+  });
+
+  await service.getCatalog({ headers: {} });
+  const firstEvent = await service.acceptInvalidation({
+    webhookId: 'webhook-d1',
+    topic: 'products/update'
+  });
+  observedAt += 25;
+
+  const refreshed = await service.runScheduledRefresh(
+    { headers: {} },
+    firstEvent.scheduleToken
+  );
+
+  assert.equal(loads, 3);
+  assert.equal(refreshed.generationId, 'generation-3');
+  assert.equal(
+    await store.get('bass-binge:catalog:v2:dirty'),
+    null
+  );
+  assert.equal(
+    await store.get('bass-binge:catalog:v2:refresh-schedule'),
+    null
+  );
+});
+
+test('a scheduled refresh retries after colliding with another lease owner', async () => {
+  let observedAt = Date.parse('2026-07-26T16:00:00.000Z');
+  let loads = 0;
+  const delays = [];
+  const store = createMemoryCatalogStore({ now: () => observedAt });
+  const service = createCatalogService({
+    store,
+    now: () => observedAt,
+    debounceMs: 25,
+    scheduledRetryMs: 10,
+    maxScheduledRefreshAttempts: 2,
+    delay: async (delayMs) => {
+      delays.push(delayMs);
+      observedAt += delayMs;
+    },
+    createId: (() => {
+      let id = 0;
+      return () => `collision-${++id}`;
+    })(),
+    loadCatalog: async (request, options) => {
+      loads += 1;
+      return {
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: `generation-${loads}`
+      };
+    }
+  });
+
+  await service.getCatalog({ headers: {} });
+  const event = await service.acceptInvalidation({
+    webhookId: 'webhook-collision',
+    topic: 'products/update'
+  });
+  observedAt += 25;
+  await store.set(
+    'bass-binge:catalog:v2:refresh-lease',
+    'another-owner',
+    { nx: true, ttlMs: 10 }
+  );
+
+  const refreshed = await service.runScheduledRefresh(
+    { headers: {} },
+    event.scheduleToken
+  );
+
+  assert.equal(refreshed.generationId, 'generation-2');
+  assert.equal(loads, 2);
+  assert.deepEqual(delays, [10]);
+  assert.equal(await store.get('bass-binge:catalog:v2:dirty'), null);
+});
+
+test('collision retry preserves schedule ownership when the retry also fails', async () => {
+  let observedAt = Date.parse('2026-07-26T16:00:00.000Z');
+  let upstreamAvailable = true;
+  const store = createMemoryCatalogStore({ now: () => observedAt });
+  const service = createCatalogService({
+    store,
+    now: () => observedAt,
+    debounceMs: 25,
+    leaseMs: 10,
+    maxScheduledRefreshAttempts: 2,
+    delay: async (delayMs) => {
+      observedAt += delayMs;
+    },
+    createId: (() => {
+      let id = 0;
+      return () => `collision-failure-${++id}`;
+    })(),
+    loadCatalog: async (request, options) => {
+      if (!upstreamAvailable) {
+        observedAt += 50;
+        throw new Error('fixture retry failure');
+      }
+      return {
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: 'generation-stable'
+      };
+    }
+  });
+
+  await service.getCatalog({ headers: {} });
+  const event = await service.acceptInvalidation({
+    webhookId: 'webhook-collision-failure',
+    topic: 'products/update'
+  });
+  observedAt += 25;
+  await store.set(
+    'bass-binge:catalog:v2:refresh-lease',
+    'another-owner',
+    { nx: true, ttlMs: 10 }
+  );
+  upstreamAvailable = false;
+
+  await assert.rejects(
+    service.runScheduledRefresh({ headers: {} }, event.scheduleToken),
+    /fixture retry failure/
+  );
+  assert.notEqual(await store.get('bass-binge:catalog:v2:dirty'), null);
+  assert.equal(
+    await store.get('bass-binge:catalog:v2:refresh-schedule'),
+    event.scheduleToken
+  );
+  assert.ok(
+    await store.ttl('bass-binge:catalog:v2:refresh-schedule') > 0
+  );
+});
+
+test('a failed deferred refresh preserves durable ownership for recovery', async () => {
+  let observedAt = Date.parse('2026-07-26T16:00:00.000Z');
+  let upstreamAvailable = true;
+  let loads = 0;
+  const store = createMemoryCatalogStore({ now: () => observedAt });
+  const service = createCatalogService({
+    store,
+    now: () => observedAt,
+    debounceMs: 25,
+    maxScheduledRefreshAttempts: 1,
+    createId: (() => {
+      let id = 0;
+      return () => `recovery-${++id}`;
+    })(),
+    loadCatalog: async (request, options) => {
+      if (!upstreamAvailable) throw new Error('fixture deferred failure');
+      loads += 1;
+      return {
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: `generation-${loads}`
+      };
+    }
+  });
+
+  await service.getCatalog({ headers: {} });
+  const event = await service.acceptInvalidation({
+    webhookId: 'webhook-recoverable',
+    topic: 'products/update'
+  });
+  observedAt += 25;
+  upstreamAvailable = false;
+
+  await assert.rejects(
+    service.runScheduledRefresh({ headers: {} }, event.scheduleToken),
+    /fixture deferred failure/
+  );
+  assert.notEqual(await store.get('bass-binge:catalog:v2:dirty'), null);
+  assert.equal(
+    await store.get('bass-binge:catalog:v2:refresh-schedule'),
+    event.scheduleToken
+  );
+
+  upstreamAvailable = true;
+  const recovered = await service.runScheduledRefresh(
+    { headers: {} },
+    event.scheduleToken
+  );
+  assert.equal(recovered.generationId, 'generation-2');
+  assert.equal(await store.get('bass-binge:catalog:v2:dirty'), null);
+  assert.equal(await store.get('bass-binge:catalog:v2:refresh-schedule'), null);
+});
+
+test('the serialized Redis transition fences owners and transfers newer dirty work', async () => {
+  let observedAt = 0;
+  const store = createSerializedRedisFixtureStore({ now: () => observedAt });
+  const commit = (input) => store.commitRefresh({
+    recordKey: 'catalog',
+    dirtyKey: 'dirty',
+    leaseKey: 'lease',
+    scheduleKey: 'schedule',
+    scheduleTtlMs: 500,
+    ...input
+  });
+
+  await store.set('lease', 'owner-a', { nx: true, ttlMs: 100 });
+  await store.set('dirty', 'dirty-1');
+  await store.set('schedule', 'schedule-1', { nx: true, ttlMs: 500 });
+  observedAt = 101;
+  await store.set('lease', 'owner-b', { nx: true, ttlMs: 100 });
+  const successor = await commit({
+    record: { generationId: 'generation-b' },
+    dirtyRaw: 'dirty-1',
+    leaseToken: 'owner-b',
+    scheduleToken: 'schedule-1',
+    followUpScheduleToken: 'schedule-2'
+  });
+  const staleOwner = await commit({
+    record: { generationId: 'generation-a' },
+    dirtyRaw: 'dirty-1',
+    leaseToken: 'owner-a',
+    scheduleToken: 'schedule-1',
+    followUpScheduleToken: 'schedule-stale'
+  });
+
+  assert.deepEqual(successor, {
+    committed: true,
+    scheduled: false,
+    scheduleToken: null
+  });
+  assert.deepEqual(staleOwner, {
+    committed: false,
+    scheduled: false,
+    scheduleToken: null
+  });
+  assert.deepEqual(await store.get('catalog'), {
+    generationId: 'generation-b'
+  });
+
+  await store.deleteIfValue('lease', 'owner-b');
+  await store.set('lease', 'owner-c', { nx: true, ttlMs: 100 });
+  await store.set('dirty', 'dirty-1');
+  await store.set('schedule', 'schedule-1', { nx: true, ttlMs: 500 });
+  await store.set('dirty', 'dirty-2');
+  const handedOff = await commit({
+    record: { generationId: 'generation-c' },
+    dirtyRaw: 'dirty-1',
+    leaseToken: 'owner-c',
+    scheduleToken: 'schedule-1',
+    followUpScheduleToken: 'schedule-2'
+  });
+
+  assert.deepEqual(handedOff, {
+    committed: true,
+    scheduled: true,
+    scheduleToken: 'schedule-2'
+  });
+  assert.equal(await store.get('dirty'), 'dirty-2');
+  assert.equal(await store.get('schedule'), 'schedule-2');
+
+  await store.deleteIfValue('lease', 'owner-c');
+  await store.set('lease', 'owner-d', { nx: true, ttlMs: 100 });
+  const completed = await commit({
+    record: { generationId: 'generation-d' },
+    dirtyRaw: 'dirty-2',
+    leaseToken: 'owner-d',
+    scheduleToken: 'schedule-2',
+    followUpScheduleToken: 'schedule-3'
+  });
+  assert.deepEqual(completed, {
+    committed: true,
+    scheduled: false,
+    scheduleToken: null
+  });
+  assert.equal(await store.get('dirty'), null);
+  assert.equal(await store.get('schedule'), null);
+});
+
 test('the production durable store uses atomic Redis claims and compare-delete', async () => {
   const commands = [];
   const fetchImpl = async (url, options) => {
@@ -337,7 +822,8 @@ test('the production durable store uses atomic Redis claims and compare-delete',
       return { ok: true, json: async () => ({ result: 'OK' }) };
     }
     if (command[0] === 'EVAL') {
-      return { ok: true, json: async () => ({ result: 1 }) };
+      const result = command[2] === 4 ? [1, 1] : 1;
+      return { ok: true, json: async () => ({ result }) };
     }
     return { ok: true, json: async () => ({ result: 'OK' }) };
   };
@@ -350,12 +836,26 @@ test('the production durable store uses atomic Redis claims and compare-delete',
   assert.deepEqual(await store.get('catalog'), { generationId: 'shared' });
   assert.equal(await store.set('webhook', 'accepted', { nx: true, ttlMs: 5000 }), true);
   assert.equal(await store.deleteIfValue('lease', 'fixture-lease'), true);
-  assert.equal(await store.commitRefresh({
+  assert.deepEqual(await store.commitRefresh({
     recordKey: 'catalog',
     record: { generationId: 'next' },
     dirtyKey: 'dirty',
-    dirtyRaw: '{"token":"dirty-1"}'
-  }), true);
+    dirtyRaw: '{"token":"dirty-1"}',
+    leaseKey: 'lease',
+    leaseToken: 'fixture-lease',
+    scheduleKey: 'schedule',
+    scheduleToken: 'fixture-schedule',
+    followUpScheduleToken: 'fixture-follow-up',
+    scheduleTtlMs: 60000
+  }), {
+    committed: true,
+    scheduled: true,
+    scheduleToken: 'fixture-follow-up'
+  });
+  assert.equal(
+    await store.extendIfValue('schedule', 'fixture-follow-up', 60000),
+    true
+  );
   assert.deepEqual(commands[1], [
     'SET',
     'webhook',
@@ -369,9 +869,26 @@ test('the production durable store uses atomic Redis claims and compare-delete',
   assert.equal(commands[2][3], 'lease');
   assert.equal(commands[2][4], '"fixture-lease"');
   assert.equal(commands[3][0], 'EVAL');
-  assert.equal(commands[3][2], 2);
+  assert.equal(commands[3][2], 4);
   assert.equal(commands[3][3], 'catalog');
   assert.equal(commands[3][4], 'dirty');
+  assert.equal(commands[3][5], 'lease');
+  assert.equal(commands[3][6], 'schedule');
+  assert.match(commands[3][1], /GET", KEYS\[3\]/);
+  assert.match(commands[3][1], /GET", KEYS\[4\]/);
+  assert.match(commands[3][1], /EXISTS", KEYS\[2\]/);
+  assert.deepEqual(commands[3].slice(9), [
+    '"fixture-lease"',
+    '"fixture-schedule"',
+    '"fixture-follow-up"',
+    60000
+  ]);
+  assert.equal(commands[4][0], 'EVAL');
+  assert.equal(commands[4][2], 1);
+  assert.equal(commands[4][3], 'schedule');
+  assert.equal(commands[4][4], '"fixture-follow-up"');
+  assert.equal(commands[4][5], 60000);
+  assert.match(commands[4][1], /PEXPIRE/);
 });
 
 test('durable health state reports fresh, stale, and unavailable windows truthfully', async () => {
@@ -425,7 +942,25 @@ test('two Redis-backed runtime instances observe the same durable generation', a
         result = 'OK';
       }
     } else if (command[0] === 'EVAL') {
-      if (command[2] === 2) {
+      if (command[2] === 4) {
+        if (redis.get(command[5]) !== command[9]) {
+          result = [0, 0];
+        } else {
+          redis.set(command[3], command[7]);
+          if (command[8] && redis.get(command[4]) === command[8]) {
+            redis.delete(command[4]);
+          }
+          let scheduled = 0;
+          if (command[10] && redis.get(command[6]) === command[10]) {
+            redis.delete(command[6]);
+            if (redis.has(command[4])) {
+              redis.set(command[6], command[11]);
+              scheduled = 1;
+            }
+          }
+          result = [1, scheduled];
+        }
+      } else if (command[2] === 2) {
         redis.set(command[3], command[5]);
         if (command[6] && redis.get(command[4]) === command[6]) {
           redis.delete(command[4]);

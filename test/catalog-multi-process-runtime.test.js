@@ -27,6 +27,24 @@ function createRedisFixtureServer() {
           values.set(key, command[2]);
           result = 'OK';
         }
+      } else if (command[0] === 'EVAL' && command[2] === 4) {
+        if (values.get(command[5]) !== command[9]) {
+          result = [0, 0];
+        } else {
+          values.set(command[3], command[7]);
+          if (command[8] && values.get(command[4]) === command[8]) {
+            values.delete(command[4]);
+          }
+          let scheduled = 0;
+          if (command[10] && values.get(command[6]) === command[10]) {
+            values.delete(command[6]);
+            if (values.has(command[4])) {
+              values.set(command[6], command[11]);
+              scheduled = 1;
+            }
+          }
+          result = [1, scheduled];
+        }
       } else if (command[0] === 'EVAL' && command[2] === 2) {
         values.set(command[3], command[5]);
         if (command[6] && values.get(command[4]) === command[6]) {
