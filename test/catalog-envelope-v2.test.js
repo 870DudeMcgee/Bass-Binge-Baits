@@ -305,6 +305,7 @@ test('loadFreshCatalog follows product, variant, and media cursors before normal
     if (query.includes('BassBingeProductVariantsPage')) {
       return {
         product: {
+          id: first.id,
           variants: {
             nodes: [{
               ...first.variants.nodes[0],
@@ -320,6 +321,7 @@ test('loadFreshCatalog follows product, variant, and media cursors before normal
     if (query.includes('BassBingeProductMediaPage')) {
       return {
         product: {
+          id: first.id,
           media: {
             nodes: [{
               __typename: 'MediaImage',
@@ -337,18 +339,18 @@ test('loadFreshCatalog follows product, variant, and media cursors before normal
         }
       };
     }
-    if (variables.after === 'product-page-1') {
+    if (variables.after === 'product-1') {
       return {
         products: {
           edges: [{ cursor: 'product-2', node: second }],
-          pageInfo: { hasNextPage: false, endCursor: 'product-page-2' }
+          pageInfo: { hasNextPage: false, endCursor: 'product-2' }
         }
       };
     }
     return {
       products: {
         edges: [{ cursor: 'product-1', node: first }],
-        pageInfo: { hasNextPage: true, endCursor: 'product-page-1' }
+        pageInfo: { hasNextPage: true, endCursor: 'product-1' }
       }
     };
   }
