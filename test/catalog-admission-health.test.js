@@ -267,6 +267,11 @@ test('the public catalog payload admits products without exposing owner diagnost
     generatedAt: '2026-07-26T15:00:00.000Z',
     sourceUpdatedAt: '2026-07-26T14:59:00.000Z',
     requestId: 'request-fixture-1',
+    cache: 'hit',
+    dirty: true,
+    dirtyAt: '2026-07-26T14:59:59.000Z',
+    refreshDueAt: '2026-07-26T14:59:59.250Z',
+    lastSuccessfulRefreshAt: '2026-07-26T15:00:00.000Z',
     freshness: { status: 'fresh', ageSeconds: 0, ttlSeconds: 45 },
     stale: false,
     products: [{ handle: 'admitted-jig' }],
@@ -284,6 +289,11 @@ test('the public catalog payload admits products without exposing owner diagnost
   assert.deepEqual(payload.products, [{ handle: 'admitted-jig' }]);
   assert.equal(Object.hasOwn(payload, 'quarantine'), false);
   assert.equal(Object.hasOwn(payload, 'outcomes'), false);
+  assert.equal(Object.hasOwn(payload, 'cache'), false);
+  assert.equal(Object.hasOwn(payload, 'dirty'), false);
+  assert.equal(Object.hasOwn(payload, 'dirtyAt'), false);
+  assert.equal(Object.hasOwn(payload, 'refreshDueAt'), false);
+  assert.equal(Object.hasOwn(payload, 'lastSuccessfulRefreshAt'), false);
   assert.equal(Object.hasOwn(payload.legacy, 'errors'), false);
   assert.equal(JSON.stringify(payload).includes('private detail'), false);
 });

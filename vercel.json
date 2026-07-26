@@ -7,6 +7,12 @@
       "destination": "/api/product?handle=:handle"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/catalog-reconcile",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/img/(.*)",
