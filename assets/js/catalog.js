@@ -397,6 +397,105 @@
           checkout: { variantId: 51010267480231, title: 'Blue Blood' }
         }
       ]
+    },
+    {
+      key: 'pee-wee-football',
+      legacyProductId: 'pee-wee-football',
+      legacyShopifyKey: 'pee-wee-football',
+      slug: 'pee-wee-football',
+      handle: 'pee-wee-football',
+      pagePath: 'products/pee-wee-football',
+      title: 'Pee Wee Football +',
+      shortTitle: 'Pee Wee Football +',
+      search: 'pee wee football plus 3/16 5/16 7/16 blackberry smoothie magic brownie ryry special biggie smalls cool breeze ogre blue blood',
+      basePrice: 5,
+      featuredImage: 'assets/img/products/pee-wee-football-plus.jpg',
+      defaultColorKey: 'blackberry-smoothie',
+      defaultWeightKey: '3-16-oz',
+      rattle: {
+        available: false,
+        defaultKey: 'no',
+        options: NO_RATTLE_OPTIONS
+      },
+      weights: [
+        { key: '3-16-oz', label: '3/16', priceDelta: 0 },
+        { key: '5-16-oz', label: '5/16', priceDelta: 0 },
+        { key: '7-16-oz', label: '7/16', priceDelta: 0 }
+      ],
+      variants: [
+        { variantId: 51018167746727, title: 'Blackberry Smoothie / 3/16 oz', colorKey: 'blackberry-smoothie', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018167779495, title: 'Blackberry Smoothie / 5/16 oz', colorKey: 'blackberry-smoothie', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018167812263, title: 'Blackberry Smoothie / 7/16 oz', colorKey: 'blackberry-smoothie', weightKey: '7-16-oz', price: 5, available: true },
+        { variantId: 51018167845031, title: 'Magic Brownie / 3/16 oz', colorKey: 'magic-brownie', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018167877799, title: 'Magic Brownie / 5/16 oz', colorKey: 'magic-brownie', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018167910567, title: 'Magic Brownie / 7/16 oz', colorKey: 'magic-brownie', weightKey: '7-16-oz', price: 5, available: true },
+        { variantId: 51018167943335, title: 'RyRy Special / 3/16 oz', colorKey: 'ryry-special', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018167976103, title: 'RyRy Special / 5/16 oz', colorKey: 'ryry-special', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018168008871, title: 'RyRy Special / 7/16 oz', colorKey: 'ryry-special', weightKey: '7-16-oz', price: 5, available: true },
+        { variantId: 51018168041639, title: 'Biggie Smalls / 3/16 oz', colorKey: 'biggie-smalls', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018168074407, title: 'Biggie Smalls / 5/16 oz', colorKey: 'biggie-smalls', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018168107175, title: 'Biggie Smalls / 7/16 oz', colorKey: 'biggie-smalls', weightKey: '7-16-oz', price: 5, available: true },
+        { variantId: 51018168139943, title: 'Cool Breeze / 3/16 oz', colorKey: 'cool-breeze', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018168172711, title: 'Cool Breeze / 5/16 oz', colorKey: 'cool-breeze', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018168205479, title: 'Cool Breeze / 7/16 oz', colorKey: 'cool-breeze', weightKey: '7-16-oz', price: 5, available: true },
+        { variantId: 51018168238247, title: 'Ogre / 3/16 oz', colorKey: 'ogre', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018168271015, title: 'Ogre / 5/16 oz', colorKey: 'ogre', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018168303783, title: 'Ogre / 7/16 oz', colorKey: 'ogre', weightKey: '7-16-oz', price: 5, available: true },
+        { variantId: 51018168336551, title: 'Blue Blood / 3/16 oz', colorKey: 'blue-blood', weightKey: '3-16-oz', price: 5, available: true },
+        { variantId: 51018168369319, title: 'Blue Blood / 5/16 oz', colorKey: 'blue-blood', weightKey: '5-16-oz', price: 5, available: true },
+        { variantId: 51018168402087, title: 'Blue Blood / 7/16 oz', colorKey: 'blue-blood', weightKey: '7-16-oz', price: 5, available: true }
+      ],
+      colors: [
+        {
+          key: 'blackberry-smoothie',
+          name: 'Blackberry Smoothie',
+          swatch: '#2d1631',
+          image: 'assets/img/products/pee-wee-football-plus.jpg',
+          checkout: { variantId: 51018167746727, title: 'Blackberry Smoothie / 3/16 oz' }
+        },
+        {
+          key: 'magic-brownie',
+          name: 'Magic Brownie',
+          swatch: '#5b3f2f',
+          image: 'assets/img/products/pee-wee-football-plus-magic-brownie.jpg',
+          checkout: { variantId: 51018167845031, title: 'Magic Brownie / 3/16 oz' }
+        },
+        {
+          key: 'ryry-special',
+          name: 'RyRy Special',
+          swatch: '#6a4e43',
+          image: 'assets/img/products/pee-wee-football-plus-ryry-special.jpg',
+          checkout: { variantId: 51018167943335, title: 'RyRy Special / 3/16 oz' }
+        },
+        {
+          key: 'biggie-smalls',
+          name: 'Biggie Smalls',
+          swatch: '#2f2b25',
+          image: 'assets/img/products/pee-wee-football-plus-biggie-smalls.jpg',
+          checkout: { variantId: 51018168041639, title: 'Biggie Smalls / 3/16 oz' }
+        },
+        {
+          key: 'cool-breeze',
+          name: 'Cool Breeze',
+          swatch: '#4a7c8c',
+          image: 'assets/img/products/pee-wee-football-plus-cool-breeze.jpg',
+          checkout: { variantId: 51018168139943, title: 'Cool Breeze / 3/16 oz' }
+        },
+        {
+          key: 'ogre',
+          name: 'Ogre',
+          swatch: '#505237',
+          image: 'assets/img/products/pee-wee-football-plus-ogre.jpg',
+          checkout: { variantId: 51018168238247, title: 'Ogre / 3/16 oz' }
+        },
+        {
+          key: 'blue-blood',
+          name: 'Blue Blood',
+          swatch: '#3a4a6c',
+          image: 'assets/img/products/pee-wee-football-plus-blue-blood.jpg',
+          checkout: { variantId: 51018168336551, title: 'Blue Blood / 3/16 oz' }
+        }
+      ]
     }
   ];
   var RATTLE_ADD_ON = null;
