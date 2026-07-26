@@ -1,6 +1,7 @@
 'use strict';
 
 const { getCatalog } = require('../lib/shopify-catalog.js');
+const { publicCatalogPayload } = require('../lib/catalog-public.js');
 
 module.exports = async function handler(request, response) {
   if (request.method !== 'GET') {
@@ -11,7 +12,7 @@ module.exports = async function handler(request, response) {
   try {
     const catalog = await getCatalog(request);
     response.setHeader('Cache-Control', 'public, s-maxage=45, stale-while-revalidate=300');
-    return response.status(200).json(catalog);
+    return response.status(200).json(publicCatalogPayload(catalog));
   } catch (error) {
     console.error('Shopify catalog adapter failed', {
       message: error.message,

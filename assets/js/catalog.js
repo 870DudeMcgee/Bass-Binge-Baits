@@ -747,25 +747,12 @@
       return false;
     }
 
-    payload.products.forEach(function (remoteProduct) {
-      var index = PRODUCTS.findIndex(function (product) {
-        return product.key === remoteProduct.key;
-      });
-      if (index >= 0) {
-        PRODUCTS[index] = remoteProduct;
-      } else if (remoteProduct.handle) {
-        PRODUCTS.push(remoteProduct);
-      }
+    PRODUCTS = payload.products.filter(function (product) {
+      return product && product.handle && product.pagePath;
     });
 
     if (payload.currentDrop) {
-      PRODUCTS = PRODUCTS.filter(function (product) {
-        return !product.isLimitedDrop;
-      });
       PRODUCTS.unshift(payload.currentDrop);
-    } else {
-      var fallbackDrop = getCurrentDrop();
-      if (fallbackDrop) fallbackDrop.commerceDisabled = true;
     }
 
     RATTLE_ADD_ON = payload.rattle || null;

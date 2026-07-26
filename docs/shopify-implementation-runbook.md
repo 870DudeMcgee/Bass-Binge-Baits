@@ -104,6 +104,19 @@ SHOPIFY_STOREFRONT_API_VERSION=2026-01
 
 Never place the private token in HTML or `assets/js/catalog.js`.
 
+Generate a separate high-entropy server-only token for the protected catalog
+health endpoint and store it in Vercel Production and Preview as:
+
+```text
+CATALOG_HEALTH_TOKEN=<random server-only value>
+```
+
+Request `/api/catalog-health` with
+`Authorization: Bearer <CATALOG_HEALTH_TOKEN>`. The endpoint returns safe
+generation, freshness, admission-count, and grouped issue metadata. It never
+returns this token or Shopify credentials. Do not put the token in browser
+JavaScript, query parameters, or repository files.
+
 Completed 2026-07-19: Shopify's official **Headless** sales channel is installed
 and the `Bass Binge Baits Headless` storefront was created. Its Storefront API
 permissions include inventory access. The private token is stored as an

@@ -88,6 +88,7 @@
   }
 
   function hasCheckoutableDefault(product) {
+    if (product.detailOnly) return true;
     return Boolean(catalog.firstCheckoutableColor(product, product.defaultWeightKey, 'no'));
   }
 
@@ -138,6 +139,22 @@
     var detail = detailsLink;
 
     controls.className = 'product-selector';
+    if (product.detailOnly) {
+      controls.classList.add('product-selector-detail-only');
+      if (detail) {
+        detail.href = catalog.assetPath(product.pagePath);
+        detail.textContent = 'View details';
+        detail.classList.remove('btn', 'btn-primary');
+        detail.classList.add('text-button', 'product-detail-link');
+        controls.appendChild(detail);
+      }
+      var detailNote = document.createElement('p');
+      detailNote.className = 'quick-add-note';
+      detailNote.textContent = 'Choose exact Shopify options on the product page.';
+      controls.appendChild(detailNote);
+      return controls;
+    }
+
     swatches.className = 'variant-swatches';
     label.className = 'field-label';
     purchaseRow.className = 'product-purchase-row';
@@ -312,6 +329,7 @@
       var link = card.querySelector('a[href]');
 
       if (!product) {
+        card.remove();
         return;
       }
 
@@ -333,10 +351,19 @@
 
     var media = document.createElement('div');
     media.className = 'product-media';
-    var img = document.createElement('img');
-    img.src = catalog.assetPath(product.featuredImage || product.colors[0].image);
-    img.alt = product.title;
-    media.appendChild(img);
+    if (product.featuredImage || (product.colors[0] && product.colors[0].image)) {
+      var img = document.createElement('img');
+      img.src = catalog.assetPath(product.featuredImage || product.colors[0].image);
+      img.alt = product.featuredImageAlt || product.title;
+      media.appendChild(img);
+    } else {
+      var placeholder = document.createElement('div');
+      placeholder.className = 'product-media-placeholder';
+      placeholder.setAttribute('role', 'img');
+      placeholder.setAttribute('aria-label', 'Product image unavailable for ' + product.title);
+      placeholder.textContent = 'Product image coming soon';
+      media.appendChild(placeholder);
+    }
     card.appendChild(media);
 
     var top = document.createElement('div');
@@ -365,10 +392,19 @@
 
     var tags = document.createElement('div');
     tags.className = 'product-tags';
-    product.weights.forEach(function (weight) {
-      tags.appendChild(makeTag(weight.label + ' oz'));
-    });
-    tags.appendChild(makeTag(product.colors.length + ' colors'));
+    if (product.detailOnly) {
+      (product.optionNames || []).forEach(function (name) {
+        tags.appendChild(makeTag(name));
+      });
+      if (!(product.optionNames || []).length) {
+        tags.appendChild(makeTag('Single option'));
+      }
+    } else {
+      product.weights.forEach(function (weight) {
+        tags.appendChild(makeTag(weight.label + ' oz'));
+      });
+      tags.appendChild(makeTag(product.colors.length + ' colors'));
+    }
     card.appendChild(tags);
 
     var detailLink = document.createElement('a');
