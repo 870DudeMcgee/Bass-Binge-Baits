@@ -13,6 +13,10 @@ const {
   DEFAULT_TOPICS,
   createCatalogWebhookHandler
 } = require('../lib/catalog-webhook.js');
+const {
+  createCatalogRuntime,
+  deriveCatalogNamespace
+} = require('../lib/shopify-catalog.js');
 
 function fixtureEnvelope() {
   return {
@@ -220,6 +224,210 @@ test('independent catalog instances read one durable generation', async () => {
   assert.equal(second.freshness.status, 'fresh');
 });
 
+test('runtime trust identities isolate every durable catalog transition', async () => {
+  const store = createMemoryCatalogStore();
+  const identities = [
+    {
+      name: 'production-shop-a',
+      environment: {
+        SHOPIFY_STORE_DOMAIN: 'shop-a.myshopify.com',
+        VERCEL_ENV: 'production',
+        VERCEL_PROJECT_PRODUCTION_URL: 'store.example.com'
+      }
+    },
+    {
+      name: 'preview-one-shop-a',
+      environment: {
+        SHOPIFY_STORE_DOMAIN: 'shop-a.myshopify.com',
+        VERCEL_ENV: 'preview',
+        VERCEL_DEPLOYMENT_ID: 'dpl_preview_one'
+      }
+    },
+    {
+      name: 'preview-two-shop-a',
+      environment: {
+        SHOPIFY_STORE_DOMAIN: 'shop-a.myshopify.com',
+        VERCEL_ENV: 'preview',
+        VERCEL_DEPLOYMENT_ID: 'dpl_preview_two'
+      }
+    },
+    {
+      name: 'production-shop-b',
+      environment: {
+        SHOPIFY_STORE_DOMAIN: 'shop-b.myshopify.com',
+        VERCEL_ENV: 'production',
+        VERCEL_PROJECT_PRODUCTION_URL: 'store.example.com'
+      }
+    }
+  ];
+  const runtimes = new Map(identities.map(({ name, environment }) => [
+    name,
+    createCatalogRuntime({
+      environment,
+      store,
+      createId: (() => {
+        let id = 0;
+        return () => `${name}-${++id}`;
+      })(),
+      loadCatalog: async (request, options) => ({
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: `${name}-generation`
+      })
+    })
+  ]));
+
+  for (const { name } of identities) {
+    const catalog = await runtimes.get(name).getCatalog({ headers: {} });
+    assert.equal(catalog.generationId, `${name}-generation`);
+  }
+
+  const production = runtimes.get('production-shop-a');
+  const firstInvalidation = await production.acceptInvalidation({
+    webhookId: 'shared-webhook-id',
+    topic: 'products/update'
+  });
+  assert.equal(firstInvalidation.duplicate, false);
+  assert.equal((await production.getHealthState()).dirty, true);
+  for (const name of [
+    'preview-one-shop-a',
+    'preview-two-shop-a',
+    'production-shop-b'
+  ]) {
+    const runtime = runtimes.get(name);
+    assert.equal((await runtime.getHealthState()).dirty, false, name);
+    assert.equal((await runtime.acceptInvalidation({
+      webhookId: 'shared-webhook-id',
+      topic: 'products/update'
+    })).duplicate, false, name);
+  }
+
+  await runtimes.get('preview-one-shop-a').reconcile({ headers: {} });
+  assert.equal(
+    (await production.getHealthState()).generationId,
+    'production-shop-a-generation'
+  );
+});
+
+test('runtime namespaces reject ambiguous trust identities and aliasing overrides', () => {
+  const baseEnvironment = {
+    SHOPIFY_STORE_DOMAIN: 'shop-a.myshopify.com',
+    VERCEL_ENV: 'preview'
+  };
+
+  assert.throws(
+    () => createCatalogRuntime({
+      environment: baseEnvironment,
+      store: createMemoryCatalogStore(),
+      loadCatalog: async () => fixtureEnvelope()
+    }),
+    (error) => error.code === 'catalog_namespace_invalid'
+  );
+  assert.throws(
+    () => createCatalogRuntime({
+      environment: {
+        ...baseEnvironment,
+        VERCEL_DEPLOYMENT_ID: 'dpl_preview_one',
+        CATALOG_CACHE_NAMESPACE: 'shared-preview'
+      },
+      store: createMemoryCatalogStore(),
+      loadCatalog: async () => fixtureEnvelope()
+    }),
+    (error) => error.code === 'catalog_namespace_invalid'
+  );
+  const firstPreviewNamespace = deriveCatalogNamespace({
+    ...baseEnvironment,
+    VERCEL_DEPLOYMENT_ID: 'dpl_preview_one'
+  });
+  assert.throws(
+    () => createCatalogRuntime({
+      environment: {
+        ...baseEnvironment,
+        VERCEL_DEPLOYMENT_ID: 'dpl_preview_two',
+        CATALOG_CACHE_NAMESPACE: firstPreviewNamespace
+      },
+      store: createMemoryCatalogStore(),
+      loadCatalog: async () => fixtureEnvelope()
+    }),
+    (error) => error.code === 'catalog_namespace_invalid'
+  );
+  assert.throws(
+    () => createCatalogRuntime({
+      environment: {
+        SHOPIFY_STORE_DOMAIN: 'https://shop-a.myshopify.com',
+        VERCEL_ENV: 'production'
+      },
+      store: createMemoryCatalogStore(),
+      loadCatalog: async () => fixtureEnvelope()
+    }),
+    (error) => error.code === 'catalog_namespace_invalid'
+  );
+  assert.notEqual(
+    deriveCatalogNamespace({
+      ...baseEnvironment,
+      VERCEL_DEPLOYMENT_ID: 'dpl_Preview'
+    }),
+    deriveCatalogNamespace({
+      ...baseEnvironment,
+      VERCEL_DEPLOYMENT_ID: 'dpl_preview'
+    })
+  );
+});
+
+test('a refresh lease in one trust identity does not block another identity', async () => {
+  const store = createMemoryCatalogStore();
+  let releaseProduction;
+  const productionBlocked = new Promise((resolve) => {
+    releaseProduction = resolve;
+  });
+  let productionStarted;
+  const productionLoading = new Promise((resolve) => {
+    productionStarted = resolve;
+  });
+  const production = createCatalogRuntime({
+    environment: {
+      SHOPIFY_STORE_DOMAIN: 'shop-a.myshopify.com',
+      VERCEL_ENV: 'production',
+      VERCEL_PROJECT_PRODUCTION_URL: 'store.example.com'
+    },
+    store,
+    loadCatalog: async (request, options) => {
+      productionStarted();
+      await productionBlocked;
+      return {
+        ...fixtureEnvelope(),
+        generatedAt: options.generatedAt,
+        generationId: 'production-generation'
+      };
+    }
+  });
+  const preview = createCatalogRuntime({
+    environment: {
+      SHOPIFY_STORE_DOMAIN: 'shop-a.myshopify.com',
+      VERCEL_ENV: 'preview',
+      VERCEL_DEPLOYMENT_ID: 'dpl_preview'
+    },
+    store,
+    loadCatalog: async (request, options) => ({
+      ...fixtureEnvelope(),
+      generatedAt: options.generatedAt,
+      generationId: 'preview-generation'
+    })
+  });
+
+  const pendingProduction = production.getCatalog({ headers: {} });
+  await productionLoading;
+  assert.equal(
+    (await preview.getCatalog({ headers: {} })).generationId,
+    'preview-generation'
+  );
+  releaseProduction();
+  assert.equal(
+    (await pendingProduction).generationId,
+    'production-generation'
+  );
+});
+
 test('valid events mark the shared generation dirty and schedule one full refresh', async () => {
   const store = createMemoryCatalogStore();
   let observedAt = Date.parse('2026-07-26T16:00:00.000Z');
@@ -362,6 +570,93 @@ test('invalid Shopify HMAC requests are rejected before invalidation', async () 
   assert.equal(response.statusCode, 401);
   assert.equal(response.body.code, 'catalog_webhook_invalid_hmac');
   assert.equal(invalidations, 0);
+});
+
+test('only one canonical Shopify HMAC header reaches invalidation', async () => {
+  const secret = 'canonical-webhook-secret';
+  const rawBody = Buffer.from('{"id":123}');
+  const canonical = createHmac('sha256', secret).update(rawBody).digest('base64');
+  const invalidSignatures = [
+    undefined,
+    createHmac('sha256', 'wrong-secret').update(rawBody).digest('base64'),
+    [canonical, canonical],
+    `${canonical},${canonical}`,
+    `${canonical.slice(1)}${canonical[0]}`,
+    `${canonical}junk`,
+    `${canonical.slice(0, -1)}==`,
+    canonical.slice(0, -1),
+    ` ${canonical}`
+  ];
+
+  for (const provided of invalidSignatures) {
+    let invalidations = 0;
+    const handler = createCatalogWebhookHandler({
+      getSecret: () => secret,
+      acceptInvalidation: async () => {
+        invalidations += 1;
+        return { duplicate: false, scheduled: false };
+      },
+      runScheduledRefresh: async () => {},
+      defer() {}
+    });
+    const response = responseRecorder();
+    const headers = {
+      'x-shopify-webhook-id': 'canonical-matrix',
+      'x-shopify-topic': 'products/update',
+      'x-shopify-shop-domain': 'bassbingebaits.myshopify.com'
+    };
+    if (provided !== undefined) headers['x-shopify-hmac-sha256'] = provided;
+
+    await handler({ method: 'POST', headers, rawBody }, response);
+
+    assert.equal(response.statusCode, 401, JSON.stringify(provided));
+    assert.equal(response.body.code, 'catalog_webhook_invalid_hmac');
+    assert.equal(invalidations, 0);
+  }
+});
+
+test('oversized Buffer, string, and stream webhook bodies fail before invalidation', async () => {
+  const oversizedBuffer = Buffer.alloc(1024 * 1024 + 1, 97);
+  const bodies = [
+    { rawBody: oversizedBuffer },
+    { rawBody: oversizedBuffer.toString() },
+    {
+      async *[Symbol.asyncIterator]() {
+        yield oversizedBuffer.subarray(0, 1024 * 1024);
+        yield oversizedBuffer.subarray(1024 * 1024);
+      }
+    }
+  ];
+
+  for (const body of bodies) {
+    let invalidations = 0;
+    const handler = createCatalogWebhookHandler({
+      getSecret: () => 'body-limit-secret',
+      acceptInvalidation: async () => {
+        invalidations += 1;
+        return { duplicate: false, scheduled: false };
+      },
+      runScheduledRefresh: async () => {},
+      defer() {}
+    });
+    const response = responseRecorder();
+    const request = {
+      method: 'POST',
+      headers: {
+        'x-shopify-hmac-sha256': 'not-reached',
+        'x-shopify-webhook-id': 'oversized-body',
+        'x-shopify-topic': 'products/update',
+        'x-shopify-shop-domain': 'bassbingebaits.myshopify.com'
+      },
+      ...body
+    };
+
+    await handler(request, response);
+
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.code, 'catalog_webhook_raw_body_required');
+    assert.equal(invalidations, 0);
+  }
 });
 
 test('webhook admission covers product, publication, and inventory freshness events', () => {
