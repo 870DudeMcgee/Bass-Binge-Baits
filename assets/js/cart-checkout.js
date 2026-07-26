@@ -358,7 +358,10 @@
       var response = await root.fetch('/api/shopify-cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ lines: payload })
+        body: JSON.stringify({
+          generationId: catalog.status && catalog.status.generationId,
+          lines: payload
+        })
       });
       var result = await response.json();
       if (!response.ok || !result.ok || !result.checkoutUrl) {
