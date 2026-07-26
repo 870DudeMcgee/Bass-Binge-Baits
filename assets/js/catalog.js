@@ -740,6 +740,9 @@
   }
 
   function applyRemoteCatalog(payload) {
+    payload = payload && payload.schemaVersion === 2 && payload.legacy
+      ? payload.legacy
+      : payload;
     if (!payload || !payload.ok || !Array.isArray(payload.products)) {
       return false;
     }

@@ -1,0 +1,106 @@
+{
+  "colorOnly": {
+    "id": "gid://shopify/Product/101",
+    "handle": "color-only-jig",
+    "title": "Color Only Jig",
+    "descriptionHtml": "<p>A color-only jig.</p>",
+    "vendor": "Bass Binge Baits",
+    "productType": "Jig",
+    "tags": [],
+    "publishedAt": "2026-07-26T12:00:00Z",
+    "updatedAt": "2026-07-26T12:30:00Z",
+    "availableForSale": true,
+    "featuredMedia": {
+      "id": "gid://shopify/MediaImage/501"
+    },
+    "media": {
+      "nodes": [
+        {
+          "__typename": "MediaImage",
+          "id": "gid://shopify/MediaImage/501",
+          "alt": "Black jig",
+          "image": {
+            "url": "https://cdn.shopify.com/color-only-black.jpg",
+            "altText": "Black jig",
+            "width": 1200,
+            "height": 1200
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      }
+    },
+    "options": [
+      {
+        "id": "gid://shopify/ProductOption/201",
+        "name": "Color",
+        "optionValues": [
+          {
+            "id": "gid://shopify/ProductOptionValue/301",
+            "name": "Black"
+          },
+          {
+            "id": "gid://shopify/ProductOptionValue/302",
+            "name": "Blue"
+          }
+        ]
+      }
+    ],
+    "variants": {
+      "nodes": [
+        {
+          "id": "gid://shopify/ProductVariant/401",
+          "title": "Black",
+          "availableForSale": true,
+          "quantityAvailable": 4,
+          "price": {
+            "amount": "5.00",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": null,
+          "selectedOptions": [
+            {
+              "name": "Color",
+              "value": "Black"
+            }
+          ],
+          "image": {
+            "id": "gid://shopify/Image/601",
+            "url": "https://cdn.shopify.com/color-only-black.jpg",
+            "altText": "Black jig",
+            "width": 1200,
+            "height": 1200
+          }
+        },
+        {
+          "id": "gid://shopify/ProductVariant/402",
+          "title": "Blue",
+          "availableForSale": false,
+          "quantityAvailable": 0,
+          "price": {
+            "amount": "5.25",
+            "currencyCode": "USD"
+          },
+          "compareAtPrice": {
+            "amount": "6.00",
+            "currencyCode": "USD"
+          },
+          "selectedOptions": [
+            {
+              "name": "Color",
+              "value": "Blue"
+            }
+          ],
+          "image": null
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": null
+      }
+    },
+    "metafields": []
+  }
+}
