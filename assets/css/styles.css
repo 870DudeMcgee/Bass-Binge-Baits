@@ -574,6 +574,13 @@ button:disabled {
   font-size: 0.86rem;
 }
 
+.limited-drop-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.7rem;
+  align-items: center;
+}
+
 body.product-zoom-open {
   overflow: hidden;
 }
@@ -1740,6 +1747,11 @@ select:focus,
   .hero-product-copy {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .limited-drop-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .hero-product-copy strong {

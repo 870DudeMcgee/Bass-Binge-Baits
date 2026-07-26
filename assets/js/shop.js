@@ -391,7 +391,7 @@
     if (!grid) return;
 
     catalog.listProducts().forEach(function (product) {
-      if (product.isLimitedDrop || product.shopVisible === false) return;
+      if (product.shopVisible === false) return;
       var existing = grid.querySelector('[data-shop-product="' + product.key + '"]');
       if (existing) return;
 

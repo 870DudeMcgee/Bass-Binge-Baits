@@ -17,7 +17,8 @@ const pages = [
   'products/peewee-spider-hd.html',
   'products/heavy-cover-football.html',
   'products/finesse-jig.html',
-  'products/pee-wee-football.html'
+  'products/pee-wee-football.html',
+  'products/limited-drop.html'
 ];
 const productPages = pages.filter((page) => page.startsWith('products/'));
 const canonicalUrls = {
@@ -31,7 +32,8 @@ const canonicalUrls = {
   'products/peewee-spider-hd.html': 'https://www.bassbingebaits.com/products/peewee-spider-hd',
   'products/heavy-cover-football.html': 'https://www.bassbingebaits.com/products/heavy-cover-football',
   'products/finesse-jig.html': 'https://www.bassbingebaits.com/products/finesse-jig',
-  'products/pee-wee-football.html': 'https://www.bassbingebaits.com/products/pee-wee-football'
+  'products/pee-wee-football.html': 'https://www.bassbingebaits.com/products/pee-wee-football',
+  'products/limited-drop.html': 'https://www.bassbingebaits.com/products/limited-drop'
 };
 
 function read(relativePath) {

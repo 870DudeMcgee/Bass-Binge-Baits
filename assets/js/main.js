@@ -65,6 +65,7 @@ if (limitedDropButton) {
     const title = card.querySelector('[data-drop-title]');
     const description = card.querySelector('[data-drop-description]');
     const price = card.querySelector('[data-drop-price]');
+    const detail = card.querySelector('[data-limited-drop-detail]');
 
     card.setAttribute('aria-label', drop.title + ' limited drop');
     if (badge) {
@@ -80,6 +81,7 @@ if (limitedDropButton) {
     if (title) title.textContent = drop.title;
     if (description && drop.shortDescription) description.textContent = drop.shortDescription;
     if (price && build) price.textContent = catalog.formatMoney(build.price);
+    if (detail && drop.pagePath) detail.href = catalog.assetPath(drop.pagePath);
     limitedDropButton.disabled = !canPurchase;
     limitedDropButton.textContent = canPurchase
       ? 'Add to Cart'

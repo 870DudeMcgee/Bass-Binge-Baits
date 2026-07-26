@@ -15,7 +15,9 @@
 
   function init() {
   var productKey = configEl.dataset.productKey || configEl.dataset.productId;
-  var product = catalog && catalog.getProduct(productKey);
+  var product = catalog && configEl.hasAttribute('data-current-drop')
+    ? catalog.getCurrentDrop()
+    : catalog && catalog.getProduct(productKey);
   var usingCatalog = Boolean(catalog && product);
   var productName = usingCatalog ? product.title : configEl.dataset.productName;
   var basePrice = usingCatalog ? product.basePrice : parseFloat(configEl.dataset.basePrice);

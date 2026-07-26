@@ -24,7 +24,7 @@ catalog.listProducts().forEach((product) => {
   assertUnique(seenProducts, product.key, 'product key');
 
   if (!product.title) fail(`${product.key} is missing a title`);
-  if (!product.pagePath && !product.isLimitedDrop) fail(`${product.key} is missing pagePath`);
+  if (!product.pagePath) fail(`${product.key} is missing pagePath`);
   if (product.pagePath && !fs.existsSync(path.join(root, `${product.pagePath}.html`))) {
     fail(`${product.key} page does not exist: ${product.pagePath}`);
   }
@@ -100,6 +100,24 @@ productPages.forEach((filePath) => {
     fail(`${relative} does not load cart-checkout.js`);
   }
 });
+
+const currentDrop = catalog.getCurrentDrop();
+if (!currentDrop || currentDrop.shopVisible === false) {
+  fail('Current limited drop is hidden from the shop collection');
+}
+if (!currentDrop || !currentDrop.pagePath) {
+  fail('Current limited drop has no product-detail route');
+}
+
+const home = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+if (!/data-limited-drop-detail/.test(home)) {
+  fail('Homepage limited-drop card has no product-detail link');
+}
+
+const shopScript = fs.readFileSync(path.join(root, 'assets/js/shop.js'), 'utf8');
+if (/product\.isLimitedDrop\s*\|\|\s*product\.shopVisible\s*===\s*false/.test(shopScript)) {
+  fail('Shop collection still explicitly excludes limited drops');
+}
 
 if (failures.length) {
   console.error('Catalog validation failed:');
