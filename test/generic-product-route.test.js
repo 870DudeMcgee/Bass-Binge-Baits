@@ -120,7 +120,7 @@ test('the hidden rattle add-on never resolves through the customer product route
   assert.equal(response.statusCode, 404);
 });
 
-test('Vercel preserves an established static product before the generic fallback rewrite', () => {
+test('an established static SEO shell stays behind the live-catalog admission gate', () => {
   const root = path.resolve(__dirname, '..');
   const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
   const staticPage = fs.readFileSync(
@@ -129,6 +129,7 @@ test('Vercel preserves an established static product before the generic fallback
   );
 
   assert.match(staticPage, /<title>3\/4 Heavy Cover Football \| Bass Binge Baits<\/title>/);
+  assert.match(staticPage, /<main class="product-page" hidden>/);
   assert.deepEqual(config.rewrites, [{
     source: '/products/:handle',
     destination: '/api/product?handle=:handle'

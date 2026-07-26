@@ -13,21 +13,48 @@
   var catalog = window.BassBingeCatalog;
   if (!catalog) return;
 
+  function renderUnavailable() {
+    var main = document.querySelector('.product-page');
+    if (!main) return;
+    var catalogUnavailable = catalog.status && catalog.status.source === 'unavailable';
+    var title = catalogUnavailable ? 'Product temporarily unavailable' : 'Product not found';
+    var message = catalogUnavailable
+      ? 'The live catalog is temporarily unavailable. Please try again in a moment.'
+      : 'This product is not available.';
+    main.innerHTML = '<div class="container" style="padding:6rem 1rem">' +
+      '<p class="section-kicker">' + (catalogUnavailable ? '503' : '404') + '</p>' +
+      '<h1>' + title + '</h1><p>' + message + '</p>' +
+      '<a class="btn btn-primary" href="/shop">Back to Shop</a></div>';
+    main.hidden = false;
+    document.title = title + ' | Bass Binge Baits';
+  }
+
   function init() {
   var productKey = configEl.dataset.productKey || configEl.dataset.productId;
   var product = catalog && configEl.hasAttribute('data-current-drop')
     ? catalog.getCurrentDrop()
     : catalog && catalog.getProduct(productKey);
-  var usingCatalog = Boolean(catalog && product);
-  var productName = usingCatalog ? product.title : configEl.dataset.productName;
-  var basePrice = usingCatalog ? product.basePrice : parseFloat(configEl.dataset.basePrice);
-  var colorOptions = usingCatalog ? product.colors : legacyColors();
-  var weightOptions = usingCatalog ? product.weights : legacyWeights();
-  var rattleAvailable = usingCatalog ? product.rattle.available : configEl.dataset.rattle === 'true';
-  var rattleOptions = usingCatalog ? catalog.getRattleOptions(product) : legacyRattleOptions();
-  var defaultRattleKey = usingCatalog ? product.rattle.defaultKey : 'no';
-  var selectedColor = usingCatalog ? indexForKey(colorOptions, product.defaultColorKey) : parseInt(configEl.dataset.defaultColor, 10);
-  var selectedWeight = usingCatalog ? indexForKey(weightOptions, product.defaultWeightKey) : parseInt(configEl.dataset.defaultWeight, 10);
+  if (
+    !product ||
+    product.detailOnly ||
+    !Array.isArray(product.colors) ||
+    !product.colors.length ||
+    !Array.isArray(product.weights) ||
+    !product.weights.length
+  ) {
+    renderUnavailable();
+    return;
+  }
+  var productPage = document.querySelector('.product-page');
+  if (productPage) productPage.hidden = false;
+  var productName = product.title;
+  var colorOptions = product.colors;
+  var weightOptions = product.weights;
+  var rattleAvailable = Boolean(product.rattle && product.rattle.available);
+  var rattleOptions = catalog.getRattleOptions(product);
+  var defaultRattleKey = product.rattle ? product.rattle.defaultKey : 'no';
+  var selectedColor = indexForKey(colorOptions, product.defaultColorKey);
+  var selectedWeight = indexForKey(weightOptions, product.defaultWeightKey);
 
   if (selectedColor < 0 || Number.isNaN(selectedColor)) selectedColor = 0;
   if (selectedWeight < 0 || Number.isNaN(selectedWeight)) selectedWeight = 0;
@@ -42,47 +69,8 @@
   var heroImg = document.querySelector('.product-hero-img');
   var productTitleNode = document.querySelector('.product-hero-title');
 
-  if (usingCatalog && productTitleNode) {
+  if (productTitleNode) {
     productTitleNode.textContent = product.title;
-  }
-
-  function legacyColors() {
-    var names = parseDatasetJson('colors', []);
-    var images = parseDatasetJson('colorImages', []);
-
-    return names.map(function (name, index) {
-      return {
-        key: String(index),
-        name: name,
-        swatch: 'hsl(' + ((index / Math.max(names.length, 1)) * 360) + ', 45%, 42%)',
-        image: images[index] || images[0] || ''
-      };
-    });
-  }
-
-  function legacyWeights() {
-    return parseDatasetJson('weights', []).map(function (label, index) {
-      return {
-        key: String(index),
-        label: label,
-        priceDelta: 0
-      };
-    });
-  }
-
-  function legacyRattleOptions() {
-    return [
-      { key: 'no', label: 'No', priceDelta: 0 },
-      { key: 'yes', label: 'Yes', priceDelta: 0.5 }
-    ];
-  }
-
-  function parseDatasetJson(key, fallback) {
-    try {
-      return JSON.parse(configEl.dataset[key]) || fallback;
-    } catch (error) {
-      return fallback;
-    }
   }
 
   function indexForKey(options, key) {
@@ -122,8 +110,6 @@
   }
 
   function isSelectionCheckoutable(color, weight, rattleKey) {
-    if (!usingCatalog || !catalog.isBuildCheckoutable) return true;
-
     return catalog.isBuildCheckoutable({
       productKey: product.key,
       colorKey: color && color.key,
@@ -140,31 +126,12 @@
     var color = selectedColorOption();
     var weight = selectedWeightOption();
     var rattle = selectedRattleOption();
-
-    if (usingCatalog) {
-      return catalog.getJigBuild({
-        productKey: product.key,
-        colorKey: color.key,
-        weightKey: weight.key,
-        rattleKey: rattle.key
-      });
-    }
-
-    return {
-      id: [productKey, color.key, weight.key, rattle.key].join(':'),
-      productKey: productKey,
-      productTitle: productName,
+    return catalog.getJigBuild({
+      productKey: product.key,
       colorKey: color.key,
-      colorName: color.name,
       weightKey: weight.key,
-      weightLabel: weight.label,
-      rattleKey: rattle.key,
-      rattleLabel: rattle.label,
-      hasRattle: rattle.key === 'yes',
-      price: basePrice + (rattle.priceDelta || 0),
-      image: color.image,
-      isCheckoutable: true
-    };
+      rattleKey: rattle.key
+    });
   }
 
   function setSelectedColor(index, shouldSyncGallery) {

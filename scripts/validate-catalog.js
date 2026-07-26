@@ -1,123 +1,87 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
 const catalog = require('../assets/js/catalog.js');
 
 const root = path.resolve(__dirname, '..');
 const failures = [];
-const seenProducts = new Set();
-const seenVariants = new Set();
+
+function read(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), 'utf8');
+}
 
 function fail(message) {
   failures.push(message);
 }
 
-function assertUnique(set, key, label) {
-  if (set.has(key)) {
-    fail(`Duplicate ${label}: ${key}`);
-  }
-  set.add(key);
+function reject(source, pattern, message) {
+  if (pattern.test(source)) fail(message);
 }
 
-catalog.listProducts().forEach((product) => {
-  assertUnique(seenProducts, product.key, 'product key');
+if (catalog.listProducts().length) {
+  fail('Browser catalog exposes local products before a validated envelope arrives');
+}
+if (!catalog.status || catalog.status.source !== 'unavailable') {
+  fail('Browser catalog does not begin in the explicit unavailable state');
+}
 
-  if (!product.title) fail(`${product.key} is missing a title`);
-  if (!product.pagePath) fail(`${product.key} is missing pagePath`);
-  if (product.pagePath && !fs.existsSync(path.join(root, `${product.pagePath}.html`))) {
-    fail(`${product.key} page does not exist: ${product.pagePath}`);
-  }
-  if (product.featuredImage && !fs.existsSync(path.join(root, product.featuredImage))) {
-    fail(`${product.key} featured image does not exist: ${product.featuredImage}`);
-  }
+const browserCatalog = read('assets/js/catalog.js');
+const productPage = read('assets/js/product-page.js');
+const serverCatalog = read('lib/shopify-catalog.js');
+const shop = read('shop.html');
+const home = read('index.html');
 
-  const defaultColor = catalog.getColor(product, product.defaultColorKey);
-  const defaultWeight = catalog.getWeight(product, product.defaultWeightKey);
-  if (!defaultColor) fail(`${product.key} default color is invalid: ${product.defaultColorKey}`);
-  if (!defaultWeight) fail(`${product.key} default weight is invalid: ${product.defaultWeightKey}`);
+if (!/var PRODUCTS = \[\];/.test(browserCatalog)) {
+  fail('assets/js/catalog.js does not begin with an empty admitted projection');
+}
+reject(browserCatalog, /source:\s*['"]fallback['"]/, 'assets/js/catalog.js still exposes a fallback source');
+reject(browserCatalog, /catalog_fallback/, 'assets/js/catalog.js still reports catalog fallback behavior');
+reject(productPage, /legacyColors|legacyWeights|legacyRattleOptions/, 'product-page.js still contains local option fallback');
+reject(
+  productPage,
+  /dataset\.(?:colors|colorImages|weights|basePrice|productName)/,
+  'product-page.js still reads local commerce facts from static data attributes'
+);
+reject(serverCatalog, /fallbackCatalog|normalizeKnownProduct|normalizeLegacyHeartlander/, 'Server catalog still contains a local catalog projection path');
+reject(
+  serverCatalog,
+  /require\(['"]\.\.\/assets\/js\/catalog\.js['"]\)/,
+  'Server catalog still imports the browser catalog as commerce authority'
+);
 
-  const seenColors = new Set();
-  product.colors.forEach((color) => {
-    assertUnique(seenColors, color.key, `${product.key} color key`);
-    if (!color.name) fail(`${product.key}/${color.key} is missing a name`);
-    if (!color.swatch) fail(`${product.key}/${color.key} is missing a swatch`);
-    if (!color.image) fail(`${product.key}/${color.key} is missing an image`);
-    if (color.image && !/^https?:\/\//.test(color.image)) {
-      const imagePath = path.join(root, color.image);
-      if (!fs.existsSync(imagePath)) {
-        fail(`${product.key}/${color.key} image does not exist: ${color.image}`);
-      }
-    }
-
-    if (color.checkout && color.checkout.variantId) {
-      assertUnique(seenVariants, String(color.checkout.variantId), 'Shopify variant ID');
-    }
-  });
-
-  const seenWeights = new Set();
-  product.weights.forEach((weight) => {
-    assertUnique(seenWeights, weight.key, `${product.key} weight key`);
-    if (!weight.label) fail(`${product.key}/${weight.key} is missing a weight label`);
-  });
-
-  const defaultBuild = catalog.getJigBuild({
-    productKey: product.key,
-    colorKey: product.defaultColorKey,
-    weightKey: product.defaultWeightKey,
-    rattleKey: product.rattle.defaultKey
-  });
-
-  if (!defaultBuild) {
-    fail(`${product.key} does not produce a default Jig Build`);
-  }
-});
+if (!/class="card-grid shop-grid shop-product-grid" hidden/.test(shop)) {
+  fail('Shop fallback cards are visible before live catalog admission');
+}
+if (!/data-limited-drop-card hidden/.test(home)) {
+  fail('Homepage limited-drop commerce is visible before live catalog admission');
+}
 
 const productPages = fs.readdirSync(path.join(root, 'products'))
-  .filter((file) => file.endsWith('.html'))
-  .map((file) => path.join(root, 'products', file));
-
-productPages.forEach((filePath) => {
-  const html = fs.readFileSync(filePath, 'utf8');
-  const relative = path.relative(root, filePath);
-
+  .filter((filename) => filename.endsWith('.html'));
+productPages.forEach((filename) => {
+  const relativePath = path.join('products', filename);
+  const html = read(relativePath);
   if (!/data-product-key=/.test(html)) {
-    fail(`${relative} is missing data-product-key`);
+    fail(`${relativePath} is missing data-product-key`);
   }
-
+  if (!/<main class="product-page" hidden>/.test(html)) {
+    fail(`${relativePath} exposes static commerce before catalog admission`);
+  }
   ['data-colors', 'data-color-images', 'data-weights', 'data-rattle'].forEach((attribute) => {
-    const oldAttributePattern = new RegExp(`${attribute}\\s*=`);
-    if (oldAttributePattern.test(html)) {
-      fail(`${relative} still contains ${attribute}`);
+    if (new RegExp(`${attribute}\\s*=`).test(html)) {
+      fail(`${relativePath} still contains ${attribute}`);
     }
   });
-
   if (!html.includes('../assets/js/catalog.js')) {
-    fail(`${relative} does not load catalog.js`);
+    fail(`${relativePath} does not load catalog.js`);
   }
-
-  if (!html.includes('../assets/js/cart-checkout.js')) {
-    fail(`${relative} does not load cart-checkout.js`);
+  if (!html.includes('../assets/js/product-page.js')) {
+    fail(`${relativePath} does not load product-page.js`);
   }
 });
-
-const currentDrop = catalog.getCurrentDrop();
-if (!currentDrop || currentDrop.shopVisible === false) {
-  fail('Current limited drop is hidden from the shop collection');
-}
-if (!currentDrop || !currentDrop.pagePath) {
-  fail('Current limited drop has no product-detail route');
-}
-
-const home = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-if (!/data-limited-drop-detail/.test(home)) {
-  fail('Homepage limited-drop card has no product-detail link');
-}
-
-const shopScript = fs.readFileSync(path.join(root, 'assets/js/shop.js'), 'utf8');
-if (/product\.isLimitedDrop\s*\|\|\s*product\.shopVisible\s*===\s*false/.test(shopScript)) {
-  fail('Shop collection still explicitly excludes limited drops');
-}
 
 if (failures.length) {
   console.error('Catalog validation failed:');
@@ -125,4 +89,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Catalog validation passed for ${catalog.listProducts().length} products.`);
+console.log('Catalog validation passed: customer commerce requires an admitted CatalogEnvelope.');

@@ -51,6 +51,7 @@ if (limitedDropButton) {
     const drop = currentDrop();
     const card = document.querySelector('[data-limited-drop-card]');
     if (!drop || !card || !catalog) return;
+    card.hidden = false;
 
     const build = catalog.getJigBuild({
       productKey: drop.key,

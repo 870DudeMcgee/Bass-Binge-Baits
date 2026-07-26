@@ -324,24 +324,8 @@
   }
 
   function setupProductCards() {
-    document.querySelectorAll('[data-shop-product]').forEach(function (card) {
-      var product = catalog.getProduct(card.dataset.shopProduct);
-      var link = card.querySelector('a[href]');
-
-      if (!product) {
-        card.remove();
-        return;
-      }
-
-      var title = card.querySelector('.product-top h3');
-      if (title) title.textContent = product.title;
-
-      if (!card.querySelector('.product-selector')) {
-        card.appendChild(buildShopControls(card, product, link));
-      }
-
-      wireCardNavigation(card, product);
-    });
+    var grid = document.querySelector('.shop-product-grid');
+    if (grid) grid.textContent = '';
   }
 
   function createProductCard(product) {
@@ -466,8 +450,14 @@
 
   setupProductCards();
   injectDynamicProducts();
+  var productGrid = document.querySelector('.shop-product-grid');
+  if (productGrid) productGrid.hidden = false;
   populateColorFilter();
   applyProductFilters();
+  if (productEmpty && catalog.status && catalog.status.source === 'unavailable') {
+    productEmpty.textContent = 'The live catalog is temporarily unavailable. Please try again in a moment.';
+    productEmpty.hidden = false;
+  }
 
   if (productSearch) {
     productSearch.addEventListener('input', applyProductFilters);

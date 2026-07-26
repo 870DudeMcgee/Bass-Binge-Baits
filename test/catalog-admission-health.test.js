@@ -132,7 +132,7 @@ test('collection admission uses accepted v2 products without inventing option ro
   );
 });
 
-test('a blocked variant cannot re-enter an established product quick-add projection', async () => {
+test('a blocked variant cannot re-enter the envelope-derived browser projection', async () => {
   const knownProduct = fixtureProduct({
     id: 'gid://shopify/Product/706',
     handle: '5-16-peewee-spider-hd-finesse-cut',
@@ -173,9 +173,10 @@ test('a blocked variant cannot re-enter an established product quick-add project
     envelope.legacy.products[0].variants.map((variant) => variant.id),
     ['gid://shopify/ProductVariant/721']
   );
-  assert.equal(
-    envelope.legacy.products[0].colors.find((color) => color.name === 'Ogre').checkout,
-    null
+  assert.deepEqual(envelope.legacy.products[0].colors, []);
+  assert.deepEqual(
+    envelope.products[0].variants.map((variant) => variant.id),
+    ['gid://shopify/ProductVariant/721']
   );
 });
 
