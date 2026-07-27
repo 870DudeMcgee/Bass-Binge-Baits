@@ -627,7 +627,7 @@ the old conversation or touching later operational gates.
 
 **Reference behavior:**
 
-- `assets/js/generic-product-page.js` already preserves `model-3d` media and
+- `assets/js/product-page.js` preserves the established product gallery and
   provides the product-page presentation precedent.
 - `docs/shopify-owner-workflow-plan.md` classifies unsupported rich media as a
   warning requiring an accessible fallback, not silent removal.

@@ -82,6 +82,10 @@ test('an unmatched valid Shopify handle renders the established product-page she
   assert.match(response.body, /data-color-name/);
   assert.match(response.body, /data-weight-group/);
   assert.match(response.body, /data-rattle-group/);
+  assert.match(
+    response.body,
+    /data-quantity-decrease[\s\S]*data-quantity-input[\s\S]*data-quantity-increase[\s\S]*data-add-cart/
+  );
   assert.match(response.body, /\/assets\/js\/product-page\.js/);
   assert.doesNotMatch(response.body, /\/assets\/js\/generic-product-page\.js/);
 });
@@ -141,6 +145,22 @@ test('an established static SEO shell stays behind the live-catalog admission ga
     source: '/products/:handle',
     destination: '/api/product?handle=:handle'
   }]);
+});
+
+test('every established product page places quantity before Add to Cart', () => {
+  const root = path.resolve(__dirname, '..');
+  const productDir = path.join(root, 'products');
+  const pages = fs.readdirSync(productDir).filter((name) => name.endsWith('.html'));
+
+  assert.ok(pages.length > 0);
+  for (const page of pages) {
+    const html = fs.readFileSync(path.join(productDir, page), 'utf8');
+    assert.match(
+      html,
+      /data-quantity-decrease[\s\S]*data-quantity-input[\s\S]*data-quantity-increase[\s\S]*data-add-cart/,
+      page
+    );
+  }
 });
 
 test('Shopify cart request normalization preserves exact variant GID and money', () => {
