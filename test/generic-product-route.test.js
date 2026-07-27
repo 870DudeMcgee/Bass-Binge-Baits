@@ -77,6 +77,10 @@ test('an unmatched valid Shopify handle renders the generic product page', async
   assert.match(response.body, /5\/8 oz Heavy Cover Football/);
   assert.match(response.body, /data-generic-product/);
   assert.match(response.body, /gid:\/\/shopify\/ProductVariant\/1001/);
+  assert.match(response.body, /data-gallery-zoom-open/);
+  assert.match(response.body, /class="product-zoom-modal"/);
+  assert.match(response.body, /data-product-zoom-stage/);
+  assert.match(response.body, /aria-label="Close product photo zoom"/);
 });
 
 test('absent, quarantined, and malformed handles return a real not-found response', async () => {

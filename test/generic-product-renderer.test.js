@@ -33,6 +33,98 @@ function product(overrides) {
   }, overrides || {});
 }
 
+class FakeClassList {
+  constructor() {
+    this.values = new Set();
+  }
+
+  add(name) {
+    this.values.add(name);
+  }
+
+  remove(name) {
+    this.values.delete(name);
+  }
+
+  contains(name) {
+    return this.values.has(name);
+  }
+
+  toggle(name, force) {
+    const enabled = force === undefined ? !this.contains(name) : Boolean(force);
+    if (enabled) this.add(name);
+    else this.remove(name);
+    return enabled;
+  }
+}
+
+class FakeElement {
+  constructor(tagName) {
+    this.tagName = tagName;
+    this.children = [];
+    this.classList = new FakeClassList();
+    this.dataset = {};
+    this.listeners = {};
+    this.style = { setProperty() {} };
+    this.hidden = false;
+    this.attributes = {};
+    this._textContent = '';
+  }
+
+  set textContent(value) {
+    this._textContent = value;
+    if (value === '') this.children = [];
+  }
+
+  get textContent() {
+    return this._textContent;
+  }
+
+  appendChild(child) {
+    this.children.push(child);
+    return child;
+  }
+
+  addEventListener(type, listener) {
+    (this.listeners[type] ||= []).push(listener);
+  }
+
+  dispatch(type, properties) {
+    const event = Object.assign({
+      target: this,
+      preventDefault() {},
+      stopPropagation() {}
+    }, properties || {});
+    (this.listeners[type] || []).forEach((listener) => listener(event));
+  }
+
+  setAttribute(name, value) {
+    this.attributes[name] = String(value);
+  }
+
+  querySelector(selector) {
+    if (selector === '.product-gallery-slide.active') {
+      return this.children.find((child) => child.classList.contains('active')) || null;
+    }
+    if (selector === 'img') {
+      return this.children.find((child) => child.tagName === 'img') || null;
+    }
+    return null;
+  }
+
+  closest() {
+    return null;
+  }
+
+  focus() {
+    if (global.document) global.document.activeElement = this;
+  }
+
+  getBoundingClientRect() {
+    return { left: 0, top: 0, width: 100, height: 100 };
+  }
+}
+
 test('default variant resolves without inventing option names', () => {
   const current = product();
 
@@ -242,6 +334,84 @@ test('gallery thumbnails keep media names accessible without painting title text
     assert.equal(thumb.children[0].src, 'heartlander-side.jpg');
   } finally {
     global.document = previousDocument;
+  }
+});
+
+test('clicking the active generic product image opens and closes the zoom viewer', () => {
+  const previousDocument = global.document;
+  const previousWindow = global.window;
+  const elements = {
+    '[data-generic-options]': new FakeElement('div'),
+    '[data-generic-gallery]': new FakeElement('div'),
+    '[data-gallery-main]': new FakeElement('div'),
+    '[data-gallery-track]': new FakeElement('div'),
+    '[data-gallery-thumbs]': new FakeElement('div'),
+    '[data-gallery-counter]': new FakeElement('span'),
+    '[data-gallery-prev]': new FakeElement('button'),
+    '[data-gallery-next]': new FakeElement('button'),
+    '[data-gallery-zoom-open]': new FakeElement('button'),
+    '[data-product-zoom-modal]': new FakeElement('div'),
+    '[data-product-zoom-stage]': new FakeElement('div'),
+    '[data-product-zoom-image]': new FakeElement('img'),
+    '[data-product-zoom-caption]': new FakeElement('span'),
+    '[data-product-zoom-counter]': new FakeElement('span'),
+    '[data-product-zoom-prev]': new FakeElement('button'),
+    '[data-product-zoom-next]': new FakeElement('button'),
+    'button[data-product-zoom-close]': new FakeElement('button'),
+    '[data-price-display]': new FakeElement('span'),
+    '[data-product-availability]': new FakeElement('span'),
+    '[data-add-cart]': new FakeElement('button')
+  };
+  const backdrop = new FakeElement('div');
+  const body = new FakeElement('body');
+  elements['[data-product-zoom-modal]'].hidden = true;
+  global.document = {
+    activeElement: body,
+    body,
+    createElement(tagName) {
+      return new FakeElement(tagName);
+    },
+    querySelector(selector) {
+      return elements[selector] || null;
+    },
+    querySelectorAll(selector) {
+      return selector === '[data-product-zoom-close]'
+        ? [backdrop, elements['button[data-product-zoom-close]']]
+        : [];
+    }
+  };
+  global.window = {
+    requestAnimationFrame(callback) {
+      callback();
+    }
+  };
+
+  try {
+    renderer.mount(product({
+      media: [{
+        id: 'media-a',
+        type: 'image',
+        alt: 'Generic jig close-up',
+        image: { url: 'generic-jig.jpg' }
+      }]
+    }));
+    const track = elements['[data-gallery-track]'];
+    const activeImage = track.children[0].children[0];
+
+    track.dispatch('click', { target: activeImage });
+
+    assert.equal(elements['[data-product-zoom-modal]'].hidden, false);
+    assert.equal(body.classList.contains('product-zoom-open'), true);
+    assert.equal(elements['[data-product-zoom-image]'].src, 'generic-jig.jpg');
+    assert.equal(elements['[data-product-zoom-counter]'].textContent, '1 / 1');
+
+    elements['button[data-product-zoom-close]'].dispatch('click');
+
+    assert.equal(elements['[data-product-zoom-modal]'].hidden, true);
+    assert.equal(body.classList.contains('product-zoom-open'), false);
+  } finally {
+    global.document = previousDocument;
+    global.window = previousWindow;
   }
 });
 
