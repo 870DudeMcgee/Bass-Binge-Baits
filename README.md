@@ -106,12 +106,19 @@ The strict Shopify validator is an external evidence gate. A local failure
 because Storefront access is unavailable must be reported as unverified; it is
 not permission to deploy, change environment variables, or mutate Shopify.
 
-The release preflight is read-only and prints variable names and evidence
-classes only. `BLOCKED` means a required local/configuration check failed,
+The release preflight is read-only and prints approved variable/evidence names
+and evidence classes only. `BLOCKED` means a required local/configuration check failed,
 `READY_LOCAL` means local checks passed but owner-authorized external evidence
 is absent, and `READY_TO_PUSH` additionally requires a secret-free external
-gate file bound to the same commit. Never put environment values in that file
-or commit it; pass its temporary path with `--external-gate <path>`.
+gate file bound to the same commit. That gate must record the reviewed committed
+slice set; passing local suite, catalog, release, and dependency audits; the
+live Heartlander admission facts; the confirmed Vercel project, `main` branch,
+Production domains,
+Production/Preview assignments, and automatic Production deployment behavior;
+the written C8-A1 checklist; an assigned observer; and the rollback decision.
+The command validates those non-secret facts but prints only their approved
+evidence names. Never put environment values in the file or commit it; pass its
+temporary path with `--external-gate <path>`.
 
 ## Form Setup
 

@@ -313,17 +313,44 @@ State meanings:
 - `READY_LOCAL`: required local checks passed, but owner-authorized O1/O2
   evidence is absent.
 - `READY_TO_PUSH`: local checks passed and `--external-gate <path>` supplied a
-  secret-free, commit-bound record of accepted Shopify catalog readiness plus
-  the required variable names for both Production and Preview.
+  secret-free, commit-bound record of the exact live Heartlander admission
+  facts plus the required variable names for both Production and Preview, the
+  reviewed committed slice set, passing local
+  suite/catalog/release/dependency audits, confirmed Vercel
+  project/branch/domains/environment assignments/automatic Production
+  deployment behavior, a written C8-A1 checklist, an assigned observer, and a
+  recorded rollback decision.
 
 The external gate is a temporary JSON file outside the repository. It contains
-names and statuses only—never values:
+approved names, statuses, and non-secret release facts—never environment or
+credential values. The command validates the facts but renders their names only:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "head": "<40-character release commit>",
-  "shopifyCatalogReadiness": "accepted",
+  "shopifyCatalogReadiness": {
+    "status": "accepted",
+    "head": "<same 40-character release commit>",
+    "details": {
+      "handle": "heartlander-peewee-football-hd",
+      "title": "5/8 oz PeeWee Football HD — Heartlander",
+      "price": { "amount": "5.99", "currencyCode": "USD" },
+      "variantId": "<exact numeric Shopify ProductVariant GID>",
+      "mediaCount": 5,
+      "optionTuple": [
+        { "name": "Color", "value": "Heartlander" },
+        { "name": "Weight", "value": "5/8 oz" }
+      ],
+      "productStatus": "active",
+      "headlessPublication": "published",
+      "dropWindow": {
+        "startsAt": "<Shopify drop_starts_at ISO timestamp>",
+        "endsAt": "<later Shopify drop_ends_at ISO timestamp>"
+      },
+      "inventoryDecision": { "mode": "leave-zero" }
+    }
+  },
   "contactDelivery": "configured",
   "configuration": {
     "production": [
@@ -354,15 +381,125 @@ names and statuses only—never values:
       "VERCEL_ENV",
       "VERCEL_DEPLOYMENT_ID"
     ]
-  }
+  },
+  "releaseReadinessEvidence": [
+    {
+      "name": "COMMITTED_SLICE_SET",
+      "status": "accepted",
+      "head": "<same 40-character release commit>",
+      "details": {
+        "commits": ["<each reviewed slice commit, including release HEAD>"],
+        "omittedFiles": "none"
+      }
+    },
+    {
+      "name": "LOCAL_TEST_SUITE",
+      "status": "passed",
+      "head": "<same 40-character release commit>",
+      "details": { "command": "node --test test/*.test.js" }
+    },
+    {
+      "name": "CATALOG_VALIDATION",
+      "status": "passed",
+      "head": "<same 40-character release commit>",
+      "details": { "command": "node scripts/validate-catalog.js" }
+    },
+    {
+      "name": "RELEASE_AUDIT",
+      "status": "passed",
+      "head": "<same 40-character release commit>",
+      "details": { "command": "node scripts/audit-release.js" }
+    },
+    {
+      "name": "DEPENDENCY_AUDIT",
+      "status": "passed",
+      "head": "<same 40-character release commit>",
+      "details": { "command": "npm audit --omit=dev" }
+    },
+    {
+      "name": "VERCEL_PROJECT",
+      "status": "confirmed",
+      "head": "<same 40-character release commit>",
+      "details": { "project": "<Vercel project name>" }
+    },
+    {
+      "name": "RELEASE_BRANCH",
+      "status": "confirmed",
+      "head": "<same 40-character release commit>",
+      "details": { "branch": "main" }
+    },
+    {
+      "name": "PRODUCTION_DOMAINS",
+      "status": "confirmed",
+      "head": "<same 40-character release commit>",
+      "details": {
+        "domains": ["bassbingebaits.com", "www.bassbingebaits.com"],
+        "source": "vercel-project-inspection"
+      }
+    },
+    {
+      "name": "ENVIRONMENT_ASSIGNMENTS",
+      "status": "confirmed",
+      "head": "<same 40-character release commit>",
+      "details": { "targets": ["production", "preview"] }
+    },
+    {
+      "name": "AUTOMATIC_PRODUCTION_DEPLOYMENT",
+      "status": "confirmed",
+      "head": "<same 40-character release commit>",
+      "details": {
+        "trigger": "push-to-main",
+        "manualRedeploy": false
+      }
+    },
+    {
+      "name": "C8_A1_CHECKLIST",
+      "status": "written",
+      "head": "<same 40-character release commit>",
+      "details": {
+        "location": "docs/shopify-universal-ingestion-remediation-plan.md#c8-a1"
+      }
+    },
+    {
+      "name": "OBSERVER",
+      "status": "assigned",
+      "head": "<same 40-character release commit>",
+      "details": {
+        "assignment": "<non-secret observer assignment identifier>"
+      }
+    },
+    {
+      "name": "ROLLBACK_DECISION",
+      "status": "recorded",
+      "head": "<same 40-character release commit>",
+      "details": { "decision": "hold-on-acceptance-failure" }
+    }
+  ]
 }
 ```
 
 Use exactly one supported durable-store pair in each environment. If direct
 contact delivery is excluded from the release, set `contactDelivery` to
 `not-in-release` and omit the three contact variable names. The preflight
-rejects unknown fields or variable names so a value-bearing evidence document
-cannot silently qualify a release.
+rejects unknown fields, names, statuses, detail shapes, duplicates, malformed
+assertions, or an assertion bound to another commit. The only accepted rollback
+decisions are `rollback-on-acceptance-failure` and
+`hold-on-acceptance-failure`. `READY_TO_PUSH` remains a readiness state, not
+owner authorization to perform C8-P1.
+
+For an owner decision to apply inventory counts, replace
+`inventoryDecision` with
+`{"mode":"owner-counts-applied","counts":[{"kind":"peewee-football","variantId":"<numeric Shopify ProductVariant GID>","quantity":0}]}`.
+Include exactly twelve `peewee-football` entries and one `rattle-add-on` entry,
+each with a unique variant GID and its nonnegative integer count.
+
+The committed-slice list must exactly equal `origin/main..<release HEAD>` in
+Git order. The Vercel project must match `.vercel/project.json`, the release
+branch must be `main`, and `origin/main` must be an ancestor of the release
+commit. The Production-domain evidence must come from a Vercel project
+inspection and include every canonical hostname in `sitemap.xml`. Replace every
+angle-bracket placeholder before running the command; placeholders are not
+accepted evidence.
 
 ### C8 acceptance attempt — 2026-07-27
 
