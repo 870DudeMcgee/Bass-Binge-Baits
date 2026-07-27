@@ -175,7 +175,7 @@ test('CatalogEnvelope v2 preserves the complete ordered media gallery', () => {
   );
 });
 
-test('CatalogEnvelope v2 warns and accepts a product with no image', () => {
+test('CatalogEnvelope v2 quarantines a product with no usable image', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/106',
     handle: 'missing-image',
@@ -186,8 +186,33 @@ test('CatalogEnvelope v2 warns and accepts a product with no image', () => {
 
   const envelope = normalizeCatalogEnvelope([product]);
 
-  assert.equal(envelope.products.length, 1);
-  assert.equal(envelope.outcomes.warning[0].code, 'product_image_missing');
+  assert.equal(envelope.products.length, 0);
+  assert.equal(
+    envelope.outcomes.productQuarantined.some((issue) => issue.code === 'product_image_missing'),
+    true
+  );
+});
+
+test('CatalogEnvelope v2 admits a product whose usable image is missing alt text', () => {
+  const product = fixtureProduct({
+    id: 'gid://shopify/Product/113',
+    handle: 'missing-image-alt',
+    title: 'Missing Image Alt Jig'
+  });
+  product.media.nodes[0].alt = null;
+  product.media.nodes[0].image.altText = null;
+
+  const envelope = normalizeCatalogEnvelope([product]);
+
+  assert.deepEqual(envelope.products.map((item) => item.handle), ['missing-image-alt']);
+  assert.equal(
+    envelope.outcomes.warning.some((issue) => issue.code === 'media_alt_missing'),
+    true
+  );
+  assert.equal(
+    envelope.outcomes.productQuarantined.some((issue) => issue.handle === 'missing-image-alt'),
+    false
+  );
 });
 
 test('CatalogEnvelope v2 blocks one malformed variant but keeps valid variants sellable', () => {

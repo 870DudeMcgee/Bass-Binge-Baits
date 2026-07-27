@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const http = require('node:http');
 const path = require('node:path');
 const test = require('node:test');
 
@@ -28,6 +29,56 @@ function responseRecorder() {
       this.body = body;
       return this;
     }
+  };
+}
+
+function admittedProduct(handle, overrides = {}) {
+  return Object.assign({
+    id: `gid://shopify/Product/${handle}`,
+    handle,
+    title: handle === 'heavy-cover-football' ? '3/4 Heavy Cover Football' : 'Novel Jig',
+    descriptionHtml: '<p>Approved live product description.</p>',
+    availableForSale: true,
+    media: [{
+      id: `gid://shopify/MediaImage/${handle}`,
+      type: 'image',
+      alt: `${handle} product image`,
+      image: { url: 'https://cdn.shopify.com/product.jpg', width: 1200, height: 1200 }
+    }],
+    options: [],
+    variants: [{
+      id: `gid://shopify/ProductVariant/${handle}`,
+      title: 'Default Title',
+      selectedOptions: [],
+      price: { amount: '5.00', currencyCode: 'USD' },
+      compareAtPrice: null,
+      availableForSale: true,
+      quantityAvailable: 6,
+      imageId: null
+    }],
+    presentation: { kind: 'ordinary' }
+  }, overrides);
+}
+
+const unavailableScenarios = [
+  { name: 'deleted', handle: 'deleted-jig', state: 'deleted', status: 404, title: 'Product not found' },
+  { name: 'quarantined', handle: 'quarantined-jig', state: 'quarantined', status: 404, title: 'Product not found' },
+  { name: 'expired-stale', handle: 'expired-stale', state: 'expired-stale', status: 503, title: 'Product temporarily unavailable' }
+];
+
+function catalogForState(handle, state = 'admitted') {
+  if (state === 'expired-stale') {
+    const error = new Error('The bounded stale window expired.');
+    error.statusCode = 503;
+    error.details = { reason: 'stale_window_expired' };
+    throw error;
+  }
+  return {
+    schemaVersion: 2,
+    products: state === 'admitted' ? [admittedProduct(handle)] : [],
+    quarantine: state === 'quarantined'
+      ? [{ handle, severity: 'product-quarantined', code: 'product_image_missing' }]
+      : []
   };
 }
 
@@ -120,20 +171,110 @@ test('the hidden rattle add-on never resolves through the customer product route
   assert.equal(response.statusCode, 404);
 });
 
-test('an established static SEO shell stays behind the live-catalog admission gate', () => {
+test('established product filenames cannot bypass the handle admission route', async () => {
   const root = path.resolve(__dirname, '..');
   const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
-  const staticPage = fs.readFileSync(
-    path.join(root, 'products', 'heavy-cover-football.html'),
-    'utf8'
-  );
-
-  assert.match(staticPage, /<title>3\/4 Heavy Cover Football \| Bass Binge Baits<\/title>/);
-  assert.match(staticPage, /<main class="product-page" hidden>/);
+  const publicProductsDirectory = path.join(root, 'products');
+  const publicProductFiles = fs.existsSync(publicProductsDirectory)
+    ? fs.readdirSync(publicProductsDirectory).filter((file) => file.endsWith('.html'))
+    : [];
+  assert.deepEqual(publicProductFiles, []);
   assert.deepEqual(config.rewrites, [{
     source: '/products/:handle',
     destination: '/api/product?handle=:handle'
   }]);
+
+  const handler = createGenericProductHandler({
+    getCatalog: async () => ({
+      schemaVersion: 2,
+      products: [admittedProduct('heavy-cover-football', {
+        descriptionHtml: '<p>Current Shopify product description.</p>',
+      })]
+    })
+  });
+  const response = responseRecorder();
+
+  await handler(
+    { method: 'GET', query: { handle: 'heavy-cover-football' }, headers: {} },
+    response
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.match(response.body, /<meta name="description" content="Current Shopify product description\." \/>/);
+  assert.match(response.body, /<meta property="og:description" content="Current Shopify product description\." \/>/);
+  assert.match(response.body, /Current Shopify product description\./);
+  assert.match(response.body, /class="site-header"/);
+  assert.match(response.body, /class="product-hero"/);
+});
+
+test('an established product handle returns the current deleted, quarantined, or unavailable state', async () => {
+  const handle = 'heavy-cover-football';
+  for (const scenario of unavailableScenarios) {
+    const handler = createGenericProductHandler({
+      getCatalog: async () => catalogForState(handle, scenario.state)
+    });
+    const response = responseRecorder();
+    await handler({ method: 'GET', query: { handle }, headers: {} }, response);
+
+    assert.equal(response.statusCode, scenario.status, scenario.name);
+    assert.match(response.headers['content-type'], /^text\/html/, scenario.name);
+    assert.equal(response.headers['cache-control'], 'no-store', scenario.name);
+    assert.match(response.body, new RegExp(scenario.title), scenario.name);
+    assert.doesNotMatch(response.body, /data-generic-product/, scenario.name);
+  }
+});
+
+test('local product HTTP serves established and novel handles through one admission gate', async (t) => {
+  const handler = createGenericProductHandler({
+    getCatalog: async (request) => {
+      const handle = request.query.handle;
+      const unavailable = unavailableScenarios.find((scenario) => scenario.handle === handle);
+      const state = unavailable ? unavailable.state : 'admitted';
+      return catalogForState(handle, state);
+    }
+  });
+  const server = http.createServer((request, response) => {
+    const url = new URL(request.url, 'http://localhost');
+    const handle = url.pathname.startsWith('/products/')
+      ? decodeURIComponent(url.pathname.slice('/products/'.length))
+      : '';
+    handler(
+      { method: request.method, query: { handle }, headers: request.headers },
+      {
+        setHeader: response.setHeader.bind(response),
+        status(statusCode) {
+          response.statusCode = statusCode;
+          return this;
+        },
+        send(body) {
+          response.end(body);
+        }
+      }
+    );
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  }));
+  const { port } = server.address();
+
+  for (const handle of ['heavy-cover-football', 'novel-jig']) {
+    const response = await fetch(`http://127.0.0.1:${port}/products/${handle}`);
+    const body = await response.text();
+    assert.equal(response.status, 200, handle);
+    assert.match(response.headers.get('content-type'), /^text\/html/, handle);
+    assert.match(body, /data-generic-product/, handle);
+    assert.match(body, /class="product-hero"/, handle);
+  }
+
+  for (const scenario of unavailableScenarios) {
+    const response = await fetch(`http://127.0.0.1:${port}/products/${scenario.handle}`);
+    const body = await response.text();
+    assert.equal(response.status, scenario.status, scenario.handle);
+    assert.match(response.headers.get('content-type'), /^text\/html/, scenario.handle);
+    assert.match(body, new RegExp(scenario.title), scenario.handle);
+    assert.doesNotMatch(body, /data-generic-product/, scenario.handle);
+  }
 });
 
 test('Shopify cart request normalization preserves exact variant GID and money', () => {
