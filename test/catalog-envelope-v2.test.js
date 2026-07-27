@@ -175,6 +175,49 @@ test('CatalogEnvelope v2 preserves the complete ordered media gallery', () => {
   );
 });
 
+test('loadFreshCatalog uses featuredImage instead of the invalid Product.featuredMedia field', async () => {
+  const product = fixtureProduct({
+    featuredMedia: undefined,
+    featuredImage: {
+      id: 'gid://shopify/ProductImage/featured',
+      url: 'https://cdn.shopify.com/featured.jpg',
+      altText: 'Featured view',
+      width: 1600,
+      height: 1200
+    }
+  });
+  product.media.nodes.push({
+    __typename: 'MediaImage',
+    id: 'gid://shopify/MediaImage/featured',
+    alt: 'Featured view',
+    image: {
+      id: product.featuredImage.id,
+      url: product.featuredImage.url,
+      altText: product.featuredImage.altText,
+      width: product.featuredImage.width,
+      height: product.featuredImage.height
+    }
+  });
+
+  const envelope = await loadFreshCatalog({ headers: {} }, {
+    authenticated: false,
+    generatedAt: '2026-07-27T12:00:00.000Z',
+    storefrontRequest: async (query) => {
+      assert.doesNotMatch(query, /\bfeaturedMedia\b/);
+      assert.match(query, /featuredImage\s*\{\s*id\b/);
+      return {
+        products: {
+          edges: [{ cursor: 'product-1', node: product }],
+          pageInfo: { hasNextPage: false, endCursor: 'product-1' }
+        }
+      };
+    }
+  });
+
+  assert.equal(envelope.products[0].featuredMediaId, product.featuredImage.id);
+  assert.equal(envelope.legacy.products[0].featuredImage, product.featuredImage.url);
+});
+
 test('CatalogEnvelope v2 quarantines a product with no usable image', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/106',
