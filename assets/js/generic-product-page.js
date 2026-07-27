@@ -50,11 +50,11 @@
   }
 
   function optionValueState(product, selection, optionName, value) {
-    var candidate = Object.assign({}, selection || {});
-    candidate[optionName] = value;
     var variants = product && Array.isArray(product.variants) ? product.variants : [];
     var matches = variants.filter(function (variant) {
-      return variantMatches(product, variant, candidate, true);
+      var selected = selectionForVariant(variant);
+      return Object.prototype.hasOwnProperty.call(selected, optionName) &&
+        selected[optionName] === value;
     });
     return {
       exists: matches.length > 0,
@@ -62,6 +62,23 @@
         return variant.availableForSale;
       })
     };
+  }
+
+  function selectionForOptionValue(product, selection, optionName, value) {
+    var variants = product && Array.isArray(product.variants) ? product.variants : [];
+    var exactCandidate = Object.assign({}, selection || {});
+    exactCandidate[optionName] = value;
+    var exact = variants.find(function (variant) {
+      return variant.availableForSale &&
+        variantMatches(product, variant, exactCandidate, false);
+    });
+    var reachable = exact || variants.find(function (variant) {
+      var selected = selectionForVariant(variant);
+      return variant.availableForSale &&
+        Object.prototype.hasOwnProperty.call(selected, optionName) &&
+        selected[optionName] === value;
+    });
+    return reachable ? selectionForVariant(reachable) : null;
   }
 
   function mediaMatchesImage(media, imageId) {
@@ -317,7 +334,14 @@
             ? value.name
             : value.name + (state.exists ? ' is sold out' : ' is not offered with this selection');
           input.addEventListener('change', function () {
-            selection[option.name] = value.name;
+            var reachable = selectionForOptionValue(
+              product,
+              selection,
+              option.name,
+              value.name
+            );
+            if (!reachable) return;
+            selection = reachable;
             renderAll();
           });
           label.appendChild(input);
@@ -380,6 +404,7 @@
     initialSelection: initialSelection,
     resolveVariant: resolveVariant,
     optionValueState: optionValueState,
+    selectionForOptionValue: selectionForOptionValue,
     orderedMedia: orderedMedia,
     mediaPresentation: mediaPresentation,
     buildCartLine: buildCartLine,

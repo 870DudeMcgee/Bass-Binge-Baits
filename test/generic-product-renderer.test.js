@@ -82,7 +82,79 @@ test('Style and Size selectors use the complete selection tuple', () => {
   assert.equal(renderer.resolveVariant(styleSize, { Style: 'Arkie' }), null);
   assert.deepEqual(
     renderer.optionValueState(styleSize, { Style: 'Arkie', Size: 'Small' }, 'Size', 'Large'),
-    { exists: false, available: false }
+    { exists: true, available: false }
+  );
+});
+
+test('exact option strings do not collide after punctuation, spacing, or Unicode normalization', () => {
+  const collisionProduct = product({
+    options: [{
+      id: 'finish',
+      name: 'Finish / Style',
+      values: [
+        { id: 'space', name: 'A B' },
+        { id: 'punctuation', name: 'A-B' },
+        { id: 'unicode', name: 'A B' },
+        { id: 'accent', name: 'Café' },
+        { id: 'plain', name: 'Cafe' }
+      ]
+    }],
+    variants: [
+      variant('61', [{ name: 'Finish / Style', value: 'A B' }], '6.00', true),
+      variant('62', [{ name: 'Finish / Style', value: 'A-B' }], '6.10', true),
+      variant('63', [{ name: 'Finish / Style', value: 'A B' }], '6.20', true),
+      variant('64', [{ name: 'Finish / Style', value: 'Café' }], '6.30', true),
+      variant('65', [{ name: 'Finish / Style', value: 'Cafe' }], '6.40', true)
+    ]
+  });
+
+  assert.equal(
+    renderer.resolveVariant(collisionProduct, { 'Finish / Style': 'A-B' }).id,
+    'gid://shopify/ProductVariant/62'
+  );
+  assert.equal(
+    renderer.resolveVariant(collisionProduct, { 'Finish / Style': 'A B' }).id,
+    'gid://shopify/ProductVariant/63'
+  );
+  assert.equal(
+    renderer.resolveVariant(collisionProduct, { 'Finish / Style': 'Café' }).id,
+    'gid://shopify/ProductVariant/64'
+  );
+});
+
+test('diagonal and disconnected matrices can transition to every available tuple', () => {
+  const diagonal = product({
+    options: [
+      { id: 'style', name: 'Style', values: [{ id: 'football', name: 'Football' }, { id: 'arkie', name: 'Arkie' }] },
+      { id: 'size', name: 'Size', values: [{ id: 'small', name: 'Small' }, { id: 'large', name: 'Large' }, { id: 'xl', name: 'XL' }] }
+    ],
+    variants: [
+      variant('71', [{ name: 'Style', value: 'Football' }, { name: 'Size', value: 'Small' }], '6.00', true),
+      variant('72', [{ name: 'Style', value: 'Arkie' }, { name: 'Size', value: 'Large' }], '6.50', true),
+      variant('73', [{ name: 'Style', value: 'Arkie' }, { name: 'Size', value: 'XL' }], '6.75', false)
+    ]
+  });
+
+  assert.deepEqual(
+    renderer.optionValueState(diagonal, { Style: 'Football', Size: 'Small' }, 'Style', 'Arkie'),
+    { exists: true, available: true }
+  );
+  assert.deepEqual(
+    renderer.selectionForOptionValue(
+      diagonal,
+      { Style: 'Football', Size: 'Small' },
+      'Style',
+      'Arkie'
+    ),
+    { Style: 'Arkie', Size: 'Large' }
+  );
+  assert.deepEqual(
+    renderer.optionValueState(diagonal, { Style: 'Football', Size: 'Small' }, 'Size', 'XL'),
+    { exists: true, available: false }
+  );
+  assert.equal(
+    renderer.resolveVariant(diagonal, { Style: 'Football', Size: 'Large' }),
+    null
   );
 });
 
@@ -90,13 +162,13 @@ test('variant image leads the complete ordered media gallery', () => {
   const current = product({
     media: [
       { id: 'media-a', type: 'image', alt: 'Front', image: { url: 'front.jpg' } },
-      { id: 'media-b', type: 'image', alt: 'Side', image: { url: 'side.jpg' } },
+      { id: 'media-b', type: 'image', alt: 'Side', image: { id: 'image-b', url: 'side.jpg' } },
       { id: 'media-c', type: 'video', alt: 'Action', sources: [{ url: 'action.mp4', mimeType: 'video/mp4' }] }
     ]
   });
 
   assert.deepEqual(
-    renderer.orderedMedia(current, { imageId: 'media-b' }).map((item) => item.id),
+    renderer.orderedMedia(current, { imageId: 'image-b' }).map((item) => item.id),
     ['media-b', 'media-a', 'media-c']
   );
   assert.deepEqual(

@@ -11,6 +11,7 @@
   };
   var NO_RATTLE_OPTIONS = [{ key: 'no', label: 'No', priceDelta: 0 }];
   var PRODUCTS = [];
+  var ADMITTED_PRODUCTS = [];
   var RATTLE_ADD_ON = null;
   var CATALOG_STATUS = {
     source: 'unavailable',
@@ -224,12 +225,14 @@
 
   function updatePublicState() {
     api.products = PRODUCTS;
+    api.admittedProducts = ADMITTED_PRODUCTS;
     api.rattleAddOn = RATTLE_ADD_ON;
     api.status = CATALOG_STATUS;
   }
 
   function markUnavailable(error) {
     PRODUCTS = [];
+    ADMITTED_PRODUCTS = [];
     RATTLE_ADD_ON = null;
     CATALOG_STATUS = {
       source: 'unavailable',
@@ -259,7 +262,8 @@
       return markUnavailable(new Error('Catalog response was not a validated envelope.'));
     }
 
-    var admittedHandles = new Set(payload.products.filter(function (product) {
+    ADMITTED_PRODUCTS = payload.products.slice();
+    var admittedHandles = new Set(ADMITTED_PRODUCTS.filter(function (product) {
       return product &&
         product.handle &&
         (!product.presentation || product.presentation.kind !== 'hidden-add-on');
@@ -300,6 +304,99 @@
     return true;
   }
 
+  function exactOptionsMatch(left, right) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+      return false;
+    }
+    return left.every(function (option, index) {
+      return option &&
+        right[index] &&
+        option.name === right[index].name &&
+        option.value === right[index].value;
+    });
+  }
+
+  function admittedVariantImage(product, variant) {
+    var media = product && Array.isArray(product.media) ? product.media : [];
+    var assigned = media.find(function (item) {
+      return variant && variant.imageId && item && (
+        item.id === variant.imageId ||
+        (item.image && item.image.id === variant.imageId)
+      );
+    });
+    var fallback = assigned || media.find(function (item) {
+      return item && item.type === 'image' && item.image && item.image.url;
+    });
+    return fallback && fallback.image ? fallback.image.url : null;
+  }
+
+  function reconcileExactCartLine(item) {
+    if (!item || item.kind !== 'shopify-variant') {
+      return { line: null, reason: 'invalid-line' };
+    }
+    if (!CATALOG_STATUS.generationId) {
+      return { line: null, reason: 'catalog-unavailable' };
+    }
+
+    var merchandiseId = item.checkoutMapping && item.checkoutMapping.merchandiseId || item.id;
+    if (!merchandiseId || item.id !== merchandiseId) {
+      return { line: null, reason: 'identity-changed' };
+    }
+    var product = null;
+    var variant = null;
+    ADMITTED_PRODUCTS.some(function (candidate) {
+      if (!candidate || (candidate.presentation && candidate.presentation.kind === 'hidden-add-on')) {
+        return false;
+      }
+      var match = (Array.isArray(candidate.variants) ? candidate.variants : []).find(function (entry) {
+        return entry && entry.id === merchandiseId;
+      });
+      if (!match) return false;
+      product = candidate;
+      variant = match;
+      return true;
+    });
+
+    if (!product || !variant) return { line: null, reason: 'not-admitted' };
+    if (!variant.availableForSale) return { line: null, reason: 'sold-out' };
+    if (!exactOptionsMatch(item.selectedOptions || [], variant.selectedOptions || [])) {
+      return { line: null, reason: 'options-changed' };
+    }
+
+    var savedMoney = item.price || item.checkoutMapping && item.checkoutMapping.price;
+    if (!savedMoney || String(savedMoney.currencyCode) !== String(variant.price.currencyCode)) {
+      return { line: null, reason: 'currency-changed' };
+    }
+    if (String(savedMoney.amount) !== String(variant.price.amount)) {
+      return { line: null, reason: 'price-changed' };
+    }
+
+    var price = {
+      amount: String(variant.price.amount),
+      currencyCode: String(variant.price.currencyCode)
+    };
+    return {
+      reason: null,
+      line: {
+        kind: 'shopify-variant',
+        id: variant.id,
+        productKey: product.handle,
+        productTitle: product.title,
+        selectedOptions: (variant.selectedOptions || []).map(function (option) {
+          return { name: option.name, value: option.value };
+        }),
+        price: price,
+        image: admittedVariantImage(product, variant),
+        checkoutMapping: {
+          merchandiseId: variant.id,
+          price: price
+        },
+        quantity: item.quantity,
+        admittedGenerationId: CATALOG_STATUS.generationId
+      }
+    };
+  }
+
   function loadLiveCatalog() {
     if (!root.document || typeof root.fetch !== 'function') {
       return Promise.resolve(api);
@@ -324,6 +421,7 @@
   var api = {
     store: STORE,
     products: PRODUCTS,
+    admittedProducts: ADMITTED_PRODUCTS,
     listProducts: listProducts,
     getProduct: getProduct,
     getColor: getColor,
@@ -339,6 +437,7 @@
     getSearchText: getSearchText,
     getCurrentDrop: getCurrentDrop,
     applyRemoteCatalog: applyRemoteCatalog,
+    reconcileExactCartLine: reconcileExactCartLine,
     markUnavailable: markUnavailable,
     assetPath: assetPath,
     formatMoney: formatMoney,

@@ -1270,6 +1270,17 @@ body.product-zoom-open {
   padding: var(--space-4);
 }
 
+.cart-reconciliation-notice {
+  margin: 0 0 var(--space-3);
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(139, 94, 52, 0.28);
+  border-radius: 0.6rem;
+  background: rgba(255, 244, 214, 0.82);
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .cart-empty {
   display: grid;
   gap: var(--space-2);

@@ -6,7 +6,8 @@
 
   var store = catalog.store;
   var state = {
-    items: loadCart()
+    items: loadCart(),
+    reconciliationNotice: ''
   };
   var toastTimer = null;
   var checkoutPending = false;
@@ -170,34 +171,46 @@
     ) return null;
 
     var qty = normalizeQuantity(quantity);
+    var candidate = {
+      kind: 'shopify-variant',
+      id: line.id,
+      productKey: line.productKey,
+      productTitle: line.productTitle,
+      selectedOptions: (line.selectedOptions || []).map(function (option) {
+        return { name: option.name, value: option.value };
+      }),
+      price: {
+        amount: String(line.price.amount),
+        currencyCode: String(line.price.currencyCode)
+      },
+      image: line.image || null,
+      checkoutMapping: {
+        merchandiseId: line.checkoutMapping.merchandiseId,
+        price: {
+          amount: String(line.price.amount),
+          currencyCode: String(line.price.currencyCode)
+        }
+      },
+      quantity: qty,
+      admittedGenerationId: catalog.status && catalog.status.generationId
+    };
+    var reconciled = catalog.reconcileExactCartLine
+      ? catalog.reconcileExactCartLine(candidate)
+      : { line: candidate, reason: null };
+    if (!reconciled || !reconciled.line) return null;
+
+    state.reconciliationNotice = '';
     var existing = state.items.find(function (item) {
       return item.kind === 'shopify-variant' && item.id === line.id;
     });
     if (existing) {
-      existing.quantity = Math.min(99, existing.quantity + qty);
-    } else {
-      state.items.push({
-        kind: 'shopify-variant',
-        id: line.id,
-        productKey: line.productKey,
-        productTitle: line.productTitle,
-        selectedOptions: (line.selectedOptions || []).map(function (option) {
-          return { name: option.name, value: option.value };
-        }),
-        price: {
-          amount: String(line.price.amount),
-          currencyCode: String(line.price.currencyCode)
-        },
-        image: line.image || null,
-        checkoutMapping: {
-          merchandiseId: line.checkoutMapping.merchandiseId,
-          price: {
-            amount: String(line.price.amount),
-            currencyCode: String(line.price.currencyCode)
-          }
-        },
-        quantity: qty
+      var nextQuantity = Math.min(99, existing.quantity + qty);
+      Object.keys(existing).forEach(function (key) {
+        delete existing[key];
       });
+      Object.assign(existing, reconciled.line, { quantity: nextQuantity });
+    } else {
+      state.items.push(reconciled.line);
     }
     saveCart();
     renderCart();
@@ -206,6 +219,11 @@
 
   function exactBuild(item) {
     if (!item || item.kind !== 'shopify-variant') return null;
+    if (
+      !catalog.status ||
+      !catalog.status.generationId ||
+      item.admittedGenerationId !== catalog.status.generationId
+    ) return null;
     return {
       id: item.id,
       productKey: item.productKey,
@@ -233,6 +251,54 @@
         lineTotal: build.price * item.quantity
       };
     }).filter(Boolean);
+  }
+
+  function reasonText(reason) {
+    var labels = {
+      'not-admitted': 'it is no longer offered',
+      'sold-out': 'it sold out',
+      'price-changed': 'its price changed',
+      'currency-changed': 'its checkout currency changed',
+      'options-changed': 'its Shopify options changed',
+      'identity-changed': 'its Shopify identity changed',
+      'catalog-unavailable': 'the current catalog could not be verified',
+      'invalid-line': 'its saved details were incomplete'
+    };
+    return labels[reason] || 'its Shopify details changed';
+  }
+
+  function reconcilePersistedExactLines() {
+    if (!catalog.status || !catalog.status.generationId || !catalog.reconcileExactCartLine) {
+      return false;
+    }
+    var removedReasons = [];
+    var changed = false;
+    state.items = state.items.reduce(function (items, item) {
+      if (!item || item.kind !== 'shopify-variant') {
+        items.push(item);
+        return items;
+      }
+      var result = catalog.reconcileExactCartLine(item);
+      if (!result || !result.line) {
+        removedReasons.push(result && result.reason);
+        changed = true;
+        return items;
+      }
+      items.push(result.line);
+      changed = changed ||
+        result.line.admittedGenerationId !== item.admittedGenerationId ||
+        result.line.productTitle !== item.productTitle ||
+        result.line.image !== item.image;
+      return items;
+    }, []);
+    if (removedReasons.length) {
+      var explanations = Array.from(new Set(removedReasons.map(reasonText)));
+      state.reconciliationNotice = 'Your cart was updated. ' +
+        removedReasons.length + ' item' + (removedReasons.length === 1 ? ' was' : 's were') +
+        ' removed because ' + explanations.join(' or because ') + '.';
+    }
+    if (changed) saveCart();
+    return changed;
   }
 
   function getCount() {
@@ -338,6 +404,7 @@
   }
 
   async function beginCheckout() {
+    reconcilePersistedExactLines();
     var lines = getLines();
     var checkoutLink = document.querySelector('[data-checkout-link]');
     var payload = checkoutPayload(lines);
@@ -514,6 +581,27 @@
     var cartEmptyNode = document.querySelector('[data-cart-empty]');
     var subtotalNode = document.querySelector('[data-cart-subtotal]');
     var checkoutLink = document.querySelector('[data-checkout-link]');
+    var noticeNode = document.querySelector('[data-cart-reconciliation-notice]');
+
+    if (!noticeNode && state.reconciliationNotice) {
+      var drawerBody = document.querySelector('[data-cart-drawer] .cart-drawer-body');
+      if (drawerBody) {
+        noticeNode = document.createElement('p');
+        noticeNode.className = 'cart-reconciliation-notice';
+        noticeNode.dataset.cartReconciliationNotice = '';
+        noticeNode.setAttribute('role', 'status');
+        noticeNode.setAttribute('aria-live', 'polite');
+        if (drawerBody.firstChild) {
+          drawerBody.insertBefore(noticeNode, drawerBody.firstChild);
+        } else {
+          drawerBody.appendChild(noticeNode);
+        }
+      }
+    }
+    if (noticeNode) {
+      noticeNode.textContent = state.reconciliationNotice;
+      noticeNode.hidden = !state.reconciliationNotice;
+    }
 
     updateBadges();
 
@@ -627,6 +715,10 @@
     getSubtotal: getSubtotal,
     buildCheckoutUrl: buildCheckoutUrl,
     beginCheckout: beginCheckout,
+    reconcilePersistedExactLines: reconcilePersistedExactLines,
+    getReconciliationNotice: function () {
+      return state.reconciliationNotice;
+    },
     renderCart: renderCart,
     openCart: openCart,
     closeCart: closeCart,
@@ -660,5 +752,8 @@
 
   bindCartChrome();
   renderCart();
-  Promise.resolve(catalog.ready).then(renderCart);
+  Promise.resolve(catalog.ready).then(function () {
+    reconcilePersistedExactLines();
+    renderCart();
+  });
 })(window);

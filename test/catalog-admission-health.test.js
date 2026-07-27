@@ -180,6 +180,49 @@ test('a blocked variant cannot re-enter the envelope-derived browser projection'
   );
 });
 
+test('legacy browser projection maps a variant Image ID to its admitted MediaImage', async () => {
+  const assignedImageProduct = fixtureProduct({
+    id: 'gid://shopify/Product/707',
+    handle: 'assigned-image-jig',
+    title: 'Assigned Image Jig'
+  });
+  assignedImageProduct.media.nodes.push({
+    __typename: 'MediaImage',
+    id: 'gid://shopify/MediaImage/799',
+    alt: 'Assigned side image',
+    image: {
+      id: 'gid://shopify/Image/899',
+      url: 'https://cdn.shopify.com/assigned-side.jpg',
+      altText: 'Assigned side image',
+      width: 1200,
+      height: 1200
+    }
+  });
+  assignedImageProduct.variants.nodes[0].image = {
+    id: 'gid://shopify/Image/899',
+    url: 'https://cdn.shopify.com/assigned-side.jpg',
+    altText: 'Assigned side image',
+    width: 1200,
+    height: 1200
+  };
+
+  const envelope = await loadFreshCatalog({ headers: {} }, {
+    authenticated: false,
+    logger: { warn() {} },
+    storefrontRequest: async () => ({
+      products: {
+        edges: [{ cursor: 'assigned-image', node: assignedImageProduct }],
+        pageInfo: { hasNextPage: false, endCursor: 'assigned-image' }
+      }
+    })
+  });
+
+  assert.equal(
+    envelope.legacy.products[0].variants[0].image,
+    'https://cdn.shopify.com/assigned-side.jpg'
+  );
+});
+
 test('catalog health rejects unauthorized access and returns safe grouped diagnostics when authorized', async () => {
   const secret = 'fixture-health-secret';
   const catalog = {
