@@ -125,6 +125,9 @@
   }
 
   function variantImage(product, variant) {
+    if (variant && variant.image && variant.image.url) {
+      return variant.image.url;
+    }
     var media = orderedMedia(product, variant);
     var image = media.find(function (item) {
       return item && item.type === 'image' && item.image && item.image.url;

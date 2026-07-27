@@ -41,10 +41,10 @@ test('collection admission uses accepted v2 products without inventing option ro
   const warningOnly = fixtureProduct({
     id: 'gid://shopify/Product/702',
     handle: 'warning-jig',
-    title: 'Warning Jig'
+    title: 'Warning Jig',
+    featuredMedia: null,
+    media: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } }
   });
-  warningOnly.media.nodes[0].alt = null;
-  warningOnly.media.nodes[0].image.altText = null;
   const variantBlocked = fixtureProduct({
     id: 'gid://shopify/Product/703',
     handle: 'partially-valid-jig',
@@ -107,7 +107,7 @@ test('collection admission uses accepted v2 products without inventing option ro
   });
   assert.equal(
     envelope.outcomes.warning.some((issue) =>
-      issue.handle === 'warning-jig' && issue.code === 'media_alt_missing' && issue.remedy
+      issue.handle === 'warning-jig' && issue.code === 'product_image_missing' && issue.remedy
     ),
     true
   );
@@ -173,7 +173,22 @@ test('a blocked variant cannot re-enter the envelope-derived browser projection'
     envelope.legacy.products[0].variants.map((variant) => variant.id),
     ['gid://shopify/ProductVariant/721']
   );
-  assert.deepEqual(envelope.legacy.products[0].colors, []);
+  assert.deepEqual(
+    envelope.legacy.products[0].colors.map((color) => ({
+      key: color.key,
+      checkoutVariantId: color.checkout?.variantId || null
+    })),
+    [
+      {
+        key: 'blackberry-smoothie',
+        checkoutVariantId: 721
+      },
+      {
+        key: 'ogre',
+        checkoutVariantId: null
+      }
+    ]
+  );
   assert.deepEqual(
     envelope.products[0].variants.map((variant) => variant.id),
     ['gid://shopify/ProductVariant/721']

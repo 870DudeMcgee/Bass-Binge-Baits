@@ -325,6 +325,9 @@
   }
 
   function admittedVariantImage(product, variant) {
+    if (variant && variant.image && variant.image.url) {
+      return variant.image.url;
+    }
     var media = product && Array.isArray(product.media) ? product.media : [];
     var assigned = media.find(function (item) {
       return variant && variant.imageId && item && (

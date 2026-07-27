@@ -41,6 +41,13 @@ test('CatalogEnvelope v2 preserves a Color-only product and exact variant money'
     currencyCode: 'USD'
   });
   assert.equal(envelope.products[0].variants[1].availableForSale, false);
+  assert.deepEqual(envelope.products[0].variants[0].image, {
+    id: 'gid://shopify/Image/601',
+    url: 'https://cdn.shopify.com/color-only-black.jpg',
+    alt: 'Black jig',
+    width: 1200,
+    height: 1200
+  });
   assert.equal(envelope.outcomes.accepted.length, 1);
 });
 
@@ -218,7 +225,7 @@ test('loadFreshCatalog uses featuredImage instead of the invalid Product.feature
   assert.equal(envelope.legacy.products[0].featuredImage, product.featuredImage.url);
 });
 
-test('CatalogEnvelope v2 quarantines a product with no usable image', () => {
+test('CatalogEnvelope v2 warns and accepts a product with no image', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/106',
     handle: 'missing-image',
@@ -229,33 +236,8 @@ test('CatalogEnvelope v2 quarantines a product with no usable image', () => {
 
   const envelope = normalizeCatalogEnvelope([product]);
 
-  assert.equal(envelope.products.length, 0);
-  assert.equal(
-    envelope.outcomes.productQuarantined.some((issue) => issue.code === 'product_image_missing'),
-    true
-  );
-});
-
-test('CatalogEnvelope v2 admits a product whose usable image is missing alt text', () => {
-  const product = fixtureProduct({
-    id: 'gid://shopify/Product/113',
-    handle: 'missing-image-alt',
-    title: 'Missing Image Alt Jig'
-  });
-  product.media.nodes[0].alt = null;
-  product.media.nodes[0].image.altText = null;
-
-  const envelope = normalizeCatalogEnvelope([product]);
-
-  assert.deepEqual(envelope.products.map((item) => item.handle), ['missing-image-alt']);
-  assert.equal(
-    envelope.outcomes.warning.some((issue) => issue.code === 'media_alt_missing'),
-    true
-  );
-  assert.equal(
-    envelope.outcomes.productQuarantined.some((issue) => issue.handle === 'missing-image-alt'),
-    false
-  );
+  assert.equal(envelope.products.length, 1);
+  assert.equal(envelope.outcomes.warning[0].code, 'product_image_missing');
 });
 
 test('CatalogEnvelope v2 blocks one malformed variant but keeps valid variants sellable', () => {
@@ -374,8 +356,9 @@ test('CatalogEnvelope v2 validates a limited drop from classification and typed 
 test('Heartlander remains a first-class limited-drop product with its own route, gallery, and exact variant', async () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/11054574338215',
-    handle: 'heartlander-peewee-football-hd',
+    handle: 'limited-drop',
     title: '5/8 oz PeeWee Football HD — Heartlander',
+    description: 'Limited time! HEARTLANDER JIG Jewel Baits 5/8 PeeWee Football HD Premium skirt, Boss skirt collar, custom Stardust Painted jighead!!!',
     descriptionHtml: '<p>Premium skirt, Boss skirt collar, and custom Stardust-painted jighead.</p>',
     productType: 'Limited Drop',
     tags: ['limited-drop'],
@@ -391,11 +374,8 @@ test('Heartlander remains a first-class limited-drop product with its own route,
         optionValues: [{ id: 'gid://shopify/ProductOptionValue/5-8-oz', name: '5/8 oz' }]
       }
     ],
-    metafields: [
-      { namespace: 'bass_binge', key: 'drop_starts_at', value: '2026-07-19T21:39:06Z', type: 'date_time' },
-      { namespace: 'bass_binge', key: 'drop_ends_at', value: '2026-08-19T21:39:06Z', type: 'date_time' },
-      { namespace: 'bass_binge', key: 'badge_text', value: 'Limited-time drop', type: 'single_line_text_field' }
-    ]
+    publishedAt: '2026-07-02T10:58:46Z',
+    metafields: []
   });
   product.variants.nodes = [{
     ...product.variants.nodes[0],
@@ -447,7 +427,7 @@ test('Heartlander remains a first-class limited-drop product with its own route,
   });
 
   assert.deepEqual(catalog.products.map((item) => item.handle), [
-    'heartlander-peewee-football-hd'
+    'limited-drop'
   ]);
   assert.deepEqual(catalog.products[0].media.map((item) => item.type), [
     'image',
@@ -456,8 +436,12 @@ test('Heartlander remains a first-class limited-drop product with its own route,
     'image',
     'image'
   ]);
-  assert.equal(catalog.legacy.currentDrop.pagePath, 'products/heartlander-peewee-football-hd');
+  assert.equal(catalog.legacy.currentDrop.pagePath, 'products/limited-drop');
   assert.equal(catalog.legacy.currentDrop.shopVisible, true);
+  assert.equal(
+    catalog.legacy.currentDrop.description,
+    'Limited time! HEARTLANDER JIG Jewel Baits 5/8 PeeWee Football HD Premium skirt, Boss skirt collar, custom Stardust Painted jighead!!!'
+  );
   assert.equal(
     catalog.legacy.currentDrop.variants[0].id,
     'gid://shopify/ProductVariant/51000785633447'

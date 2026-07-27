@@ -20,6 +20,15 @@ const canonicalUrls = {
   'contact.html': 'https://www.bassbingebaits.com/contact',
   'privacy.html': 'https://www.bassbingebaits.com/privacy'
 };
+const establishedProductPages = [
+  'finesse-jig.html',
+  'heavy-cover-football.html',
+  'limited-drop.html',
+  'pee-wee-football.html',
+  'peewee-football-hd.html',
+  'peewee-football.html',
+  'peewee-spider-hd.html'
+];
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -65,14 +74,16 @@ function assertSharedAssetCacheBust() {
   });
 }
 
-function assertNoStaticProductRoutes() {
+function assertEstablishedProductRoutes() {
   const productDirectory = path.join(root, 'products');
   const staticProductFiles = fs.existsSync(productDirectory)
     ? fs.readdirSync(productDirectory).filter((filename) => filename.endsWith('.html'))
     : [];
-  if (staticProductFiles.length) {
-    fail(`products/ contains static HTML routes: ${staticProductFiles.join(', ')}`);
-  }
+  establishedProductPages.forEach((filename) => {
+    if (!staticProductFiles.includes(filename)) {
+      fail(`products/ is missing the established storefront page ${filename}`);
+    }
+  });
 }
 
 function assertGenericProductRewrite() {
@@ -218,7 +229,7 @@ function assertCanonicalSitemap() {
 assertNoDemoContactCopy();
 assertFaviconLinks();
 assertSharedAssetCacheBust();
-assertNoStaticProductRoutes();
+assertEstablishedProductRoutes();
 assertGenericProductRewrite();
 assertGenericProductRendering();
 assertScriptsAreNotImmutableCached();
