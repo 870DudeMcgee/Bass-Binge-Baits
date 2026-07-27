@@ -66,3 +66,10 @@ test('static commerce markup stays hidden until the admitted catalog projection 
     );
   }
 });
+
+test('admitted shop cards render visibly when they are created after page initialization', () => {
+  const shop = source('assets/js/shop.js');
+
+  assert.match(shop, /card\.className = 'product-card';/);
+  assert.doesNotMatch(shop, /card\.className = 'product-card reveal';/);
+});

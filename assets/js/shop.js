@@ -330,7 +330,7 @@
 
   function createProductCard(product) {
     var card = document.createElement('article');
-    card.className = 'product-card reveal';
+    card.className = 'product-card';
     card.dataset.shopProduct = product.key;
 
     var media = document.createElement('div');

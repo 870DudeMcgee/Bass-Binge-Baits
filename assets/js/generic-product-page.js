@@ -214,7 +214,6 @@
     var presentation = mediaPresentation(media, productTitle);
     var thumb = document.createElement('button');
     var visual;
-    var label = document.createElement('span');
     var accessibleLabel = presentation.label || presentation.alt || productTitle || 'Product media';
     thumb.type = 'button';
     thumb.className = 'product-gallery-thumb';
@@ -230,11 +229,8 @@
         ? '▶'
         : presentation.type === 'model-3d' ? '3D' : '—';
     }
-    label.className = 'product-gallery-thumb-name';
-    label.textContent = accessibleLabel;
     thumb.setAttribute('aria-label', 'Show ' + accessibleLabel);
     thumb.appendChild(visual);
-    thumb.appendChild(label);
     return thumb;
   }
 
@@ -410,6 +406,7 @@
     selectionForOptionIntent: selectionForOptionIntent,
     orderedMedia: orderedMedia,
     mediaPresentation: mediaPresentation,
+    createThumb: createThumb,
     buildCartLine: buildCartLine,
     formatMoney: formatMoney,
     mount: mount

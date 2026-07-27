@@ -209,6 +209,42 @@ test('missing media uses an accessible placeholder', () => {
   });
 });
 
+test('gallery thumbnails keep media names accessible without painting title text over media', () => {
+  const previousDocument = global.document;
+  global.document = {
+    createElement(tagName) {
+      return {
+        tagName,
+        attributes: {},
+        children: [],
+        className: '',
+        textContent: '',
+        appendChild(child) {
+          this.children.push(child);
+        },
+        setAttribute(name, value) {
+          this.attributes[name] = value;
+        }
+      };
+    }
+  };
+
+  try {
+    const thumb = renderer.createThumb({
+      type: 'image',
+      alt: 'Heartlander jig side view',
+      image: { url: 'heartlander-side.jpg' }
+    }, '5/8 oz PeeWee Football HD — Heartlander');
+
+    assert.equal(thumb.attributes['aria-label'], 'Show Heartlander jig side view');
+    assert.equal(thumb.children.length, 1);
+    assert.equal(thumb.children[0].tagName, 'img');
+    assert.equal(thumb.children[0].src, 'heartlander-side.jpg');
+  } finally {
+    global.document = previousDocument;
+  }
+});
+
 test('sold-out variants stay resolvable but cannot become cart lines', () => {
   const current = product({
     options: [{ id: 'color', name: 'Color', values: [{ id: 'blue', name: 'Blue' }] }],
