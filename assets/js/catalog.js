@@ -225,7 +225,6 @@
 
   function updatePublicState() {
     api.products = PRODUCTS;
-    api.admittedProducts = ADMITTED_PRODUCTS;
     api.rattleAddOn = RATTLE_ADD_ON;
     api.status = CATALOG_STATUS;
   }
@@ -421,7 +420,6 @@
   var api = {
     store: STORE,
     products: PRODUCTS,
-    admittedProducts: ADMITTED_PRODUCTS,
     listProducts: listProducts,
     getProduct: getProduct,
     getColor: getColor,

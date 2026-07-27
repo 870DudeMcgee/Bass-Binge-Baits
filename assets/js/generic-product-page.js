@@ -81,6 +81,20 @@
     return reachable ? selectionForVariant(reachable) : null;
   }
 
+  function selectionForOptionIntent(product, intent) {
+    var variants = product && Array.isArray(product.variants) ? product.variants : [];
+    var names = Object.keys(intent || {});
+    var reachable = variants.find(function (variant) {
+      if (!variant.availableForSale) return false;
+      var selected = selectionForVariant(variant);
+      return names.every(function (name) {
+        return Object.prototype.hasOwnProperty.call(selected, name) &&
+          selected[name] === intent[name];
+      });
+    });
+    return reachable ? selectionForVariant(reachable) : null;
+  }
+
   function mediaMatchesImage(media, imageId) {
     return Boolean(imageId && media && (
       media.id === imageId ||
@@ -244,6 +258,8 @@
   function mount(product, cart) {
     if (typeof document === 'undefined' || !product) return null;
     var selection = initialSelection(product);
+    var selectionIntent = {};
+    var selectionIntentOrder = [];
     var optionsRoot = document.querySelector('[data-generic-options]');
     var track = document.querySelector('[data-gallery-track]');
     var thumbs = document.querySelector('[data-gallery-thumbs]');
@@ -334,12 +350,16 @@
             ? value.name
             : value.name + (state.exists ? ' is sold out' : ' is not offered with this selection');
           input.addEventListener('change', function () {
-            var reachable = selectionForOptionValue(
-              product,
-              selection,
-              option.name,
-              value.name
-            );
+            selectionIntent[option.name] = value.name;
+            selectionIntentOrder = selectionIntentOrder.filter(function (name) {
+              return name !== option.name;
+            });
+            selectionIntentOrder.push(option.name);
+            var reachable = selectionForOptionIntent(product, selectionIntent);
+            while (!reachable && selectionIntentOrder.length > 1) {
+              delete selectionIntent[selectionIntentOrder.shift()];
+              reachable = selectionForOptionIntent(product, selectionIntent);
+            }
             if (!reachable) return;
             selection = reachable;
             renderAll();
@@ -405,6 +425,7 @@
     resolveVariant: resolveVariant,
     optionValueState: optionValueState,
     selectionForOptionValue: selectionForOptionValue,
+    selectionForOptionIntent: selectionForOptionIntent,
     orderedMedia: orderedMedia,
     mediaPresentation: mediaPresentation,
     buildCartLine: buildCartLine,

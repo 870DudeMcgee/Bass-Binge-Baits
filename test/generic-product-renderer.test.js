@@ -158,6 +158,36 @@ test('diagonal and disconnected matrices can transition to every available tuple
   );
 });
 
+test('three-option disconnected matrices retain shopper intent until the target tuple is reached', () => {
+  const disconnected = product({
+    options: [
+      { id: 'a', name: 'A', values: [{ id: 'a0', name: '0' }, { id: 'a1', name: '1' }] },
+      { id: 'b', name: 'B', values: [{ id: 'b0', name: '0' }, { id: 'b1', name: '1' }] },
+      { id: 'c', name: 'C', values: [{ id: 'c0', name: '0' }, { id: 'c1', name: '1' }] }
+    ],
+    variants: [
+      variant('81', [{ name: 'A', value: '1' }, { name: 'B', value: '0' }, { name: 'C', value: '0' }], '7.00', true),
+      variant('82', [{ name: 'A', value: '0' }, { name: 'B', value: '1' }, { name: 'C', value: '0' }], '7.10', true),
+      variant('83', [{ name: 'A', value: '0' }, { name: 'B', value: '0' }, { name: 'C', value: '1' }], '7.20', true),
+      variant('84', [{ name: 'A', value: '1' }, { name: 'B', value: '1' }, { name: 'C', value: '1' }], '7.30', true)
+    ]
+  });
+
+  assert.deepEqual(renderer.selectionForOptionIntent(disconnected, { A: '1' }), {
+    A: '1', B: '0', C: '0'
+  });
+  assert.deepEqual(renderer.selectionForOptionIntent(disconnected, { A: '1', B: '1' }), {
+    A: '1', B: '1', C: '1'
+  });
+  assert.equal(
+    renderer.resolveVariant(
+      disconnected,
+      renderer.selectionForOptionIntent(disconnected, { A: '1', B: '1', C: '1' })
+    ).id,
+    'gid://shopify/ProductVariant/84'
+  );
+});
+
 test('variant image leads the complete ordered media gallery', () => {
   const current = product({
     media: [
