@@ -140,12 +140,7 @@ test('diagonal and disconnected matrices can transition to every available tuple
     { exists: true, available: true }
   );
   assert.deepEqual(
-    renderer.selectionForOptionValue(
-      diagonal,
-      { Style: 'Football', Size: 'Small' },
-      'Style',
-      'Arkie'
-    ),
+    renderer.selectionForOptionIntent(diagonal, { Style: 'Arkie' }),
     { Style: 'Arkie', Size: 'Large' }
   );
   assert.deepEqual(

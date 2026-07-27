@@ -64,23 +64,6 @@
     };
   }
 
-  function selectionForOptionValue(product, selection, optionName, value) {
-    var variants = product && Array.isArray(product.variants) ? product.variants : [];
-    var exactCandidate = Object.assign({}, selection || {});
-    exactCandidate[optionName] = value;
-    var exact = variants.find(function (variant) {
-      return variant.availableForSale &&
-        variantMatches(product, variant, exactCandidate, false);
-    });
-    var reachable = exact || variants.find(function (variant) {
-      var selected = selectionForVariant(variant);
-      return variant.availableForSale &&
-        Object.prototype.hasOwnProperty.call(selected, optionName) &&
-        selected[optionName] === value;
-    });
-    return reachable ? selectionForVariant(reachable) : null;
-  }
-
   function selectionForOptionIntent(product, intent) {
     var variants = product && Array.isArray(product.variants) ? product.variants : [];
     var names = Object.keys(intent || {});
@@ -424,7 +407,6 @@
     initialSelection: initialSelection,
     resolveVariant: resolveVariant,
     optionValueState: optionValueState,
-    selectionForOptionValue: selectionForOptionValue,
     selectionForOptionIntent: selectionForOptionIntent,
     orderedMedia: orderedMedia,
     mediaPresentation: mediaPresentation,
