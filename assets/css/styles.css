@@ -1127,6 +1127,11 @@ body.product-zoom-open {
   margin-top: auto;
 }
 
+.product-option-fields {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .quick-add-note {
   margin: 0;
   color: var(--ink-soft);
@@ -1145,7 +1150,7 @@ body.product-zoom-open {
 
 .variant-swatches {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
   gap: 0.4rem;
 }
 

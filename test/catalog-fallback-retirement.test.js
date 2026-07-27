@@ -69,7 +69,12 @@ test('static commerce markup stays hidden until the admitted catalog projection 
 
 test('admitted shop cards render visibly when they are created after page initialization', () => {
   const shop = source('assets/js/shop.js');
+  const markup = source('shop.html');
 
   assert.match(shop, /card\.className = 'product-card';/);
   assert.doesNotMatch(shop, /card\.className = 'product-card reveal';/);
+  assert.doesNotMatch(shop, /if \(product\.detailOnly\)/);
+  assert.match(shop, /variantUi\.buildCartLine\(admitted, selectedVariant\(\)\)/);
+  assert.match(shop, /cart\.addExactVariant\(line, quantityInput\.value\)/);
+  assert.match(markup, /generic-product-page\.js[^"]*" defer/);
 });
