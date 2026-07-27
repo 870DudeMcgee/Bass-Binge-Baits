@@ -377,6 +377,35 @@ The five customer-uploaded media items are present in Shopify already. No
 re-upload or repository image copy is required. The two Shopify corrections
 above require separate explicit owner authorization at action time.
 
+### C8-R3 universal rich media and homepage gallery hardening — 2026-07-27
+
+C8-R3 closes repository gaps C8-G01 and C8-G02 without changing Shopify,
+Vercel, Resend, or deployment state.
+
+- The homepage limited-drop gallery now preserves admitted `model-3d` media in
+  order through the same accessible `View 3D model` link precedent used by the
+  generic product page. Image zoom remains image-only.
+- Focused DOM tests execute the public gallery mount and protect ordered image,
+  native-video, external-video, and model presentation; accessible position
+  labels and counters; previous/next and keyboard wraparound; video pause only
+  when leaving its active slide; image-only zoom wiring; and single fallback or
+  missing-media card behavior.
+- `node --test test/homepage-limited-drop-gallery.test.js` passed 6/6.
+  `node --test test/*.test.js` passed 168/168.
+  `node scripts/validate-catalog.js`, `node scripts/audit-release.js`,
+  `npm audit --omit=dev`, and `git diff --check` passed; the dependency audit
+  reported zero vulnerabilities.
+- A fresh local-browser fixture at `http://127.0.0.1:4178/` rendered all five
+  Heartlander media items on desktop and a 375-pixel mobile viewport. Both
+  previous/next buttons and left/right keyboard navigation wrapped in both
+  directions; image zoom opened and closed; the native video played and paused
+  after advancing away; and neither viewport produced horizontal overflow,
+  console warnings, or console errors.
+
+These fixture and local-browser results prove the C8-R3 repository boundary
+only. They do not satisfy live Shopify, deployed Preview, or Production
+acceptance.
+
 ## Merchant Inventory Handoff
 
 The only required commerce-data handoff is for the merchant to provide actual

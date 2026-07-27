@@ -46,6 +46,19 @@
           src: item.embedUrl
         };
       }
+      if (item && item.type === 'model-3d' && Array.isArray(item.sources)) {
+        var modelSource = item.sources.find(function (source) {
+          return source && source.url;
+        });
+        if (modelSource) {
+          return {
+            id: item.id || 'model-3d-' + index,
+            type: 'model-3d',
+            label: label,
+            src: modelSource.url
+          };
+        }
+      }
       return null;
     }).filter(Boolean);
 
@@ -102,13 +115,19 @@
         if (source.mimeType) sourceNode.type = source.mimeType;
         node.appendChild(sourceNode);
       });
-    } else {
+    } else if (item.type === 'external-video') {
       node = document.createElement('iframe');
       node.src = item.src;
       node.title = item.label;
       node.loading = 'lazy';
       node.allow = 'autoplay; encrypted-media; picture-in-picture';
       node.allowFullscreen = true;
+    } else {
+      node = document.createElement('a');
+      node.className = 'generic-media-placeholder';
+      node.href = item.src;
+      node.textContent = 'View 3D model';
+      node.setAttribute('aria-label', item.label);
     }
     slide.appendChild(node);
   }
@@ -121,6 +140,7 @@
     var counter = card.querySelector('[data-drop-media-counter]');
     var items = mediaItems(product, fallback);
     var current = 0;
+    var initialized = false;
     if (!track || !items.length) return null;
 
     track.innerHTML = '';
@@ -134,16 +154,18 @@
     });
 
     function show(index) {
+      var previousIndex = initialized ? current : null;
       current = nextIndex(index, items.length, 0);
       Array.from(track.children).forEach(function (slide, slideIndex) {
         var active = slideIndex === current;
         slide.hidden = !active;
         slide.classList.toggle('active', active);
-        if (!active) {
+        if (!active && slideIndex === previousIndex) {
           var video = slide.querySelector('video');
           if (video) video.pause();
         }
       });
+      initialized = true;
       if (counter) counter.textContent = (current + 1) + ' / ' + items.length;
       if (previous) previous.disabled = items.length < 2;
       if (next) next.disabled = items.length < 2;
