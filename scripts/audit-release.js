@@ -2,38 +2,23 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const catalog = require('../assets/js/catalog.js');
+const { renderGenericProductPage } = require('../lib/generic-product-route.js');
 
 const root = path.resolve(__dirname, '..');
 const failures = [];
-const pages = [
+const staticPages = [
   'index.html',
   'shop.html',
   'about.html',
   'contact.html',
-  'privacy.html',
-  'products/peewee-football.html',
-  'products/peewee-football-hd.html',
-  'products/peewee-spider-hd.html',
-  'products/heavy-cover-football.html',
-  'products/finesse-jig.html',
-  'products/pee-wee-football.html',
-  'products/limited-drop.html'
+  'privacy.html'
 ];
-const productPages = pages.filter((page) => page.startsWith('products/'));
 const canonicalUrls = {
   'index.html': 'https://www.bassbingebaits.com/',
   'shop.html': 'https://www.bassbingebaits.com/shop',
   'about.html': 'https://www.bassbingebaits.com/about',
   'contact.html': 'https://www.bassbingebaits.com/contact',
-  'privacy.html': 'https://www.bassbingebaits.com/privacy',
-  'products/peewee-football.html': 'https://www.bassbingebaits.com/products/peewee-football',
-  'products/peewee-football-hd.html': 'https://www.bassbingebaits.com/products/peewee-football-hd',
-  'products/peewee-spider-hd.html': 'https://www.bassbingebaits.com/products/peewee-spider-hd',
-  'products/heavy-cover-football.html': 'https://www.bassbingebaits.com/products/heavy-cover-football',
-  'products/finesse-jig.html': 'https://www.bassbingebaits.com/products/finesse-jig',
-  'products/pee-wee-football.html': 'https://www.bassbingebaits.com/products/pee-wee-football',
-  'products/limited-drop.html': 'https://www.bassbingebaits.com/products/limited-drop'
+  'privacy.html': 'https://www.bassbingebaits.com/privacy'
 };
 
 function read(relativePath) {
@@ -56,23 +41,8 @@ function assertNoDemoContactCopy() {
   });
 }
 
-function assertShopDefaultsCheckoutable() {
-  catalog.listProducts().forEach((product) => {
-    const build = catalog.getJigBuild({
-      productKey: product.key,
-      colorKey: product.defaultColorKey,
-      weightKey: product.defaultWeightKey,
-      rattleKey: product.rattle && product.rattle.defaultKey ? product.rattle.defaultKey : 'no'
-    });
-
-    if (!build || !build.isCheckoutable) {
-      fail(`${product.title} default build is not checkoutable`);
-    }
-  });
-}
-
 function assertFaviconLinks() {
-  pages.forEach((page) => {
+  staticPages.forEach((page) => {
     const source = read(page);
     if (!/rel="icon"/.test(source)) {
       fail(`${page} is missing a favicon link`);
@@ -83,17 +53,8 @@ function assertFaviconLinks() {
   });
 }
 
-function assertSitemapProducts() {
-  const sitemap = read('sitemap.xml');
-  catalog.listProducts().forEach((product) => {
-    if (!sitemap.includes(product.pagePath)) {
-      fail(`sitemap.xml is missing ${product.pagePath}`);
-    }
-  });
-}
-
 function assertSharedAssetCacheBust() {
-  pages.forEach((page) => {
+  staticPages.forEach((page) => {
     const source = read(page);
     if (!/assets\/css\/styles\.css\?v=/.test(source)) {
       fail(`${page} does not version styles.css`);
@@ -104,44 +65,73 @@ function assertSharedAssetCacheBust() {
   });
 }
 
-function assertProductZoomAssets() {
-  const productScript = read('assets/js/product-page.js');
-  const productStyles = read('assets/css/product.css');
+function assertGenericProductRoute() {
+  const productDirectory = path.join(root, 'products');
+  const staticProductFiles = fs.existsSync(productDirectory)
+    ? fs.readdirSync(productDirectory).filter((filename) => filename.endsWith('.html'))
+    : [];
+  if (staticProductFiles.length) {
+    fail(`products/ contains static HTML routes: ${staticProductFiles.join(', ')}`);
+  }
 
-  productPages.forEach((page) => {
-    const source = read(page);
-    if (!/\.\.\/assets\/css\/product\.css\?v=/.test(source)) {
-      fail(`${page} does not version product.css`);
-    }
-    if (!/\.\.\/assets\/js\/product-page\.js\?v=/.test(source)) {
-      fail(`${page} does not version product-page.js`);
-    }
-    if (!/data-gallery/.test(source) || !/product-gallery-track/.test(source)) {
-      fail(`${page} is missing the product gallery mount markup`);
-    }
+  const vercelConfig = JSON.parse(read('vercel.json'));
+  const genericRewrite = (vercelConfig.rewrites || []).find((rewrite) =>
+    rewrite.source === '/products/:handle'
+  );
+  if (!genericRewrite || genericRewrite.destination !== '/api/product?handle=:handle') {
+    fail('vercel.json does not route every product handle through /api/product');
+  }
+
+  const rendered = renderGenericProductPage({
+    id: 'gid://shopify/Product/release-audit',
+    handle: 'release-audit-jig',
+    title: 'Release Audit Jig',
+    descriptionHtml: '<p>Current admitted Shopify description.</p>',
+    vendor: 'Bass Binge Baits',
+    productType: 'Jig',
+    availableForSale: true,
+    media: [{
+      id: 'gid://shopify/MediaImage/release-audit',
+      type: 'image',
+      alt: 'Release audit jig',
+      image: {
+        url: 'https://cdn.shopify.com/release-audit.jpg',
+        width: 1200,
+        height: 1200
+      }
+    }],
+    options: [],
+    variants: [{
+      id: 'gid://shopify/ProductVariant/release-audit',
+      title: 'Default Title',
+      selectedOptions: [],
+      price: { amount: '5.00', currencyCode: 'USD' },
+      compareAtPrice: null,
+      availableForSale: true,
+      quantityAvailable: 1,
+      imageId: 'gid://shopify/MediaImage/release-audit'
+    }],
+    presentation: { kind: 'ordinary' }
   });
-
+  const canonical = 'https://www.bassbingebaits.com/products/release-audit-jig';
   [
-    'product-gallery-zoom-toggle',
-    'openZoomViewer',
-    'product-zoom-modal',
-    'product-zoom-stage'
+    '<body data-generic-product>',
+    'class="product-gallery"',
+    'class="product-hero"',
+    '<link rel="icon"',
+    `<link rel="canonical" href="${canonical}"`,
+    `<meta property="og:url" content="${canonical}"`,
+    'Current admitted Shopify description.',
+    '/assets/css/product.css?v=',
+    '/assets/js/generic-product-page.js?v='
   ].forEach((token) => {
-    if (!productScript.includes(token)) {
-      fail(`assets/js/product-page.js is missing zoom token: ${token}`);
+    if (!rendered.includes(token)) {
+      fail(`generic product rendering is missing ${token}`);
     }
   });
-
-  [
-    '.product-gallery-main.is-zooming',
-    '.product-zoom-modal',
-    '.product-zoom-stage.is-zooming',
-    '.product-zoom-stage.is-zoom-locked'
-  ].forEach((token) => {
-    if (!productStyles.includes(token)) {
-      fail(`assets/css/product.css is missing zoom selector: ${token}`);
-    }
-  });
+  if (/googletagmanager\.com|G-MEK0CBJWR0|noindex/i.test(rendered)) {
+    fail('generic admitted product rendering contains blocked indexing or analytics markup');
+  }
 }
 
 function assertScriptsAreNotImmutableCached() {
@@ -164,7 +154,7 @@ function matches(source, pattern) {
 }
 
 function assertCanonicalIndexing() {
-  pages.forEach((page) => {
+  staticPages.forEach((page) => {
     const source = read(page);
     const expectedUrl = canonicalUrls[page];
 
@@ -203,9 +193,11 @@ function assertCanonicalSitemap() {
     if (!locations.includes(url)) fail(`sitemap.xml is missing canonical URL ${url}`);
   });
   locations.forEach((url) => {
-    if (!expected.includes(url)) fail(`sitemap.xml contains unexpected URL ${url}`);
     if (!url.startsWith('https://www.bassbingebaits.com/')) {
       fail(`sitemap.xml contains domain drift: ${url}`);
+    }
+    if (!expected.includes(url) && !/^https:\/\/www\.bassbingebaits\.com\/products\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url)) {
+      fail(`sitemap.xml contains unexpected URL ${url}`);
     }
   });
 
@@ -216,11 +208,9 @@ function assertCanonicalSitemap() {
 }
 
 assertNoDemoContactCopy();
-assertShopDefaultsCheckoutable();
 assertFaviconLinks();
-assertSitemapProducts();
 assertSharedAssetCacheBust();
-assertProductZoomAssets();
+assertGenericProductRoute();
 assertScriptsAreNotImmutableCached();
 assertCanonicalIndexing();
 assertCanonicalSitemap();

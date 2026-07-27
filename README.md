@@ -1,6 +1,7 @@
 # Bass Binge Website
 
-Static four-page marketing + commerce site for Bass Binge Baits.
+Static marketing pages with Shopify-backed catalog, product, cart, and checkout
+functions for Bass Binge Baits.
 
 ## Pages
 
@@ -11,51 +12,96 @@ Static four-page marketing + commerce site for Bass Binge Baits.
 
 ## Quick Start
 
-Open `index.html` directly in a browser for static preview, or run a simple local server:
+Open `index.html` directly for a presentation-only preview, or serve the static
+files locally:
 
 ```bash
-cd /Users/jewelbait/Bass\ Binge\ Website
+cd /Users/jewelbait/Desktop/Bass_Binge_Baits
 python3 -m http.server 8080
 ```
 
-Then visit `http://localhost:8080`.
+Then visit `http://localhost:8080`. A static server does not execute the Vercel
+Functions or the `/products/:handle` rewrite, so this is not catalog, cart, or
+product-route acceptance.
 
-## Shopify Setup
+## Shopify Catalog Architecture
 
-The shop page now keeps product selection and cart review on the Bass Binge site, then sends customers to Shopify only for secure checkout.
+Shopify's configured Headless publication is the source of truth for admitted
+product identity, public copy, media, exact options and variants, price,
+availability, and checkout merchandise IDs. `/api/catalog` acquires every page
+of the Storefront connections, validates a versioned `CatalogEnvelope`, and
+stores only a complete admitted generation.
 
-Shopify is the live source for product prices, variant availability, assigned variant images, and checkout merchandise IDs. `api/catalog.js` reads Shopify through the Storefront API, normalizes it into the approved storefront shape, and caches it for 45 seconds. `assets/js/catalog.js` remains a temporary browser fallback and supplies presentation metadata such as local page paths and swatch colors.
+The last validated envelope lives in one Redis-compatible durable backend.
+Production and each Preview deployment derive separate schema/shop/trust-domain
+namespaces, so they cannot alias one another. Catalog reads use a 45-second
+fresh window and a bounded five-minute stale window. Signed webhooks mark the
+shared generation dirty, and protected reconciliation is the missed-event
+backstop. If no admitted generation is usable, customer surfaces fail closed;
+`assets/js/catalog.js` starts empty and is not a fallback product catalog.
 
-Checkout is enabled only when every selected color/weight resolves to an available Shopify variant. `api/shopify-cart.js` creates a Storefront Cart and returns Shopify's checkout URL. Rattle selections use a separate Shopify variant and are attached as nested child lines beneath their jig parent.
+Every `/products/:handle` request rewrites to the generic admitted product
+handler. No `products/<handle>.html` file or handle-keyed local record can
+bypass deletion, quarantine, or expired-stale behavior. The shop, product page,
+browser cart, and server cart all reconcile exact admitted Shopify variant
+identity and money before checkout. Rattle selections remain a validated hidden
+add-on nested beneath their eligible jig parent.
 
-Public products and basic cart creation work through Shopify's tokenless Storefront API. Configure the Headless private token to enable product tags and limited-drop metafields without exposing a credential to the browser:
+Configure the server-only Storefront and durable-state values:
 
 ```bash
 SHOPIFY_STORE_DOMAIN=bassbingebaits.myshopify.com
 SHOPIFY_STOREFRONT_API_VERSION=2026-01
 SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpss_xxxxxxxxx
+KV_REST_API_URL=https://example.upstash.io
+KV_REST_API_TOKEN=xxxxxxxxx
+SHOPIFY_WEBHOOK_SECRET=xxxxxxxxx
+CATALOG_HEALTH_TOKEN=xxxxxxxxx
+CRON_SECRET=xxxxxxxxx
 ```
 
-The Headless storefront needs product, inventory, tag, metafield, and cart access. Publish sellable products, the hidden Rattle Add-on, and limited drops to that Headless sales channel.
+The equivalent `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN` names are also supported. Leave
+`CATALOG_CACHE_NAMESPACE` unset; a manual value is accepted only when it exactly
+matches the namespace derived from the schema, Shopify shop, and deployment
+trust identity. Never expose these values to browser code.
+
+The Headless storefront needs product, inventory, tag, metafield, and cart
+access. Publish sellable products, the hidden Rattle Add-on, and limited drops
+to that sales channel.
 
 For client access and the one-time merchant handoff, use
 `docs/shopify-client-access-request.md` and
 `docs/shopify-implementation-runbook.md`. Never request or share the merchant's
 Shopify password.
 
-Validate catalog data after editing it:
+## Release Evidence
+
+Keep these evidence classes separate:
+
+- Fixture tests prove deterministic behavior against supplied data.
+- Local unit and local HTTP/browser checks prove the current checkout and
+  rendered behavior on this machine.
+- Shared-store tests prove separate Node processes can observe one durable
+  generation through the Redis protocol seam.
+- A deployed Preview proves Vercel routing, environment, CDN, and managed-store
+  behavior only after an authorized deployment.
+- Live Shopify proof requires the configured Headless storefront and real
+  merchant operations; local fixtures never satisfy it.
+
+Run the repository checks before release:
 
 ```bash
-node scripts/validate-catalog.js
-```
-
-Run both checks before release:
-
-```bash
+node --test test/*.test.js
 node scripts/validate-catalog.js
 node scripts/audit-release.js
-node scripts/validate-shopify-integration.js
+npm audit --omit=dev
+node scripts/validate-shopify-integration.js --strict
 ```
+
+The strict Shopify validator is an external evidence gate. A local failure
+because Storefront access is unavailable must be reported as unverified; it is
+not permission to deploy, change environment variables, or mutate Shopify.
 
 ## Form Setup
 

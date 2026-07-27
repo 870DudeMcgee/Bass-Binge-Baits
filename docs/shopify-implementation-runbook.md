@@ -26,6 +26,35 @@ request is available in `docs/shopify-client-access-request.md`.
   image, and variant ID from Shopify even before the reusable drop template is
   configured.
 
+## Catalog Configuration Invariants
+
+- Shopify's configured Headless publication is the only product-inclusion and
+  public commerce authority. Browser catalog state begins empty and accepts
+  only a validated admitted `CatalogEnvelope`; there is no local product
+  fallback.
+- Configure exactly one supported Redis-compatible backend through either the
+  `KV_REST_API_*` pair or the `UPSTASH_REDIS_REST_*` pair. Missing or partial
+  durable-store credentials are a configuration failure, not permission to use
+  process memory.
+- Leave `CATALOG_CACHE_NAMESPACE` unset. The runtime derives a namespace from
+  CatalogEnvelope schema version, normalized `*.myshopify.com` shop identity,
+  and the Vercel trust identity. Production requires
+  `VERCEL_PROJECT_PRODUCTION_URL`; Preview requires a unique
+  `VERCEL_DEPLOYMENT_ID` or `VERCEL_URL`. A mismatched manual namespace fails
+  closed with `catalog_namespace_invalid`.
+- Keep `SHOPIFY_STOREFRONT_PRIVATE_TOKEN`, `SHOPIFY_WEBHOOK_SECRET`,
+  `CATALOG_HEALTH_TOKEN`, `CRON_SECRET`, and durable-store credentials
+  server-only. The webhook, health, and reconciliation secrets are separate
+  values with separate purposes.
+- `/products/:handle` must remain rewritten to
+  `/api/product?handle=:handle`. Do not add public `products/*.html` shells;
+  every established or novel handle must pass the same current admission
+  result.
+- A generation is fresh for 45 seconds and may be served as last-known-good for
+  at most the bounded five-minute stale window. After that window, catalog and
+  product requests return an explicit unavailable response rather than local
+  commerce data.
+
 ## Required Shopify Admin Work
 
 Complete these items in order. The storefront intentionally reports or disables
@@ -34,7 +63,8 @@ incomplete commerce data rather than inventing it.
 ### 1. Verify Heartlander
 
 Open **Products > Limited Drop** and verify the only variant remains `$5.99`.
-The live Shopify value and local fallback now agree.
+The customer surface must use the admitted Shopify value; there is no local
+commerce fallback to reconcile.
 
 Completed 2026-07-19: the live variant is `$5.99`. The product now has product
 type `Limited Drop` and tag `limited-drop`.
@@ -152,20 +182,36 @@ Completed 2026-07-19: all four definitions above were created with Storefront
 API access enabled. Heartlander's single variant now uses Color `Heartlander`
 and Weight `5/8 oz`, remains `$5.99`, and is available through the Headless
 storefront. The merchant can optionally enter scheduled drop dates, badge text,
-and short description later; the storefront already has safe fallback content.
+and short description later; missing optional presentation metadata does not
+replace Shopify commerce facts.
 
 ## Verification
 
-Run:
+Evidence labels are not interchangeable:
+
+| Evidence class | What it establishes | Current C7 status |
+| --- | --- | --- |
+| Fixture | Deterministic behavior against supplied catalog/store data | Run locally |
+| Local unit | Admission, freshness, namespace, webhook, cart, and renderer behavior in Node | Run locally |
+| Local HTTP/browser | Customer-visible status, content type, layout, and interaction on a local fixture server | C6 evidence only; not rerun by C7 documentation work |
+| Shared-store | Separate Node processes observe one Redis-protocol generation | Run locally against the fixture Redis seam |
+| Deployed Preview | Vercel routing, managed environment, CDN, `waitUntil`, and real shared-store behavior | Not performed |
+| Live Shopify | Real Headless acquisition, webhook, mutation, cart, and checkout behavior | Not performed |
+
+Run the local repository gates:
 
 ```bash
+node --test test/*.test.js
 node scripts/validate-catalog.js
 node scripts/audit-release.js
+npm audit --omit=dev
 node scripts/validate-shopify-integration.js --strict
 ```
 
-The strict Shopify check is the Phase 0 completion gate. It passed against the
-private Storefront token on 2026-07-19.
+The strict Shopify validator is an external evidence gate. Record its actual
+result for the current run. Missing Storefront access or an upstream failure
+means live Shopify remains unverified; it does not authorize deployment,
+environment changes, webhook registration, or Shopify mutation.
 
 ## Merchant Inventory Handoff
 
