@@ -292,6 +292,13 @@ test('variant image leads the complete ordered media gallery', () => {
     renderer.orderedMedia(current, { imageId: 'missing' }).map((item) => item.id),
     ['media-a', 'media-b', 'media-c']
   );
+  assert.deepEqual(
+    renderer.orderedMedia(current, {
+      imageId: 'gid://shopify/ProductImage/different-id-space',
+      image: { url: 'side.jpg' }
+    }).map((item) => item.id),
+    ['media-b', 'media-a', 'media-c']
+  );
 });
 
 test('missing media uses an accessible placeholder', () => {

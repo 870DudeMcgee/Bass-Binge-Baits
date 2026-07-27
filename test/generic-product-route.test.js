@@ -31,7 +31,7 @@ function responseRecorder() {
   };
 }
 
-test('an unmatched valid Shopify handle renders the generic product page', async () => {
+test('an unmatched valid Shopify handle renders the established product-page shell', async () => {
   const product = {
     id: 'gid://shopify/Product/808',
     handle: '5-8-oz-heavy-cover-football',
@@ -75,12 +75,15 @@ test('an unmatched valid Shopify handle renders the generic product page', async
   assert.equal(response.statusCode, 200);
   assert.match(response.headers['content-type'], /^text\/html/);
   assert.match(response.body, /5\/8 oz Heavy Cover Football/);
-  assert.match(response.body, /data-generic-product/);
-  assert.match(response.body, /gid:\/\/shopify\/ProductVariant\/1001/);
-  assert.match(response.body, /data-gallery-zoom-open/);
-  assert.match(response.body, /class="product-zoom-modal"/);
-  assert.match(response.body, /data-product-zoom-stage/);
-  assert.match(response.body, /aria-label="Close product photo zoom"/);
+  assert.doesNotMatch(response.body, /data-generic-product/);
+  assert.match(response.body, /class="product-page"/);
+  assert.match(response.body, /data-product-key="5-8-oz-heavy-cover-football"/);
+  assert.match(response.body, /class="variant-swatches"/);
+  assert.match(response.body, /data-color-name/);
+  assert.match(response.body, /data-weight-group/);
+  assert.match(response.body, /data-rattle-group/);
+  assert.match(response.body, /\/assets\/js\/product-page\.js/);
+  assert.doesNotMatch(response.body, /\/assets\/js\/generic-product-page\.js/);
 });
 
 test('absent, quarantined, and malformed handles return a real not-found response', async () => {

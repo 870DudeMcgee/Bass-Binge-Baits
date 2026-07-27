@@ -91,6 +91,11 @@
     var leadIndex = media.findIndex(function (item) {
       return mediaMatchesImage(item, imageId);
     });
+    if (leadIndex < 0 && variant && variant.image && variant.image.url) {
+      leadIndex = media.findIndex(function (item) {
+        return item && item.image && item.image.url === variant.image.url;
+      });
+    }
     if (leadIndex > 0) {
       media.unshift(media.splice(leadIndex, 1)[0]);
     }
