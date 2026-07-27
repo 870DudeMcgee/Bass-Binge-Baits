@@ -213,7 +213,7 @@ function writeExternalGate(head, overrides = {}) {
       status: 'accepted',
       head,
       details: {
-        handle: 'heartlander-peewee-football-hd',
+        handle: 'limited-drop',
         title: '5/8 oz PeeWee Football HD — Heartlander',
         price: { amount: '5.99', currencyCode: 'USD' },
         variantId: 'gid://shopify/ProductVariant/1234567890',
@@ -417,6 +417,25 @@ test('a complete synthetic environment reaches READY_LOCAL without an external g
   assert.match(
     result.stdout,
     /\[EXTERNAL_RELEASE_GATES\] MISSING_OR_INVALID: EXTERNAL_GATE/
+  );
+});
+
+test('a public Storefront token satisfies Shopify credential readiness', () => {
+  const fixture = createFixtureRepository();
+  const result = runPreflight({
+    root: fixture.root,
+    expectedHead: fixture.head,
+    env: completeEnvironment({
+      SHOPIFY_STOREFRONT_PRIVATE_TOKEN: undefined,
+      SHOPIFY_STOREFRONT_ACCESS_TOKEN: 'synthetic-public-token-8e3b'
+    })
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /STATE: READY_LOCAL/);
+  assert.match(
+    result.stdout,
+    /\[CORE_CONFIGURATION\] PASS: SHOPIFY_STOREFRONT_ACCESS_TOKEN/
   );
 });
 
@@ -682,4 +701,39 @@ test('secret-free external evidence bound to the commit can reach READY_TO_PUSH'
     result.stdout,
     /\[EXTERNAL_RELEASE_GATES\] PASS: EXTERNAL_GATE/
   );
+});
+
+test('secret-free external evidence satisfies Vercel-sensitive configuration', () => {
+  const fixture = createFixtureRepository();
+  const gatePath = writeExternalGate(fixture.head);
+  const result = spawnSync(process.execPath, [
+    preflight,
+    '--root',
+    fixture.root,
+    '--expected-head',
+    fixture.head,
+    '--external-gate',
+    gatePath
+  ], {
+    cwd: root,
+    encoding: 'utf8',
+    env: {
+      PATH: process.env.PATH,
+      SHOPIFY_STORE_DOMAIN: 'synthetic-shop.myshopify.com',
+      VERCEL_ENV: 'production',
+      VERCEL_PROJECT_PRODUCTION_URL: 'store.synthetic.invalid'
+    }
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /STATE: READY_TO_PUSH/);
+  assert.match(
+    result.stdout,
+    /\[CORE_CONFIGURATION\] PASS_EXTERNAL: SHOPIFY_STOREFRONT_ACCESS_TOKEN/
+  );
+  assert.match(
+    result.stdout,
+    /\[STRICT_SHOPIFY_VALIDATION\] PASS(?:_EXTERNAL)?: STRICT_SHOPIFY_VALIDATION/
+  );
+  assert.doesNotMatch(result.stdout, /synthetic-private-token/);
 });

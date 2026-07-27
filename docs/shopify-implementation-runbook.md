@@ -42,7 +42,7 @@ request is available in `docs/shopify-client-access-request.md`.
   `VERCEL_PROJECT_PRODUCTION_URL`; Preview requires a unique
   `VERCEL_DEPLOYMENT_ID` or `VERCEL_URL`. A mismatched manual namespace fails
   closed with `catalog_namespace_invalid`.
-- Keep `SHOPIFY_STOREFRONT_PRIVATE_TOKEN`, `SHOPIFY_WEBHOOK_SECRET`,
+- Keep the configured Shopify Storefront token, `SHOPIFY_WEBHOOK_SECRET`,
   `CATALOG_HEALTH_TOKEN`, `CRON_SECRET`, and durable-store credentials
   server-only. The webhook, health, and reconciliation secrets are separate
   values with separate purposes.
@@ -124,11 +124,11 @@ blocking storefront release.
 
 In Shopify admin, install or open the **Headless** sales channel and create a
 storefront for Bass Binge. Enable Storefront API access for products, inventory,
-tags, metafields, and carts. Add its private token to Vercel Production and
-Preview as:
+tags, metafields, and carts. Add one token that passes strict catalog validation
+to Vercel Production and Preview. The current verified Headless credential is:
 
 ```text
-SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpss_...
+SHOPIFY_STOREFRONT_ACCESS_TOKEN=<public Headless token>
 ```
 
 Also add these explicit values, or rely on the code defaults:
@@ -138,7 +138,7 @@ SHOPIFY_STORE_DOMAIN=bassbingebaits.myshopify.com
 SHOPIFY_STOREFRONT_API_VERSION=2026-01
 ```
 
-Never place the private token in HTML or `assets/js/catalog.js`.
+Never place either token in HTML or `assets/js/catalog.js`.
 
 Generate a separate high-entropy server-only token for the protected catalog
 health endpoint and store it in Vercel Production and Preview as:
@@ -333,7 +333,7 @@ credential values. The command validates the facts but renders their names only:
     "status": "accepted",
     "head": "<same 40-character release commit>",
     "details": {
-      "handle": "heartlander-peewee-football-hd",
+      "handle": "limited-drop",
       "title": "5/8 oz PeeWee Football HD — Heartlander",
       "price": { "amount": "5.99", "currencyCode": "USD" },
       "variantId": "<exact numeric Shopify ProductVariant GID>",
@@ -355,7 +355,7 @@ credential values. The command validates the facts but renders their names only:
   "configuration": {
     "production": [
       "SHOPIFY_STORE_DOMAIN",
-      "SHOPIFY_STOREFRONT_PRIVATE_TOKEN",
+      "SHOPIFY_STOREFRONT_ACCESS_TOKEN",
       "SHOPIFY_WEBHOOK_SECRET",
       "CATALOG_HEALTH_TOKEN",
       "CRON_SECRET",
@@ -369,7 +369,7 @@ credential values. The command validates the facts but renders their names only:
     ],
     "preview": [
       "SHOPIFY_STORE_DOMAIN",
-      "SHOPIFY_STOREFRONT_PRIVATE_TOKEN",
+      "SHOPIFY_STOREFRONT_ACCESS_TOKEN",
       "SHOPIFY_WEBHOOK_SECRET",
       "CATALOG_HEALTH_TOKEN",
       "CRON_SECRET",
@@ -639,6 +639,34 @@ Vercel, Resend, or deployment state.
 These fixture and local-browser results prove the C8-R3 repository boundary
 only. They do not satisfy live Shopify, deployed Preview, or Production
 acceptance.
+
+### C8 operational preflight correction — 2026-07-27
+
+The owner decisions for this release are fixed and must not be reopened:
+
+- Heartlander uses its existing one-calendar-month window,
+  `2026-07-19T21:39:00Z` through `2026-08-19T21:39:00Z`.
+- The twelve new PeeWee Football variants and the Rattle Add-on remain at zero
+  until the merchant supplies counts.
+- Existing contact delivery is outside this preflight and is not being
+  reconfigured.
+- Configuration and preflight may proceed, but push and deployment remain
+  separately gated.
+
+Fresh live checks found that the existing public Headless token can read
+products, tags, metafields, inventory, and carts, while Shopify's private
+Headless token cannot read metafields. The public token is now configured as
+`SHOPIFY_STOREFRONT_ACCESS_TOKEN` for Vercel Production and Preview, and the
+runtime prefers it when both token types exist. Strict validation with that
+credential admitted all nine CatalogEnvelope products, selected Heartlander as
+the current drop, and exposed the zero-stock Rattle Add-on to the adapter.
+Remaining media-alt and swatch observations are warning-only.
+
+The existing `bass-binge-catalog` Upstash integration is connected to the
+Vercel project, reports `Available` on the Free plan, and returned `PONG` to a
+safe-mode `PING`. Its generated `KV_REST_API_URL` and `KV_REST_API_TOKEN` remain
+assigned to Production and Preview. No credential value was logged, no product
+inventory was changed, and no deployment or push occurred.
 
 ## Merchant Inventory Handoff
 

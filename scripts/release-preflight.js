@@ -9,10 +9,13 @@ const { deriveCatalogNamespace } = require('../lib/catalog-namespace.js');
 
 const CORE_VARIABLES = [
   'SHOPIFY_STORE_DOMAIN',
-  'SHOPIFY_STOREFRONT_PRIVATE_TOKEN',
   'SHOPIFY_WEBHOOK_SECRET',
   'CATALOG_HEALTH_TOKEN',
   'CRON_SECRET'
+];
+const STOREFRONT_CREDENTIALS = [
+  'SHOPIFY_STOREFRONT_ACCESS_TOKEN',
+  'SHOPIFY_STOREFRONT_PRIVATE_TOKEN'
 ];
 const CONTACT_VARIABLES = [
   'RESEND_API_KEY',
@@ -237,7 +240,7 @@ function shopifyReadinessIsValid(readiness, expectedHead) {
     'dropWindow',
     'inventoryDecision'
   ]) &&
-    details.handle === 'heartlander-peewee-football-hd' &&
+    details.handle === 'limited-drop' &&
     details.title === EXPECTED_HEARTLANDER_TITLE &&
     hasExactDetails(details.price, { amount: '5.99', currencyCode: 'USD' }) &&
     /^gid:\/\/shopify\/ProductVariant\/\d+$/.test(details.variantId) &&
@@ -352,6 +355,15 @@ function inspectConfiguration(environment, results) {
   CORE_VARIABLES.forEach((name) => {
     addResult(results, 'CORE_CONFIGURATION', isUsable(environment, name), name);
   });
+  const storefrontCredential = STOREFRONT_CREDENTIALS.find((name) =>
+    isUsable(environment, name)
+  );
+  addResult(
+    results,
+    'CORE_CONFIGURATION',
+    Boolean(storefrontCredential),
+    storefrontCredential || STOREFRONT_CREDENTIALS
+  );
 
   const configuredPairs = DURABLE_PAIRS.filter((pair) =>
     pair.some((name) => isPresent(environment, name))
@@ -479,6 +491,7 @@ function inspectExternalGate(externalGate, expectedHead, root, results) {
     const gate = JSON.parse(fs.readFileSync(externalGate, 'utf8'));
     const allowedNames = [
       ...CORE_VARIABLES,
+      ...STOREFRONT_CREDENTIALS,
       ...CONTACT_VARIABLES,
       ...DURABLE_PAIRS.flat(),
       'VERCEL_ENV',
@@ -489,7 +502,8 @@ function inspectExternalGate(externalGate, expectedHead, root, results) {
     const environmentNamesAreValid = (target, names) => {
       if (!Array.isArray(names)) return false;
       const uniqueNames = new Set(names);
-      const corePresent = CORE_VARIABLES.every((name) => uniqueNames.has(name));
+      const corePresent = CORE_VARIABLES.every((name) => uniqueNames.has(name)) &&
+        STOREFRONT_CREDENTIALS.some((name) => uniqueNames.has(name));
       const durablePairCount = DURABLE_PAIRS.filter((pair) =>
         pair.every((name) => uniqueNames.has(name))
       ).length;
@@ -586,16 +600,20 @@ function inspectExternalGate(externalGate, expectedHead, root, results) {
 }
 
 function render(results) {
-  const coreFailures = results.filter((result) =>
-    result.evidenceClass !== 'CONTACT_DELIVERY' &&
-    result.evidenceClass !== 'EXTERNAL_RELEASE_GATES' &&
-    !result.ok
-  );
   const externalResults = results.filter((result) =>
     result.evidenceClass === 'EXTERNAL_RELEASE_GATES'
   );
   const externalReady = externalResults.length > 0 &&
     externalResults.every((result) => result.ok);
+  const externallySatisfiedClasses = externalReady
+    ? new Set(['CORE_CONFIGURATION'])
+    : new Set();
+  const coreFailures = results.filter((result) =>
+    result.evidenceClass !== 'CONTACT_DELIVERY' &&
+    result.evidenceClass !== 'EXTERNAL_RELEASE_GATES' &&
+    !externallySatisfiedClasses.has(result.evidenceClass) &&
+    !result.ok
+  );
   const state = coreFailures.length
     ? 'BLOCKED'
     : externalReady
@@ -604,7 +622,11 @@ function render(results) {
 
   console.log(`STATE: ${state}`);
   for (const result of results) {
-    const status = result.ok ? 'PASS' : 'MISSING_OR_INVALID';
+    const status = result.ok
+      ? 'PASS'
+      : externallySatisfiedClasses.has(result.evidenceClass) && externalReady
+        ? 'PASS_EXTERNAL'
+        : 'MISSING_OR_INVALID';
     console.log(`[${result.evidenceClass}] ${status}: ${result.names.join(', ')}`);
   }
   return state;

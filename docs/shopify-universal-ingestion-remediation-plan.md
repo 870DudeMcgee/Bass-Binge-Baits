@@ -764,7 +764,8 @@ flows; never place them in repository files, prompts, logs, or handoffs.
 
 **Required Production and Preview configuration:**
 
-- private Shopify Storefront token and shop identity
+- one Shopify Storefront token that passes the strict catalog query, plus shop
+  identity
 - one supported Upstash/KV REST URL/token pair
 - `SHOPIFY_WEBHOOK_SECRET`
 - `CATALOG_HEALTH_TOKEN`

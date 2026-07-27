@@ -52,7 +52,7 @@ Configure the server-only Storefront and durable-state values:
 ```bash
 SHOPIFY_STORE_DOMAIN=bassbingebaits.myshopify.com
 SHOPIFY_STOREFRONT_API_VERSION=2026-01
-SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpss_xxxxxxxxx
+SHOPIFY_STOREFRONT_ACCESS_TOKEN=xxxxxxxxx
 KV_REST_API_URL=https://example.upstash.io
 KV_REST_API_TOKEN=xxxxxxxxx
 SHOPIFY_WEBHOOK_SECRET=xxxxxxxxx
@@ -67,8 +67,10 @@ matches the namespace derived from the schema, Shopify shop, and deployment
 trust identity. Never expose these values to browser code.
 
 The Headless storefront needs product, inventory, tag, metafield, and cart
-access. Publish sellable products, the hidden Rattle Add-on, and limited drops
-to that sales channel.
+access. Configure either `SHOPIFY_STOREFRONT_ACCESS_TOKEN` or
+`SHOPIFY_STOREFRONT_PRIVATE_TOKEN`; when both exist, the verified public token
+is preferred. Publish sellable products, the hidden Rattle Add-on, and limited
+drops to that sales channel.
 
 For client access and the one-time merchant handoff, use
 `docs/shopify-client-access-request.md` and
