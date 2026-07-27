@@ -10,7 +10,7 @@
   "crons": [
     {
       "path": "/api/catalog-reconcile",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "headers": [

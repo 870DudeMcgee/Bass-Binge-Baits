@@ -127,13 +127,13 @@ test('periodic reconciliation HTTP is bearer-protected and returns only safe met
   assert.equal(JSON.stringify(authorized.body).includes(secret), false);
 });
 
-test('Vercel schedules the protected full reconciliation endpoint every minute', () => {
+test('Vercel Hobby schedules one protected daily full reconciliation sweep', () => {
   const config = JSON.parse(fs.readFileSync(
     path.join(__dirname, '..', 'vercel.json'),
     'utf8'
   ));
   assert.deepEqual(config.crons, [{
     path: '/api/catalog-reconcile',
-    schedule: '* * * * *'
+    schedule: '0 0 * * *'
   }]);
 });
