@@ -65,7 +65,7 @@ function assertSharedAssetCacheBust() {
   });
 }
 
-function assertGenericProductRoute() {
+function assertNoStaticProductRoutes() {
   const productDirectory = path.join(root, 'products');
   const staticProductFiles = fs.existsSync(productDirectory)
     ? fs.readdirSync(productDirectory).filter((filename) => filename.endsWith('.html'))
@@ -73,7 +73,9 @@ function assertGenericProductRoute() {
   if (staticProductFiles.length) {
     fail(`products/ contains static HTML routes: ${staticProductFiles.join(', ')}`);
   }
+}
 
+function assertGenericProductRewrite() {
   const vercelConfig = JSON.parse(read('vercel.json'));
   const genericRewrite = (vercelConfig.rewrites || []).find((rewrite) =>
     rewrite.source === '/products/:handle'
@@ -81,8 +83,10 @@ function assertGenericProductRoute() {
   if (!genericRewrite || genericRewrite.destination !== '/api/product?handle=:handle') {
     fail('vercel.json does not route every product handle through /api/product');
   }
+}
 
-  const rendered = renderGenericProductPage({
+function releaseAuditProduct() {
+  return {
     id: 'gid://shopify/Product/release-audit',
     handle: 'release-audit-jig',
     title: 'Release Audit Jig',
@@ -112,7 +116,11 @@ function assertGenericProductRoute() {
       imageId: 'gid://shopify/MediaImage/release-audit'
     }],
     presentation: { kind: 'ordinary' }
-  });
+  };
+}
+
+function assertGenericProductRendering() {
+  const rendered = renderGenericProductPage(releaseAuditProduct());
   const canonical = 'https://www.bassbingebaits.com/products/release-audit-jig';
   [
     '<body data-generic-product>',
@@ -210,7 +218,9 @@ function assertCanonicalSitemap() {
 assertNoDemoContactCopy();
 assertFaviconLinks();
 assertSharedAssetCacheBust();
-assertGenericProductRoute();
+assertNoStaticProductRoutes();
+assertGenericProductRewrite();
+assertGenericProductRendering();
 assertScriptsAreNotImmutableCached();
 assertCanonicalIndexing();
 assertCanonicalSitemap();

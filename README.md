@@ -80,8 +80,10 @@ Shopify password.
 Keep these evidence classes separate:
 
 - Fixture tests prove deterministic behavior against supplied data.
-- Local unit and local HTTP/browser checks prove the current checkout and
-  rendered behavior on this machine.
+- Local unit tests prove admission, freshness, namespace, cart, and renderer
+  behavior in Node.
+- Local HTTP/browser checks prove customer-visible status, content type, layout,
+  and interaction against a local runtime.
 - Shared-store tests prove separate Node processes can observe one durable
   generation through the Redis protocol seam.
 - A deployed Preview proves Vercel routing, environment, CDN, and managed-store
