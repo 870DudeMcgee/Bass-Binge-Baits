@@ -328,6 +328,28 @@ test('CatalogEnvelope v2 classifies the hidden add-on only from validated type/t
   assert.equal(envelope.products[0].presentation.kind, 'hidden-add-on');
 });
 
+test('CatalogEnvelope v2 admits a hidden Rattle Add-on without customer-facing media', () => {
+  const product = fixtureProduct({
+    id: 'gid://shopify/Product/114',
+    handle: 'rattle-add-on',
+    title: 'Rattle Add-on',
+    productType: 'Rattle Add-on',
+    tags: ['rattle-add-on'],
+    featuredImage: null,
+    featuredMedia: null,
+    media: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } }
+  });
+
+  const envelope = normalizeCatalogEnvelope([product]);
+
+  assert.deepEqual(envelope.products.map((item) => item.handle), ['rattle-add-on']);
+  assert.equal(envelope.products[0].presentation.kind, 'hidden-add-on');
+  assert.equal(
+    envelope.outcomes.productQuarantined.some((issue) => issue.code === 'product_image_missing'),
+    false
+  );
+});
+
 test('CatalogEnvelope v2 validates a limited drop from classification and typed timing metafields', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/110',

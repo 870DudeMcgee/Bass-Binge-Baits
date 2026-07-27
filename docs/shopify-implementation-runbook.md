@@ -114,6 +114,12 @@ Headless storefront, so it remains unavailable until the merchant supplies the
 real shared inventory count. The two eligible jig products have the
 `rattle-enabled` tag.
 
+Because this classified add-on is a hidden cart dependency and never resolves
+through a customer product route, product media is optional for admission.
+Customer-visible ordinary products and limited drops still require a usable
+product image. The add-on may receive an administrative image later without
+blocking storefront release.
+
 ### 5. Configure Headless Storefront Access
 
 In Shopify admin, install or open the **Headless** sales channel and create a
