@@ -79,6 +79,16 @@ if (limitedDropButton) {
       image.alt = (build && build.productTitle ? build.productTitle : drop.title) +
         (build && build.colorName ? ' in ' + build.colorName : '');
     }
+    const admittedProduct = catalog.getAdmittedProduct
+      ? catalog.getAdmittedProduct(drop.handle)
+      : null;
+    const gallery = window.BassBingeLimitedDropGallery;
+    if (gallery && gallery.mount) {
+      gallery.mount(card, admittedProduct, {
+        src: image ? image.src : drop.featuredImage,
+        alt: image ? image.alt : drop.title
+      });
+    }
     if (title) title.textContent = drop.title;
     if (description && drop.shortDescription) description.textContent = drop.shortDescription;
     if (price && build) price.textContent = catalog.formatMoney(build.price);
@@ -113,10 +123,9 @@ if (limitedDropButton) {
   });
 }
 
-const limitedDropZoomOpen = document.querySelector('[data-drop-zoom-open]');
+const limitedDropMediaRoot = document.querySelector('[data-drop-media-root]');
 
-if (limitedDropZoomOpen) {
-  const dropImage = limitedDropZoomOpen.querySelector('[data-drop-image]');
+if (limitedDropMediaRoot) {
   let zoomModal;
   let zoomStage;
   let zoomReturnFocus;
@@ -173,8 +182,6 @@ if (limitedDropZoomOpen) {
     document.body.appendChild(zoomModal);
     zoomStage = zoomModal.querySelector('.drop-zoom-stage');
 
-    zoomModal.querySelector('.drop-zoom-image').src = dropImage.src;
-    zoomModal.querySelector('.drop-zoom-image').alt = dropImage.alt;
     zoomModal.querySelector('.drop-zoom-close').addEventListener('click', closeDropZoom);
     zoomModal.querySelector('[data-drop-zoom-close]').addEventListener('click', closeDropZoom);
     zoomStage.addEventListener('pointermove', (event) => {
@@ -188,23 +195,22 @@ if (limitedDropZoomOpen) {
     zoomModal.addEventListener('keydown', handleDropZoomKeydown);
   }
 
-  function openDropZoom() {
+  function openDropZoom(trigger) {
+    const dropImage = trigger && trigger.querySelector('[data-drop-image]');
+    if (!dropImage) return;
     ensureDropZoom();
     const modalImage = zoomModal.querySelector('.drop-zoom-image');
     modalImage.src = dropImage.src;
     modalImage.alt = dropImage.alt;
-    zoomReturnFocus = limitedDropZoomOpen;
+    zoomReturnFocus = trigger;
     zoomModal.hidden = false;
     document.body.classList.add('product-zoom-open');
     zoomModal.querySelector('.drop-zoom-close').focus({ preventScroll: true });
   }
 
-  limitedDropZoomOpen.addEventListener('click', openDropZoom);
-  limitedDropZoomOpen.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      openDropZoom();
-    }
+  limitedDropMediaRoot.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-drop-zoom-open]');
+    if (trigger && limitedDropMediaRoot.contains(trigger)) openDropZoom(trigger);
   });
 }
 

@@ -306,6 +306,99 @@ test('CatalogEnvelope v2 validates a limited drop from classification and typed 
   assert.equal(envelope.outcomes.productQuarantined.length, 0);
 });
 
+test('Heartlander remains a first-class limited-drop product with its own route, gallery, and exact variant', async () => {
+  const product = fixtureProduct({
+    id: 'gid://shopify/Product/11054574338215',
+    handle: 'heartlander-peewee-football-hd',
+    title: '5/8 oz PeeWee Football HD — Heartlander',
+    descriptionHtml: '<p>Premium skirt, Boss skirt collar, and custom Stardust-painted jighead.</p>',
+    productType: 'Limited Drop',
+    tags: ['limited-drop'],
+    options: [
+      {
+        id: 'gid://shopify/ProductOption/heartlander-color',
+        name: 'Color',
+        optionValues: [{ id: 'gid://shopify/ProductOptionValue/heartlander', name: 'Heartlander' }]
+      },
+      {
+        id: 'gid://shopify/ProductOption/heartlander-weight',
+        name: 'Weight',
+        optionValues: [{ id: 'gid://shopify/ProductOptionValue/5-8-oz', name: '5/8 oz' }]
+      }
+    ],
+    metafields: [
+      { namespace: 'bass_binge', key: 'drop_starts_at', value: '2026-07-19T21:39:06Z', type: 'date_time' },
+      { namespace: 'bass_binge', key: 'drop_ends_at', value: '2026-08-19T21:39:06Z', type: 'date_time' },
+      { namespace: 'bass_binge', key: 'badge_text', value: 'Limited-time drop', type: 'single_line_text_field' }
+    ]
+  });
+  product.variants.nodes = [{
+    ...product.variants.nodes[0],
+    id: 'gid://shopify/ProductVariant/51000785633447',
+    title: 'Heartlander / 5/8 oz',
+    price: { amount: '5.99', currencyCode: 'USD' },
+    selectedOptions: [
+      { name: 'Color', value: 'Heartlander' },
+      { name: 'Weight', value: '5/8 oz' }
+    ]
+  }];
+  product.media.nodes = [
+    product.media.nodes[0],
+    {
+      __typename: 'Video',
+      id: 'gid://shopify/Video/heartlander',
+      alt: 'Heartlander jig video',
+      sources: [{
+        url: 'https://cdn.shopify.com/videos/heartlander-1080.mp4',
+        mimeType: 'video/mp4',
+        format: 'mp4',
+        height: 1080,
+        width: 1920
+      }]
+    },
+    ...['detail-one', 'detail-two', 'reverse'].map((name) => ({
+      __typename: 'MediaImage',
+      id: `gid://shopify/MediaImage/${name}`,
+      alt: `Heartlander ${name}`,
+      image: {
+        id: `gid://shopify/Image/${name}`,
+        url: `https://cdn.shopify.com/heartlander-${name}.jpg`,
+        altText: `Heartlander ${name}`,
+        width: 1200,
+        height: 1200
+      }
+    }))
+  ];
+
+  const catalog = await loadFreshCatalog({ headers: {} }, {
+    authenticated: true,
+    generatedAt: '2026-07-27T12:00:00.000Z',
+    storefrontRequest: async () => ({
+      products: {
+        edges: [{ cursor: 'heartlander', node: product }],
+        pageInfo: { hasNextPage: false, endCursor: 'heartlander' }
+      }
+    })
+  });
+
+  assert.deepEqual(catalog.products.map((item) => item.handle), [
+    'heartlander-peewee-football-hd'
+  ]);
+  assert.deepEqual(catalog.products[0].media.map((item) => item.type), [
+    'image',
+    'video',
+    'image',
+    'image',
+    'image'
+  ]);
+  assert.equal(catalog.legacy.currentDrop.pagePath, 'products/heartlander-peewee-football-hd');
+  assert.equal(catalog.legacy.currentDrop.shopVisible, true);
+  assert.equal(
+    catalog.legacy.currentDrop.variants[0].id,
+    'gid://shopify/ProductVariant/51000785633447'
+  );
+});
+
 test('loadFreshCatalog follows product, variant, and media cursors before normalization', async () => {
   const first = fixtureProduct();
   first.options[0].optionValues.push({

@@ -484,23 +484,117 @@ button:disabled {
   position: relative;
   background: #fff;
   overflow: hidden;
+}
+
+.limited-drop-track,
+.limited-drop-slide,
+.limited-drop-zoom-target,
+.limited-drop-slide > video,
+.limited-drop-slide > iframe {
+  width: 100%;
+  height: clamp(300px, 34vw, 440px);
+}
+
+.limited-drop-slide[hidden] {
+  display: none;
+}
+
+.limited-drop-zoom-target {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: #fff;
   cursor: zoom-in;
 }
 
-.limited-drop-media img {
+.limited-drop-slide img,
+.limited-drop-slide > video,
+.limited-drop-slide > iframe {
+  display: block;
+  width: 100%;
   height: clamp(300px, 34vw, 440px);
   object-fit: contain;
+  border: 0;
+  background: #fff;
+}
+
+.limited-drop-slide img {
   padding: 0.5rem;
   transition: transform 0.25s ease;
 }
 
-.limited-drop-media:hover img {
+.limited-drop-zoom-target:hover img {
   transform: scale(1.025);
 }
 
-.limited-drop-media:focus-visible {
+.limited-drop-zoom-target:focus-visible {
   outline: 3px solid var(--rust);
   outline-offset: -3px;
+}
+
+.limited-drop-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(17, 40, 59, 0.14);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.limited-drop-nav:hover {
+  background: var(--cream);
+}
+
+.limited-drop-nav:focus-visible {
+  outline: 3px solid var(--rust);
+  outline-offset: 2px;
+}
+
+.limited-drop-nav:disabled {
+  display: none;
+}
+
+.limited-drop-nav svg {
+  width: 1.35rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.limited-drop-nav-previous {
+  left: 1rem;
+}
+
+.limited-drop-nav-next {
+  right: 1rem;
+}
+
+.limited-drop-counter {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 3;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(17, 40, 59, 0.88);
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  transform: translateX(-50%);
 }
 
 .limited-drop-zoom-icon {

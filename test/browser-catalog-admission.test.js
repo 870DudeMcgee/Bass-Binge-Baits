@@ -56,6 +56,65 @@ test('the browser collection replaces fallback cards with the admitted live proj
   );
 });
 
+test('the Heartlander drop appears exactly once in the shop and remains the homepage drop', () => {
+  const heartlanderCard = {
+    key: 'limited-drop-heartlander-peewee-football-hd',
+    handle: 'heartlander-peewee-football-hd',
+    pagePath: 'products/heartlander-peewee-football-hd',
+    title: '5/8 oz PeeWee Football HD — Heartlander',
+    shortTitle: '5/8 oz PeeWee Football HD — Heartlander',
+    isLimitedDrop: true,
+    shopVisible: true,
+    variants: [{
+      id: 'gid://shopify/ProductVariant/51000785633447',
+      available: true
+    }]
+  };
+
+  const applied = browserCatalog.applyRemoteCatalog({
+    schemaVersion: 2,
+    generationId: 'generation-heartlander',
+    products: [{
+      handle: heartlanderCard.handle,
+      title: heartlanderCard.title,
+      presentation: { kind: 'limited-drop' },
+      variants: [{
+        id: 'gid://shopify/ProductVariant/51000785633447',
+        selectedOptions: [
+          { name: 'Color', value: 'Heartlander' },
+          { name: 'Weight', value: '5/8 oz' }
+        ],
+        price: { amount: '5.99', currencyCode: 'USD' },
+        availableForSale: true
+      }],
+      media: []
+    }],
+    legacy: {
+      ok: true,
+      source: 'shopify',
+      products: [],
+      currentDrop: heartlanderCard,
+      rattle: null,
+      errors: []
+    }
+  });
+
+  assert.equal(applied, true);
+  assert.deepEqual(
+    browserCatalog.listProducts().map((product) => product.handle),
+    ['heartlander-peewee-football-hd']
+  );
+  assert.equal(browserCatalog.getCurrentDrop().handle, 'heartlander-peewee-football-hd');
+  assert.equal(
+    browserCatalog.getCurrentDrop().variants[0].id,
+    'gid://shopify/ProductVariant/51000785633447'
+  );
+  assert.equal(
+    browserCatalog.getAdmittedProduct('heartlander-peewee-football-hd').title,
+    '5/8 oz PeeWee Football HD — Heartlander'
+  );
+});
+
 test('an invalid or unavailable response clears the last browser projection', () => {
   const applied = browserCatalog.applyRemoteCatalog({
     schemaVersion: 2,

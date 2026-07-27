@@ -130,6 +130,73 @@ test('an unmatched valid Shopify handle renders the generic product page', async
   assert.match(response.body, /gid:\/\/shopify\/ProductVariant\/1001/);
 });
 
+test('the Heartlander limited drop route embeds every ordered Shopify media item and exact variant', async () => {
+  const product = admittedProduct('heartlander-peewee-football-hd', {
+    id: 'gid://shopify/Product/11054574338215',
+    title: '5/8 oz PeeWee Football HD — Heartlander',
+    presentation: {
+      kind: 'limited-drop',
+      dropStartsAt: '2026-07-19T21:39:06Z',
+      dropEndsAt: '2026-08-19T21:39:06Z'
+    },
+    media: [
+      {
+        id: 'gid://shopify/MediaImage/heartlander-main',
+        type: 'image',
+        alt: 'Heartlander jig',
+        image: { url: 'https://cdn.shopify.com/heartlander-main.jpg', width: 1200, height: 1200 }
+      },
+      {
+        id: 'gid://shopify/Video/heartlander',
+        type: 'video',
+        alt: 'Heartlander jig video',
+        sources: [{ url: 'https://cdn.shopify.com/heartlander.mp4', mimeType: 'video/mp4' }]
+      },
+      ...['detail-one', 'detail-two', 'reverse'].map((name) => ({
+        id: `gid://shopify/MediaImage/${name}`,
+        type: 'image',
+        alt: `Heartlander ${name}`,
+        image: { url: `https://cdn.shopify.com/heartlander-${name}.jpg`, width: 1200, height: 1200 }
+      }))
+    ],
+    options: [
+      { id: 'color', name: 'Color', values: [{ id: 'heartlander', name: 'Heartlander' }] },
+      { id: 'weight', name: 'Weight', values: [{ id: '5-8-oz', name: '5/8 oz' }] }
+    ],
+    variants: [{
+      id: 'gid://shopify/ProductVariant/51000785633447',
+      title: 'Heartlander / 5/8 oz',
+      selectedOptions: [
+        { name: 'Color', value: 'Heartlander' },
+        { name: 'Weight', value: '5/8 oz' }
+      ],
+      price: { amount: '5.99', currencyCode: 'USD' },
+      compareAtPrice: null,
+      availableForSale: true,
+      quantityAvailable: 6,
+      imageId: 'gid://shopify/MediaImage/heartlander-main'
+    }]
+  });
+  const handler = createGenericProductHandler({
+    getCatalog: async () => ({ schemaVersion: 2, products: [product], quarantine: [] })
+  });
+  const response = responseRecorder();
+
+  await handler(
+    { method: 'GET', query: { handle: product.handle }, headers: {} },
+    response
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.match(response.body, /5\/8 oz PeeWee Football HD/);
+  assert.match(response.body, /heartlander-main\.jpg/);
+  assert.match(response.body, /heartlander\.mp4/);
+  assert.match(response.body, /heartlander-detail-one\.jpg/);
+  assert.match(response.body, /heartlander-detail-two\.jpg/);
+  assert.match(response.body, /heartlander-reverse\.jpg/);
+  assert.match(response.body, /gid:\/\/shopify\/ProductVariant\/51000785633447/);
+});
+
 test('absent, quarantined, and malformed handles return a real not-found response', async () => {
   const catalog = {
     schemaVersion: 2,
@@ -291,5 +358,22 @@ test('Shopify cart request normalization preserves exact variant GID and money',
     quantity: 2,
     configurationId: 'gid://shopify/ProductVariant/1001',
     price: { amount: '6.75', currencyCode: 'USD' }
+  }]);
+});
+
+test('Shopify cart request normalization preserves the exact Heartlander variant', () => {
+  assert.deepEqual(normalizeLines({
+    lines: [{
+      merchandiseId: 'gid://shopify/ProductVariant/51000785633447',
+      quantity: 1,
+      configurationId: 'gid://shopify/ProductVariant/51000785633447',
+      price: { amount: '5.99', currencyCode: 'USD' }
+    }]
+  }), [{
+    merchandiseId: 'gid://shopify/ProductVariant/51000785633447',
+    rattleMerchandiseId: null,
+    quantity: 1,
+    configurationId: 'gid://shopify/ProductVariant/51000785633447',
+    price: { amount: '5.99', currencyCode: 'USD' }
   }]);
 });

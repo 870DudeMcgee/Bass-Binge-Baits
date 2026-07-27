@@ -223,6 +223,15 @@
     }) || null;
   }
 
+  function getAdmittedProduct(handle) {
+    var normalized = normalizeKey(handle);
+    return ADMITTED_PRODUCTS.find(function (product) {
+      return product &&
+        normalizeKey(product.handle) === normalized &&
+        (!product.presentation || product.presentation.kind !== 'hidden-add-on');
+    }) || null;
+  }
+
   function updatePublicState() {
     api.products = PRODUCTS;
     api.rattleAddOn = RATTLE_ADD_ON;
@@ -434,6 +443,7 @@
     findProductByVariantId: findProductByVariantId,
     getSearchText: getSearchText,
     getCurrentDrop: getCurrentDrop,
+    getAdmittedProduct: getAdmittedProduct,
     applyRemoteCatalog: applyRemoteCatalog,
     reconcileExactCartLine: reconcileExactCartLine,
     markUnavailable: markUnavailable,
