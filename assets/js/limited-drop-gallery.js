@@ -59,8 +59,12 @@
           };
         }
       }
-      return null;
-    }).filter(Boolean);
+      return {
+        id: item && item.id || 'media-' + index,
+        type: 'placeholder',
+        label: label + ' is unavailable'
+      };
+    });
 
     if (!items.length && fallback && fallback.src) {
       items.push({
@@ -122,12 +126,16 @@
       node.loading = 'lazy';
       node.allow = 'autoplay; encrypted-media; picture-in-picture';
       node.allowFullscreen = true;
-    } else {
+    } else if (item.type === 'model-3d') {
       node = document.createElement('a');
       node.className = 'generic-media-placeholder';
       node.href = item.src;
       node.textContent = 'View 3D model';
       node.setAttribute('aria-label', item.label);
+    } else {
+      node = document.createElement('div');
+      node.className = 'product-media-placeholder generic-media-placeholder';
+      node.textContent = item.label;
     }
     slide.appendChild(node);
   }

@@ -613,13 +613,19 @@ Vercel, Resend, or deployment state.
 - The homepage limited-drop gallery now preserves admitted `model-3d` media in
   order through the same accessible `View 3D model` link precedent used by the
   generic product page. Image zoom remains image-only.
+- The C8-R3b follow-up now also preserves every admitted unsupported or
+  malformed media item as one ordered, non-interactive unavailable placeholder
+  with a deterministic accessible label. The placeholder reuses the homepage
+  media-fallback presentation and cannot invoke image zoom or invent a media
+  URL.
 - Focused DOM tests execute the public gallery mount and protect ordered image,
   native-video, external-video, and model presentation; accessible position
   labels and counters; previous/next and keyboard wraparound; video pause only
-  when leaving its active slide; image-only zoom wiring; and single fallback or
+  when leaving its active slide; image-only zoom wiring; unsupported and
+  malformed fallback projection and presentation; and single fallback or
   missing-media card behavior.
-- `node --test test/homepage-limited-drop-gallery.test.js` passed 6/6.
-  `node --test test/*.test.js` passed 168/168.
+- `node --test test/homepage-limited-drop-gallery.test.js` passed 8/8.
+  `node --test test/*.test.js` passed 233/233.
   `node scripts/validate-catalog.js`, `node scripts/audit-release.js`,
   `npm audit --omit=dev`, and `git diff --check` passed; the dependency audit
   reported zero vulnerabilities.

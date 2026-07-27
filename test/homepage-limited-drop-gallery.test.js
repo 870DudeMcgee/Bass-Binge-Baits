@@ -204,6 +204,59 @@ test('homepage limited-drop gallery preserves every ordered Shopify media type',
   ]);
 });
 
+test('unsupported and malformed admitted media keep ordered accessible fallback projections', () => {
+  const items = homepageGallery.mediaItems({
+    title: 'Heartlander',
+    media: [
+      {
+        id: 'image',
+        type: 'image',
+        alt: 'Heartlander image',
+        image: { url: 'https://cdn.shopify.com/heartlander.jpg' }
+      },
+      {
+        id: 'unsupported',
+        type: 'audio',
+        alt: 'Heartlander audio'
+      },
+      {
+        id: 'broken-video',
+        type: 'video',
+        sources: []
+      },
+      {
+        id: 'broken-external',
+        type: 'external-video',
+        embedUrl: null
+      }
+    ]
+  });
+
+  assert.deepEqual(items, [
+    {
+      id: 'image',
+      type: 'image',
+      label: 'Heartlander image',
+      src: 'https://cdn.shopify.com/heartlander.jpg'
+    },
+    {
+      id: 'unsupported',
+      type: 'placeholder',
+      label: 'Heartlander audio is unavailable'
+    },
+    {
+      id: 'broken-video',
+      type: 'placeholder',
+      label: 'Heartlander media 3 is unavailable'
+    },
+    {
+      id: 'broken-external',
+      type: 'placeholder',
+      label: 'Heartlander media 4 is unavailable'
+    }
+  ]);
+});
+
 test('mount creates accessible ordered slides with safe media presentations', () => {
   const harness = createMountHarness();
   const product = {
@@ -232,6 +285,16 @@ test('mount creates accessible ordered slides with safe media presentations', ()
         type: 'model-3d',
         alt: 'Heartlander model',
         sources: [{ url: 'https://cdn.shopify.com/heartlander.glb' }]
+      },
+      {
+        id: 'unsupported',
+        type: 'audio',
+        alt: 'Heartlander audio'
+      },
+      {
+        id: 'broken-video',
+        type: 'video',
+        sources: []
       }
     ]
   };
@@ -240,15 +303,17 @@ test('mount creates accessible ordered slides with safe media presentations', ()
     homepageGallery.mount(harness.card, product)
   ));
 
-  assert.equal(gallery.items.length, 4);
-  assert.equal(harness.track.children.length, 4);
+  assert.equal(gallery.items.length, 6);
+  assert.equal(harness.track.children.length, 6);
   assert.deepEqual(
     harness.track.children.map((slide) => slide.getAttribute('aria-label')),
     [
-      '1 of 4: Heartlander image',
-      '2 of 4: Heartlander video',
-      '3 of 4: Heartlander tying video',
-      '4 of 4: Heartlander model'
+      '1 of 6: Heartlander image',
+      '2 of 6: Heartlander video',
+      '3 of 6: Heartlander tying video',
+      '4 of 6: Heartlander model',
+      '5 of 6: Heartlander audio is unavailable',
+      '6 of 6: Heartlander media 6 is unavailable'
     ]
   );
   assert.equal(harness.track.children[0].children[0].tagName, 'BUTTON');
@@ -260,9 +325,26 @@ test('mount creates accessible ordered slides with safe media presentations', ()
   assert.equal(harness.track.children[3].children[0].getAttribute('aria-label'), 'Heartlander model');
   assert.equal(harness.track.children[3].children[0].href, 'https://cdn.shopify.com/heartlander.glb');
   assert.equal(harness.track.children[3].querySelectorAll('[data-drop-zoom-open]').length, 0);
-  assert.equal(harness.counter.textContent, '1 / 4');
+  assert.equal(harness.track.children[4].children[0].tagName, 'DIV');
+  assert.equal(
+    harness.track.children[4].children[0].className,
+    'product-media-placeholder generic-media-placeholder'
+  );
+  assert.equal(harness.track.children[4].children[0].textContent, 'Heartlander audio is unavailable');
+  assert.equal(harness.track.children[4].querySelectorAll('[data-drop-zoom-open]').length, 0);
+  assert.equal(harness.track.children[5].children[0].tagName, 'DIV');
+  assert.equal(harness.track.children[5].children[0].textContent, 'Heartlander media 6 is unavailable');
+  assert.equal(harness.track.children[5].querySelectorAll('[data-drop-zoom-open]').length, 0);
+  assert.equal(harness.counter.textContent, '1 / 6');
   assert.equal(harness.track.children[0].hidden, false);
   assert.equal(harness.track.children[1].hidden, true);
+  gallery.show(4);
+  assert.equal(harness.counter.textContent, '5 / 6');
+  assert.equal(harness.track.children[4].hidden, false);
+  assert.equal(harness.track.children[0].hidden, true);
+  gallery.show(5);
+  assert.equal(harness.counter.textContent, '6 / 6');
+  assert.equal(harness.track.children[5].hidden, false);
 });
 
 test('mounted controls and keyboard wrap while pausing video only when it becomes inactive', () => {
@@ -336,6 +418,37 @@ test('single fallback media disables unusable navigation without removing the pr
   assert.equal(harness.track.children.length, 1);
   assert.equal(harness.track.children[0].getAttribute('aria-label'), '1 of 1: Heartlander fallback image');
   assert.equal(harness.track.children[0].querySelectorAll('[data-drop-zoom-open]').length, 1);
+  assert.equal(harness.previous.disabled, true);
+  assert.equal(harness.next.disabled, true);
+  assert.equal(harness.counter.textContent, '1 / 1');
+});
+
+test('single unsupported media fallback stays visible with disabled navigation and no zoom', () => {
+  const harness = createMountHarness();
+
+  const gallery = withDocument(harness.document, () => (
+    homepageGallery.mount(harness.card, {
+      title: 'Heartlander',
+      media: [{ id: 'unsupported', type: 'audio' }]
+    })
+  ));
+
+  assert.equal(harness.card.hidden, false);
+  assert.equal(gallery.items.length, 1);
+  assert.deepEqual(gallery.items[0], {
+    id: 'unsupported',
+    type: 'placeholder',
+    label: 'Heartlander media 1 is unavailable'
+  });
+  assert.equal(harness.track.children.length, 1);
+  assert.equal(harness.track.children[0].getAttribute('aria-label'), '1 of 1: Heartlander media 1 is unavailable');
+  assert.equal(harness.track.children[0].children[0].tagName, 'DIV');
+  assert.equal(
+    harness.track.children[0].children[0].className,
+    'product-media-placeholder generic-media-placeholder'
+  );
+  assert.equal(harness.track.children[0].children[0].textContent, 'Heartlander media 1 is unavailable');
+  assert.equal(harness.track.children[0].querySelectorAll('[data-drop-zoom-open]').length, 0);
   assert.equal(harness.previous.disabled, true);
   assert.equal(harness.next.disabled, true);
   assert.equal(harness.counter.textContent, '1 / 1');
