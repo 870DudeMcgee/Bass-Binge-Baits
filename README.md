@@ -99,11 +99,19 @@ node scripts/validate-catalog.js
 node scripts/audit-release.js
 npm audit --omit=dev
 node scripts/validate-shopify-integration.js --strict
+node scripts/release-preflight.js --expected-head "$(git rev-parse HEAD)"
 ```
 
 The strict Shopify validator is an external evidence gate. A local failure
 because Storefront access is unavailable must be reported as unverified; it is
 not permission to deploy, change environment variables, or mutate Shopify.
+
+The release preflight is read-only and prints variable names and evidence
+classes only. `BLOCKED` means a required local/configuration check failed,
+`READY_LOCAL` means local checks passed but owner-authorized external evidence
+is absent, and `READY_TO_PUSH` additionally requires a secret-free external
+gate file bound to the same commit. Never put environment values in that file
+or commit it; pass its temporary path with `--external-gate <path>`.
 
 ## Form Setup
 

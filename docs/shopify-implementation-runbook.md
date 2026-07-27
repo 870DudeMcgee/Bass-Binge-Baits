@@ -266,12 +266,97 @@ node scripts/validate-catalog.js
 node scripts/audit-release.js
 npm audit --omit=dev
 node scripts/validate-shopify-integration.js --strict
+node scripts/release-preflight.js --expected-head "$(git rev-parse HEAD)"
 ```
 
 The strict Shopify validator is an external evidence gate. Record its actual
 result for the current run. Missing Storefront access or an upstream failure
 means live Shopify remains unverified; it does not authorize deployment,
 environment changes, webhook registration, or Shopify mutation.
+
+### Secret-safe release preflight
+
+Run the preflight from the repository root with the exact intended release
+commit:
+
+```bash
+node scripts/release-preflight.js --expected-head "$(git rev-parse HEAD)"
+```
+
+The command does not mutate Git, Shopify, Vercel, Resend, or the durable store.
+It suppresses strict-validator output and reports only variable names grouped
+under core configuration, operational configuration, contact delivery, release
+configuration, Git state, strict Shopify validation, and external release
+gates. It fails closed when:
+
+- a required value is missing or an obvious placeholder;
+- the durable-store pair is partial, duplicated, or uses a non-HTTPS URL;
+- the Vercel Hobby cron differs from `/api/catalog-reconcile` at
+  `0 0 * * *`;
+- the derived catalog namespace is invalid or a manual alias does not match it;
+- `HEAD` differs from `--expected-head` or the worktree is not clean; or
+- strict Shopify validation fails.
+
+Contact delivery is reported separately. Missing `RESEND_API_KEY`,
+`CONTACT_FROM_EMAIL`, or `CONTACT_TO_EMAIL` does not mislabel core commerce
+configuration, but it remains visible as incomplete contact evidence.
+
+State meanings:
+
+- `BLOCKED`: at least one required local/configuration/strict check failed.
+- `READY_LOCAL`: required local checks passed, but owner-authorized O1/O2
+  evidence is absent.
+- `READY_TO_PUSH`: local checks passed and `--external-gate <path>` supplied a
+  secret-free, commit-bound record of accepted Shopify catalog readiness plus
+  the required variable names for both Production and Preview.
+
+The external gate is a temporary JSON file outside the repository. It contains
+names and statuses only—never values:
+
+```json
+{
+  "schemaVersion": 1,
+  "head": "<40-character release commit>",
+  "shopifyCatalogReadiness": "accepted",
+  "contactDelivery": "configured",
+  "configuration": {
+    "production": [
+      "SHOPIFY_STORE_DOMAIN",
+      "SHOPIFY_STOREFRONT_PRIVATE_TOKEN",
+      "SHOPIFY_WEBHOOK_SECRET",
+      "CATALOG_HEALTH_TOKEN",
+      "CRON_SECRET",
+      "KV_REST_API_URL",
+      "KV_REST_API_TOKEN",
+      "RESEND_API_KEY",
+      "CONTACT_FROM_EMAIL",
+      "CONTACT_TO_EMAIL",
+      "VERCEL_ENV",
+      "VERCEL_PROJECT_PRODUCTION_URL"
+    ],
+    "preview": [
+      "SHOPIFY_STORE_DOMAIN",
+      "SHOPIFY_STOREFRONT_PRIVATE_TOKEN",
+      "SHOPIFY_WEBHOOK_SECRET",
+      "CATALOG_HEALTH_TOKEN",
+      "CRON_SECRET",
+      "KV_REST_API_URL",
+      "KV_REST_API_TOKEN",
+      "RESEND_API_KEY",
+      "CONTACT_FROM_EMAIL",
+      "CONTACT_TO_EMAIL",
+      "VERCEL_ENV",
+      "VERCEL_DEPLOYMENT_ID"
+    ]
+  }
+}
+```
+
+Use exactly one supported durable-store pair in each environment. If direct
+contact delivery is excluded from the release, set `contactDelivery` to
+`not-in-release` and omit the three contact variable names. The preflight
+rejects unknown fields or variable names so a value-bearing evidence document
+cannot silently qualify a release.
 
 ### C8 acceptance attempt — 2026-07-27
 
