@@ -100,8 +100,11 @@ test('collection admission uses accepted v2 products without inventing option ro
   );
   envelope.legacy.products.forEach((product) => {
     assert.equal(product.pagePath, `products/${product.handle}`);
-    assert.equal(product.detailOnly, true);
-    assert.deepEqual(product.colors, []);
+    assert.equal(product.detailOnly, false);
+    assert.deepEqual(
+      product.colors.map((color) => color.name),
+      ['Black', 'Blue']
+    );
     assert.deepEqual(product.weights, []);
     assert.equal(product.description, 'A color-only jig.');
   });

@@ -93,12 +93,18 @@
   }
 
   function getCheckoutMapping(product, color, weight, rattle) {
-    if (!product || !color || !weight || !rattle || product.commerceDisabled) {
+    if (!product || !color || !rattle || product.commerceDisabled) {
       return null;
     }
+    var hasWeightOptions = Array.isArray(product.weights) && product.weights.length > 0;
+    if (hasWeightOptions && !weight) return null;
     var variants = Array.isArray(product.variants) ? product.variants : [];
     var variant = variants.find(function (candidate) {
-      return candidate.colorKey === color.key && candidate.weightKey === weight.key;
+      return candidate.colorKey === color.key && (
+        hasWeightOptions
+          ? candidate.weightKey === weight.key
+          : !candidate.weightKey
+      );
     });
     if (!variant || !variant.available) return null;
     if (rattle.key === 'yes' && (!RATTLE_ADD_ON || !RATTLE_ADD_ON.available)) {
@@ -119,6 +125,7 @@
     if (!product || product.detailOnly) return null;
     var colors = Array.isArray(product.colors) ? product.colors : [];
     var weights = Array.isArray(product.weights) ? product.weights : [];
+    var hasWeightOptions = weights.length > 0;
     var color = getColor(product, selection.colorKey) ||
       getColor(product, product.defaultColorKey) ||
       colors[0];
@@ -126,7 +133,7 @@
       getWeight(product, product.defaultWeightKey) ||
       weights[0];
     var rattle = getRattleOption(product, selection.rattleKey);
-    if (!color || !weight || !rattle) return null;
+    if (!color || (hasWeightOptions && !weight) || !rattle) return null;
     var checkoutMapping = getCheckoutMapping(product, color, weight, rattle);
     var jigPrice = checkoutMapping && Number.isFinite(Number(checkoutMapping.price))
       ? Number(checkoutMapping.price)
@@ -136,13 +143,13 @@
       ? Number(RATTLE_ADD_ON.price || 0)
       : 0;
     return {
-      id: [product.key, color.key, weight.key, rattle.key].join(':'),
+      id: [product.key, color.key, hasWeightOptions ? weight.key : 'none', rattle.key].join(':'),
       productKey: product.key,
       productTitle: product.title,
       colorKey: color.key,
       colorName: color.name,
-      weightKey: weight.key,
-      weightLabel: weight.label,
+      weightKey: hasWeightOptions ? weight.key : 'none',
+      weightLabel: hasWeightOptions ? weight.label : null,
       rattleKey: rattle.key,
       rattleLabel: rattle.label,
       hasRattle: rattle.key === 'yes',

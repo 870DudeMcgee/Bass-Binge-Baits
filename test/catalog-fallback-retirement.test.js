@@ -84,3 +84,11 @@ test('shop cards start unselected on the all-colors image and synchronize an exp
   assert.match(shop, /select\.value = swatch\.dataset\.colorKey;/);
   assert.match(shop, /addButton\.textContent = !color[\s\S]*'Choose a Color'/);
 });
+
+test('shop color patches retain the established vertical oval shape', () => {
+  const styles = source('assets/css/styles.css');
+  const swatchRule = styles.match(/\.swatch-button \{[\s\S]*?\n\}/);
+
+  assert.ok(swatchRule);
+  assert.match(swatchRule[0], /aspect-ratio:\s*3\s*\/\s*4;/);
+});

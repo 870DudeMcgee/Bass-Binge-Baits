@@ -495,7 +495,10 @@
       ? line.build.selectedOptions.map(function (option) {
           return option.name + ': ' + option.value;
         })
-      : [line.build.colorName, line.build.weightLabel + ' oz'];
+      : [
+          line.build.colorName,
+          line.build.weightLabel ? line.build.weightLabel + ' oz' : null
+        ];
     var itemDescription = metaParts.filter(Boolean).join(' · ');
 
     itemNode.className = 'cart-item';

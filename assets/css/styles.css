@@ -1153,7 +1153,7 @@ body.product-zoom-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  aspect-ratio: 1;
+  aspect-ratio: 3 / 4;
   min-width: 0;
   border: 2px solid transparent;
   border-radius: 999px;

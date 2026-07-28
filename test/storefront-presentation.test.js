@@ -97,3 +97,91 @@ test('multi-weight Shopify option names containing colors keep exact live tuples
   assert.equal(projected.variants[0].colorKey, 'blackberry-smoothie');
   assert.equal(projected.variants[0].weightKey, '3-16-oz');
 });
+
+test('a color-only Shopify product is quick-addable without inventing a jig weight', () => {
+  const product = {
+    handle: 'chopped-craw-6-pack',
+    title: 'Chopped Craw (6 pack)',
+    descriptionHtml: '<p>Soft plastic craws, pack of 6.</p>',
+    vendor: 'Bass Binge Baits',
+    productType: '',
+    media: [{
+      id: 'gid://shopify/MediaImage/featured',
+      type: 'image',
+      alt: 'All craw colors',
+      image: { id: 'gid://shopify/ImageSource/featured', url: 'all-craws.jpg' }
+    }],
+    options: [{
+      name: 'Color',
+      values: [{ name: 'Green Pumpkin' }, { name: 'PBJ' }]
+    }],
+    variants: [
+      {
+        id: 'gid://shopify/ProductVariant/101',
+        title: 'Green Pumpkin',
+        selectedOptions: [{ name: 'Color', value: 'Green Pumpkin' }],
+        price: { amount: '3.5', currencyCode: 'USD' },
+        availableForSale: true,
+        image: { url: 'green-pumpkin.jpg' }
+      },
+      {
+        id: 'gid://shopify/ProductVariant/102',
+        title: 'PBJ',
+        selectedOptions: [{ name: 'Color', value: 'PBJ' }],
+        price: { amount: '3.5', currencyCode: 'USD' },
+        availableForSale: true,
+        image: { url: 'pbj.jpg' }
+      }
+    ]
+  };
+
+  const projected = normalizeDiscoveredProduct(product);
+
+  assert.equal(projected.detailOnly, false);
+  assert.equal(projected.defaultWeightKey, null);
+  assert.deepEqual(projected.weights, []);
+  assert.deepEqual(
+    projected.colors.map((color) => ({
+      name: color.name,
+      swatch: color.swatch,
+      image: color.image
+    })),
+    [
+      {
+        name: 'Green Pumpkin',
+        swatch: '#59604a',
+        image: 'green-pumpkin.jpg'
+      },
+      {
+        name: 'PBJ',
+        swatch: 'linear-gradient(135deg, #795943 0 50%, #59445f 50% 100%)',
+        image: 'pbj.jpg'
+      }
+    ]
+  );
+  assert.deepEqual(
+    projected.variants.map((variant) => ({
+      id: variant.id,
+      colorKey: variant.colorKey,
+      weightKey: variant.weightKey,
+      selectedOptions: variant.selectedOptions,
+      money: variant.money
+    })),
+    [
+      {
+        id: 'gid://shopify/ProductVariant/101',
+        colorKey: 'green-pumpkin',
+        weightKey: null,
+        selectedOptions: [{ name: 'Color', value: 'Green Pumpkin' }],
+        money: { amount: '3.5', currencyCode: 'USD' }
+      },
+      {
+        id: 'gid://shopify/ProductVariant/102',
+        colorKey: 'pbj',
+        weightKey: null,
+        selectedOptions: [{ name: 'Color', value: 'PBJ' }],
+        money: { amount: '3.5', currencyCode: 'USD' }
+      }
+    ]
+  );
+});
