@@ -87,7 +87,32 @@ test('an unmatched valid Shopify handle renders the established product-page she
     /data-quantity-decrease[\s\S]*data-quantity-input[\s\S]*data-quantity-increase[\s\S]*data-add-cart/
   );
   assert.match(response.body, /\/assets\/js\/product-page\.js/);
+  assert.match(
+    response.body,
+    /\/assets\/js\/limited-drop-gallery\.js[\s\S]*\/assets\/js\/product-page\.js/
+  );
   assert.doesNotMatch(response.body, /\/assets\/js\/generic-product-page\.js/);
+});
+
+test('the curated Heartlander page loads ordered Shopify media before its product renderer', () => {
+  const root = path.resolve(__dirname, '..');
+  const heartlanderPage = fs.readFileSync(
+    path.join(root, 'products', 'limited-drop.html'),
+    'utf8'
+  );
+  const productRenderer = fs.readFileSync(
+    path.join(root, 'assets', 'js', 'product-page.js'),
+    'utf8'
+  );
+
+  assert.match(
+    heartlanderPage,
+    /limited-drop-gallery\.js[\s\S]*product-page\.js/
+  );
+  assert.match(
+    productRenderer,
+    /getAdmittedProduct\(product\.handle\)[\s\S]*mediaItems\(admittedProduct\)/
+  );
 });
 
 test('absent, quarantined, and malformed handles return a real not-found response', async () => {
