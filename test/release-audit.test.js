@@ -5,7 +5,7 @@ const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
 
-test('the release audit requires dynamic products to use the established product-page shell', () => {
+test('the release audit requires dynamic products to use the option-capable product-page shell', () => {
   const root = path.resolve(__dirname, '..');
   const result = spawnSync(process.execPath, ['scripts/audit-release.js'], {
     cwd: root,

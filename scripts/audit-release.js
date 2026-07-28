@@ -130,31 +130,27 @@ function releaseAuditProduct() {
   };
 }
 
-function assertDynamicProductUsesEstablishedShell() {
+function assertDynamicProductUsesOptionCapableShell() {
   const rendered = renderGenericProductPage(releaseAuditProduct());
   const canonical = 'https://www.bassbingebaits.com/products/release-audit-jig';
   [
-    '<body>',
+    '<body data-generic-product>',
     'class="product-gallery"',
     'class="product-hero"',
-    'class="variant-swatches"',
-    'data-color-name',
-    'data-weight-group',
-    'data-rattle-group',
+    'data-generic-options',
+    'data-quantity-input',
+    'id="generic-product-data"',
     '<link rel="icon"',
     `<link rel="canonical" href="${canonical}"`,
     `<meta property="og:url" content="${canonical}"`,
     'Current admitted Shopify description.',
     '/assets/css/product.css?v=',
-    '/assets/js/product-page.js?v='
+    '/assets/js/generic-product-page.js?v='
   ].forEach((token) => {
     if (!rendered.includes(token)) {
       fail(`dynamic product rendering is missing ${token}`);
     }
   });
-  if (/data-generic-product|\/assets\/js\/generic-product-page\.js/.test(rendered)) {
-    fail('dynamic product rendering regressed to the discarded generic product-page shell');
-  }
   if (/googletagmanager\.com|G-MEK0CBJWR0|noindex/i.test(rendered)) {
     fail('generic admitted product rendering contains blocked indexing or analytics markup');
   }
@@ -238,7 +234,7 @@ assertFaviconLinks();
 assertSharedAssetCacheBust();
 assertEstablishedProductRoutes();
 assertGenericProductRewrite();
-assertDynamicProductUsesEstablishedShell();
+assertDynamicProductUsesOptionCapableShell();
 assertScriptsAreNotImmutableCached();
 assertCanonicalIndexing();
 assertCanonicalSitemap();

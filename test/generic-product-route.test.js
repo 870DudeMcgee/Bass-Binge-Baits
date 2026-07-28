@@ -31,31 +31,50 @@ function responseRecorder() {
   };
 }
 
-test('an unmatched valid Shopify handle renders the established product-page shell', async () => {
+test('a color-only Shopify product renders an option-capable product-page shell', async () => {
   const product = {
     id: 'gid://shopify/Product/808',
-    handle: '5-8-oz-heavy-cover-football',
-    title: '5/8 oz Heavy Cover Football',
-    descriptionHtml: '<p>Built for heavy cover.</p>',
+    handle: 'chopped-craw-6-pack',
+    title: 'Chopped Craw (6 pack)',
+    descriptionHtml: '<p>Soft plastic craws, pack of 6.</p>',
     availableForSale: true,
     featuredMediaId: 'gid://shopify/MediaImage/901',
     media: [{
       id: 'gid://shopify/MediaImage/901',
       type: 'image',
-      alt: 'Heavy cover football jig',
-      image: { url: 'https://cdn.shopify.com/heavy-cover.jpg', width: 1200, height: 1200 }
+      alt: 'Chopped Craw colors',
+      image: { url: 'https://cdn.shopify.com/chopped-craw.jpg', width: 1200, height: 1200 }
     }],
-    options: [],
-    variants: [{
-      id: 'gid://shopify/ProductVariant/1001',
-      title: 'Default Title',
-      selectedOptions: [],
-      price: { amount: '5.00', currencyCode: 'USD' },
-      compareAtPrice: null,
-      availableForSale: true,
-      quantityAvailable: 6,
-      imageId: 'gid://shopify/MediaImage/901'
+    options: [{
+      id: 'gid://shopify/ProductOption/1',
+      name: 'Color',
+      values: [
+        { id: 'green', name: 'Green Pumpkin' },
+        { id: 'pbj', name: 'PBJ' }
+      ]
     }],
+    variants: [
+      {
+        id: 'gid://shopify/ProductVariant/1001',
+        title: 'Green Pumpkin',
+        selectedOptions: [{ name: 'Color', value: 'Green Pumpkin' }],
+        price: { amount: '3.5', currencyCode: 'USD' },
+        compareAtPrice: null,
+        availableForSale: true,
+        quantityAvailable: 12,
+        imageId: 'gid://shopify/MediaImage/901'
+      },
+      {
+        id: 'gid://shopify/ProductVariant/1002',
+        title: 'PBJ',
+        selectedOptions: [{ name: 'Color', value: 'PBJ' }],
+        price: { amount: '3.5', currencyCode: 'USD' },
+        compareAtPrice: null,
+        availableForSale: true,
+        quantityAvailable: 12,
+        imageId: 'gid://shopify/MediaImage/901'
+      }
+    ],
     presentation: { kind: 'ordinary' }
   };
   const handler = createGenericProductHandler({
@@ -74,24 +93,17 @@ test('an unmatched valid Shopify handle renders the established product-page she
 
   assert.equal(response.statusCode, 200);
   assert.match(response.headers['content-type'], /^text\/html/);
-  assert.match(response.body, /5\/8 oz Heavy Cover Football/);
-  assert.doesNotMatch(response.body, /data-generic-product/);
+  assert.match(response.body, /Chopped Craw \(6 pack\)/);
+  assert.match(response.body, /data-generic-product/);
   assert.match(response.body, /class="product-page"/);
-  assert.match(response.body, /data-product-key="5-8-oz-heavy-cover-football"/);
-  assert.match(response.body, /class="variant-swatches"/);
-  assert.match(response.body, /data-color-name/);
-  assert.match(response.body, /data-weight-group/);
-  assert.match(response.body, /data-rattle-group/);
+  assert.match(response.body, /data-generic-options/);
+  assert.match(response.body, /gid:\/\/shopify\/ProductVariant\/1001/);
   assert.match(
     response.body,
     /data-quantity-decrease[\s\S]*data-quantity-input[\s\S]*data-quantity-increase[\s\S]*data-add-cart/
   );
-  assert.match(response.body, /\/assets\/js\/product-page\.js/);
-  assert.match(
-    response.body,
-    /\/assets\/js\/limited-drop-gallery\.js[\s\S]*\/assets\/js\/product-page\.js/
-  );
-  assert.doesNotMatch(response.body, /\/assets\/js\/generic-product-page\.js/);
+  assert.match(response.body, /\/assets\/js\/generic-product-page\.js/);
+  assert.doesNotMatch(response.body, /\/assets\/js\/product-page\.js/);
 });
 
 test('the curated Heartlander page loads ordered Shopify media before its product renderer', () => {
