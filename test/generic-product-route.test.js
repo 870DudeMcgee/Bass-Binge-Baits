@@ -182,7 +182,7 @@ test('an established static SEO shell stays behind the live-catalog admission ga
 
   assert.match(staticPage, /<title>3\/4 Heavy Cover Football \| Bass Binge Baits<\/title>/);
   assert.match(staticPage, /<main class="product-page" hidden>/);
-  assert.ok(config.rewrites.some((rewrite) => rewrite.source === '/shop/:category(jigs|trailers|apparel)' && rewrite.destination === '/shop.html'));
+  assert.ok(config.rewrites.some((rewrite) => rewrite.source === '/shop/:category(jigs|trailers|apparel)' && rewrite.destination === '/shop'));
   assert.ok(config.rewrites.some((rewrite) => JSON.stringify(rewrite) === JSON.stringify({
     source: '/products/:handle',
     destination: '/api/product?handle=:handle'
