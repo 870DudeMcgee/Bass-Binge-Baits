@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/shop/:category(jigs|trailers|apparel)",
-      "destination": "/shop.html"
+      "destination": "/shop"
     },
     {
       "source": "/products/:handle",
