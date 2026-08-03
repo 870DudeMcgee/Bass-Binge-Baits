@@ -209,7 +209,7 @@
         appendMedia(slide, item);
         thumb.type = 'button';
         thumb.className = 'product-gallery-thumb';
-        thumb.setAttribute('aria-label', 'View ' + (item.alt || product.title));
+        thumb.setAttribute('aria-label', 'View ' + product.title + ' image ' + (index + 1));
         image.src = item.image && item.image.url || '';
         image.alt = '';
         thumb.appendChild(image);

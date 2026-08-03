@@ -225,6 +225,60 @@ button:disabled {
   transform-origin: left;
 }
 
+.nav-shop-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.nav-shop-toggle {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  min-width: 28px;
+  min-height: 36px;
+  font-size: 1rem;
+}
+
+.nav-shop-submenu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 0.65rem);
+  left: 50%;
+  width: 190px;
+  padding: 0.55rem;
+  border: 1px solid rgba(17, 40, 59, 0.12);
+  border-radius: var(--radius-sm);
+  background: var(--cream);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+}
+
+.nav-shop-menu:hover .nav-shop-submenu,
+.nav-shop-menu:focus-within .nav-shop-submenu,
+.nav-shop-menu.open .nav-shop-submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: 0s;
+}
+
+.nav-shop-submenu a {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+}
+
+.nav-shop-submenu a:hover,
+.nav-shop-submenu a:focus-visible,
+.nav-shop-submenu a[aria-current="page"] {
+  background: rgba(17, 40, 59, 0.08);
+}
+
 .mobile-toggle {
   display: none;
   border: 0;
@@ -1054,6 +1108,93 @@ body.product-zoom-open {
   box-shadow: var(--shadow-card);
 }
 
+body[data-shop-category="apparel"] .shop-tools {
+  grid-template-columns: minmax(220px, 0.8fr) minmax(440px, 1.4fr) minmax(220px, 0.8fr);
+}
+
+.shop-category-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.shop-category-nav a {
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(17, 40, 59, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--ink);
+  font-family: "Alegreya", Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.shop-category-nav a:hover,
+.shop-category-nav a:focus-visible,
+.shop-category-nav a[aria-current="page"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.shop-filter-toggle {
+  display: none;
+}
+
+.product-card > p:not(.quick-add-note) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.related-products {
+  padding-top: var(--space-6);
+  margin-top: var(--space-6);
+  border-top: 1px solid rgba(17, 40, 59, 0.12);
+}
+
+.related-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.related-product-card {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid rgba(17, 40, 59, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-card);
+}
+
+.related-product-card img {
+  width: 112px;
+  height: 92px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.related-product-card > span {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.related-product-card > span > span {
+  color: var(--earth);
+  font-weight: 700;
+}
+
 .shop-search {
   display: grid;
   gap: 0.4rem;
@@ -1077,6 +1218,10 @@ body.product-zoom-open {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
+}
+
+body[data-shop-category="apparel"] .shop-refiners {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .shop-refiners label {
@@ -1835,6 +1980,39 @@ select:focus,
     transition: opacity 0.2s ease, visibility 0s linear 0.2s;
   }
 
+  .nav-shop-menu {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .nav-shop-toggle {
+    min-width: 44px;
+  }
+
+  .nav-shop-submenu {
+    position: static;
+    grid-column: 1 / -1;
+    width: 100%;
+    display: none;
+    padding: 0.35rem 0 0.35rem 0.8rem;
+    border: 0;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+
+  .nav-shop-menu:hover .nav-shop-submenu,
+  .nav-shop-menu:focus-within .nav-shop-submenu {
+    display: none;
+    transform: none;
+  }
+
+  .nav-shop-menu.open .nav-shop-submenu {
+    display: block;
+  }
+
   .nav-cart-button {
     justify-content: space-between;
     width: 100%;
@@ -1888,7 +2066,28 @@ select:focus,
     align-items: stretch;
   }
 
+  body[data-shop-category="apparel"] .shop-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .shop-category-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shop-filter-toggle {
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  .shop-tools:not(.filters-open) .shop-secondary-control {
+    display: none;
+  }
+
   .shop-refiners {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-shop-category="apparel"] .shop-refiners {
     grid-template-columns: 1fr;
   }
 
@@ -1899,6 +2098,10 @@ select:focus,
 
   .shop-cart-shortcut {
     width: 100%;
+  }
+
+  .related-product-grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -47,6 +47,14 @@ browser cart, and server cart all reconcile exact admitted Shopify variant
 identity and money before checkout. Rattle selections remain a validated hidden
 add-on nested beneath their eligible jig parent.
 
+The customer catalog uses one Shop system with bookmarkable category routes:
+`/shop`, `/shop/jigs`, `/shop/trailers`, and `/shop/apparel`. Product type and
+tags are the durable classification contract. Use Shopify product types `Jig`,
+`Jig Trailer`, `Apparel`, or `Accessories`, or tags such as
+`category:jigs`, `category:trailers`, and `category:apparel`. Known current
+merchandise titles have a conservative fallback classification, but future
+products should not depend on naming conventions.
+
 Configure the server-only Storefront and durable-state values:
 
 ```bash
