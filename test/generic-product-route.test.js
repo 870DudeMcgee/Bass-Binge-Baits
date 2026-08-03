@@ -36,7 +36,7 @@ test('a color-only Shopify product renders an option-capable product-page shell'
     id: 'gid://shopify/Product/808',
     handle: 'chopped-craw-6-pack',
     title: 'Chopped Craw (6 pack)',
-    descriptionHtml: '<p>Soft plastic craws, pack of 6.</p>',
+    descriptionHtml: '<p>Jewell Baits craw built for finesse presentations.</p>',
     availableForSale: true,
     featuredMediaId: 'gid://shopify/MediaImage/901',
     media: [{
@@ -94,6 +94,10 @@ test('a color-only Shopify product renders an option-capable product-page shell'
   assert.equal(response.statusCode, 200);
   assert.match(response.headers['content-type'], /^text\/html/);
   assert.match(response.body, /Chopped Craw \(6 pack\)/);
+  assert.doesNotMatch(response.body, /Jewell/);
+  assert.match(response.body, /Jewel Baits craw built for finesse presentations\./);
+  assert.match(response.body, /\/assets\/img\/jewel-bait-logo\.png/);
+  assert.match(response.body, /Jewel Finesse Craw/);
   assert.match(response.body, /data-generic-product/);
   assert.match(response.body, /class="product-page"/);
   assert.match(response.body, /data-generic-options/);
@@ -178,10 +182,11 @@ test('an established static SEO shell stays behind the live-catalog admission ga
 
   assert.match(staticPage, /<title>3\/4 Heavy Cover Football \| Bass Binge Baits<\/title>/);
   assert.match(staticPage, /<main class="product-page" hidden>/);
-  assert.deepEqual(config.rewrites, [{
+  assert.ok(config.rewrites.some((rewrite) => rewrite.source === '/shop/:category(jigs|trailers|apparel)' && rewrite.destination === '/shop.html'));
+  assert.ok(config.rewrites.some((rewrite) => JSON.stringify(rewrite) === JSON.stringify({
     source: '/products/:handle',
     destination: '/api/product?handle=:handle'
-  }]);
+  })));
 });
 
 test('every established product page places quantity before Add to Cart', () => {

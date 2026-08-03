@@ -53,6 +53,7 @@ test('known Shopify products retain the established page route, swatches, and as
   assert.equal(projected.key, 'finesse-jig');
   assert.equal(projected.pagePath, 'products/finesse-jig');
   assert.equal(projected.detailOnly, false);
+  assert.equal(projected.category, 'jigs');
   assert.deepEqual(projected.weights, [{ key: '5-16', label: '5/16', priceDelta: 0 }]);
   assert.deepEqual(
     projected.colors.map((color) => ({ name: color.name, swatch: color.swatch, image: color.image })),
@@ -138,6 +139,7 @@ test('a color-only Shopify product is quick-addable without inventing a jig weig
   const projected = normalizeDiscoveredProduct(product);
 
   assert.equal(projected.detailOnly, false);
+  assert.equal(projected.category, 'trailers');
   assert.equal(projected.defaultWeightKey, null);
   assert.deepEqual(projected.weights, []);
   assert.deepEqual(
@@ -184,4 +186,26 @@ test('a color-only Shopify product is quick-addable without inventing a jig weig
       }
     ]
   );
+});
+
+test('a size-only merchandise product uses the exact option-capable product page', () => {
+  const product = {
+    handle: 'magnet',
+    title: 'Magnet',
+    descriptionHtml: '',
+    media: [],
+    options: [{ name: 'Size', values: [{ name: '3 inch' }] }],
+    variants: [{
+      id: 'gid://shopify/ProductVariant/magnet',
+      title: '3 inch',
+      selectedOptions: [{ name: 'Size', value: '3 inch' }],
+      price: { amount: '4.00', currencyCode: 'USD' },
+      availableForSale: true
+    }]
+  };
+
+  const projected = normalizeDiscoveredProduct(product);
+  assert.equal(projected.category, 'apparel');
+  assert.equal(projected.detailOnly, true);
+  assert.deepEqual(projected.colors, []);
 });

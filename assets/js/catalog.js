@@ -217,7 +217,7 @@
       return path;
     }
     var locationPath = root.location && root.location.pathname ? root.location.pathname : '';
-    return /\/products\//.test(locationPath) ? '../' + path : path;
+    return '/' + String(path).replace(/^\/+/, '');
   }
 
   function formatMoney(value) {

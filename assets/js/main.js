@@ -1,6 +1,60 @@
 const navToggle = document.querySelector('[data-nav-toggle]');
 const navLinks = document.querySelector('[data-nav-links]');
 
+function enhanceShopNavigation() {
+  if (!navLinks || navLinks.querySelector('.nav-shop-menu')) return;
+  const shopLink = Array.from(navLinks.querySelectorAll('a')).find((link) => {
+    try { return new URL(link.href, window.location.origin).pathname === '/shop'; }
+    catch (error) { return false; }
+  });
+  if (!shopLink) return;
+
+  const menu = document.createElement('div');
+  menu.className = 'nav-shop-menu';
+  const toggle = document.createElement('button');
+  toggle.className = 'nav-shop-toggle';
+  toggle.type = 'button';
+  toggle.setAttribute('aria-label', 'Open Shop categories');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.textContent = '⌄';
+  const submenu = document.createElement('div');
+  submenu.className = 'nav-shop-submenu';
+  submenu.setAttribute('aria-label', 'Shop categories');
+  [['/shop','All Products'],['/shop/jigs','Jigs'],['/shop/trailers','Jig Trailers'],['/shop/apparel','Apparel & Gear']]
+    .forEach(([href, label]) => {
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = label;
+      if (window.location.pathname === href) link.setAttribute('aria-current', 'page');
+      submenu.appendChild(link);
+    });
+  shopLink.parentNode.insertBefore(menu, shopLink);
+  menu.appendChild(shopLink);
+  menu.appendChild(toggle);
+  menu.appendChild(submenu);
+
+  toggle.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!open));
+    menu.classList.toggle('open', !open);
+  });
+  menu.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      toggle.setAttribute('aria-expanded', 'false');
+      menu.classList.remove('open');
+      toggle.focus();
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (!menu.contains(event.target)) {
+      toggle.setAttribute('aria-expanded', 'false');
+      menu.classList.remove('open');
+    }
+  });
+}
+
+enhanceShopNavigation();
+
 if (navToggle && navLinks) {
   navToggle.addEventListener('click', () => {
     const expanded = navToggle.getAttribute('aria-expanded') === 'true';
@@ -35,6 +89,57 @@ const yearSlot = document.querySelector('[data-year]');
 if (yearSlot) {
   yearSlot.textContent = String(new Date().getFullYear());
 }
+
+function mountRelatedProducts() {
+  const catalog = window.BassBingeCatalog;
+  const taxonomy = window.BassBingeTaxonomy;
+  const match = window.location.pathname.match(/^\/products\/([^/]+)\/?$/);
+  if (!catalog || !taxonomy || !match) return;
+
+  Promise.resolve(catalog.ready).then(() => {
+    const current = catalog.getProduct(match[1]);
+    if (!current || document.querySelector('[data-related-products]')) return;
+    const related = taxonomy.relatedProducts(catalog.listProducts(), current, 3);
+    if (!related.length) return;
+
+    const host = document.querySelector('.product-page .container') || document.querySelector('main .container');
+    if (!host) return;
+    const section = document.createElement('section');
+    section.className = 'related-products';
+    section.dataset.relatedProducts = '';
+    const kicker = document.createElement('p');
+    kicker.className = 'section-kicker';
+    kicker.textContent = 'You may also like';
+    const heading = document.createElement('h2');
+    heading.className = 'section-title';
+    const category = taxonomy.categoryForProduct(current);
+    heading.textContent = category === 'jigs'
+      ? 'Complete your setup.'
+      : category === 'trailers' ? 'Pairs well with.' : 'More Bass Binge gear.';
+    const grid = document.createElement('div');
+    grid.className = 'related-product-grid';
+
+    related.forEach((product) => {
+      const link = document.createElement('a');
+      link.className = 'related-product-card';
+      link.href = '/' + String(product.pagePath || ('products/' + product.handle)).replace(/^\/+/, '');
+      const image = document.createElement('img');
+      image.src = catalog.assetPath(product.featuredImage || product.colors && product.colors[0] && product.colors[0].image);
+      image.alt = product.featuredImageAlt || product.title;
+      const copy = document.createElement('span');
+      const title = document.createElement('strong');
+      title.textContent = product.title;
+      const price = document.createElement('span');
+      price.textContent = catalog.formatMoney(product.basePrice);
+      copy.appendChild(title); copy.appendChild(price);
+      link.appendChild(image); link.appendChild(copy); grid.appendChild(link);
+    });
+    section.appendChild(kicker); section.appendChild(heading); section.appendChild(grid);
+    host.appendChild(section);
+  });
+}
+
+mountRelatedProducts();
 
 const limitedDropButton = document.querySelector('[data-add-limited-drop]');
 
