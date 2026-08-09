@@ -10,6 +10,19 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
+  function normalizeKey(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function normalizeOptionName(value) {
+    return normalizeKey(value).replace(/option-|s$/g, '');
+  }
+
   function selectionForVariant(variant) {
     return (variant && Array.isArray(variant.selectedOptions) ? variant.selectedOptions : [])
       .reduce(function (selection, option) {
@@ -144,7 +157,13 @@
     var quantityInput = document.querySelector('[data-quantity-input]');
     var quantityDecrease = document.querySelector('[data-quantity-decrease]');
     var quantityIncrease = document.querySelector('[data-quantity-increase]');
+    var catalog = root && root.BassBingeCatalog;
+    var taxonomy = root && root.BassBingeTaxonomy;
+    var admittedProduct = catalog && catalog.getAdmittedProduct
+      ? catalog.getAdmittedProduct(product.handle)
+      : null;
     var selection = initialSelection(product);
+    var selectedRattle = 'no';
     var intent = {};
     var media = [];
     var mediaIndex = 0;
@@ -158,6 +177,88 @@
     var zoomPrevious = null;
     var zoomNext = null;
     var zoomReturnFocus = null;
+
+    function admittedProductForRender() {
+      return admittedProduct || (catalog && catalog.getAdmittedProduct ? catalog.getAdmittedProduct(product.handle) : null);
+    }
+
+    function shouldRenderRattleControls() {
+      var admitted = admittedProductForRender();
+      var presentation = admitted && admitted.presentation;
+
+      if (presentation && typeof presentation.rattleEnabled === 'boolean') {
+        return presentation.rattleEnabled;
+      }
+
+      if (!taxonomy || typeof taxonomy.categoryForProduct !== 'function') return false;
+      return taxonomy.categoryForProduct(admitted || product) === 'jigs';
+    }
+
+    function catalogRattleOptions() {
+      var admitted = admittedProductForRender();
+      if (!admitted || !catalog || typeof catalog.getRattleOptions !== 'function') return [];
+      return catalog.getRattleOptions(admitted);
+    }
+
+    function selectedVariant() {
+      return resolveVariant(product, selection);
+    }
+
+    function optionToKey(optionName, value) {
+      if (!optionName || typeof value === 'undefined' || value === null) return null;
+      var normalized = normalizeOptionName(optionName);
+      var valueKey = normalizeKey(value);
+
+      if (/\b(color|colour)\b/.test(normalized) || normalized.indexOf('paint') === 0) {
+        return { colorKey: valueKey };
+      }
+      if (/\b(weight|size|oz|g)\b/.test(normalized) || normalized.indexOf('weight') !== -1) {
+        return { weightKey: valueKey };
+      }
+      return {};
+    }
+
+    function buildKeysFromSelection() {
+      var current = selectedVariant() || {};
+      var selected = (current.selectedOptions || [])
+        .reduce(function (accumulator, option) {
+          var keys = optionToKey(option.name, option.value);
+          if (keys.colorKey) accumulator.colorKey = keys.colorKey;
+          if (keys.weightKey) accumulator.weightKey = keys.weightKey;
+          return accumulator;
+        }, {});
+
+      if (!selected.colorKey && selection.color) selected.colorKey = normalizeKey(selection.color);
+      if (!selected.weightKey && selection.weight) selected.weightKey = normalizeKey(selection.weight);
+
+      return selected;
+    }
+
+    function currentRattleOption() {
+      var rattleOptions = catalogRattleOptions();
+      var fallback = rattleOptions.length ? rattleOptions[0] : { key: 'no', label: 'No', available: true, priceDelta: null };
+
+      if (!shouldRenderRattleControls()) return fallback;
+
+      return rattleOptions.find(function (option) {
+        return option.key === selectedRattle;
+      }) || fallback;
+    }
+
+    function buildJigLine() {
+      var admitted = admittedProductForRender();
+      if (!catalog || !admitted || !admitted.key) return null;
+
+      var keys = buildKeysFromSelection();
+      var rattle = currentRattleOption();
+
+      return catalog.getJigBuild({
+        productKey: admitted.key,
+        colorKey: keys.colorKey,
+        weightKey: keys.weightKey,
+        rattleKey: rattle && rattle.key ? rattle.key : 'no'
+      });
+    }
 
     function currentImage() {
       var item = media[mediaIndex];
@@ -472,11 +573,76 @@
         fieldset.appendChild(values);
         optionsRoot.appendChild(fieldset);
       });
+
+      if (shouldRenderRattleControls()) {
+        var rattleOptions = catalogRattleOptions();
+        var rattleFieldset = document.createElement('fieldset');
+        var rattleLegend = document.createElement('legend');
+        var rattleValues = document.createElement('div');
+
+        rattleFieldset.className = 'product-config-selector generic-option-group';
+        rattleFieldset.setAttribute('data-rattle-group', 'generic');
+        rattleLegend.className = 'config-label';
+        rattleLegend.textContent = 'Rattle:';
+        rattleValues.className = 'weight-options';
+
+        (rattleOptions.length ? rattleOptions : [{ key: 'no', label: 'No', available: true }])
+          .forEach(function (rattle) {
+            var rattleLabel = document.createElement('label');
+            var rattleInput = document.createElement('input');
+            var rattleText = document.createElement('span');
+
+            rattleLabel.className = 'weight-option';
+            rattleLabel.classList.toggle('active', selectedRattle === rattle.key);
+            rattleLabel.classList.toggle('is-unavailable', rattle.available === false);
+
+            rattleInput.type = 'radio';
+            rattleInput.name = 'rattle';
+            rattleInput.value = rattle.key;
+            rattleInput.checked = selectedRattle === rattle.key;
+            rattleInput.disabled = rattle.available === false;
+
+            rattleText.className = 'weight-label';
+            rattleText.textContent = rattle.priceDelta
+              ? rattle.label + ' (+ $' + rattle.priceDelta.toFixed(2) + ')'
+              : rattle.label;
+
+            rattleInput.addEventListener('change', function () {
+              if (rattleInput.checked) {
+                selectedRattle = rattle.key;
+                renderAll();
+              }
+            });
+
+            rattleLabel.appendChild(rattleInput);
+            rattleLabel.appendChild(rattleText);
+            rattleValues.appendChild(rattleLabel);
+          });
+
+        rattleFieldset.appendChild(rattleLegend);
+        rattleFieldset.appendChild(rattleValues);
+        optionsRoot.appendChild(rattleFieldset);
+      }
     }
 
     function renderCommerce(variant) {
-      var checkoutable = Boolean(variant && variant.availableForSale);
-      if (price) price.textContent = variant ? formatMoney(variant.price) : '';
+      var shouldUseJigBuild = shouldRenderRattleControls();
+      var jigLine = shouldUseJigBuild ? buildJigLine() : null;
+      var checkoutable = jigLine
+        ? Boolean(jigLine.isCheckoutable)
+        : shouldUseJigBuild
+          ? Boolean(variant && variant.availableForSale)
+          : Boolean(variant && variant.availableForSale);
+
+      if (price) {
+        if (jigLine && typeof catalog.formatMoney === 'function') {
+          price.textContent = catalog.formatMoney(jigLine.price);
+        } else if (jigLine && jigLine.price) {
+          price.textContent = '$' + Number(jigLine.price).toFixed(2);
+        } else {
+          price.textContent = variant ? formatMoney(variant.price) : '';
+        }
+      }
       if (availability) {
         availability.textContent = checkoutable
           ? 'Available for secure online checkout.'
@@ -537,10 +703,21 @@
       quantityInput.addEventListener('blur', function () { setQuantity(quantityInput.value); });
     }
     if (addButton) addButton.addEventListener('click', function () {
-      var line = buildCartLine(product, currentVariant());
       var count = setQuantity(quantityInput ? quantityInput.value : 1);
-      if (!line || !cart || !cart.addExactVariant) return;
-      var added = cart.addExactVariant(line, count);
+      var shouldUseJigBuild = shouldRenderRattleControls();
+      var added = null;
+      var jigLine = buildJigLine();
+      var variant = currentVariant();
+      if (shouldUseJigBuild && jigLine && typeof cart.addJigBuild === 'function') {
+        if (!jigLine.isCheckoutable) return;
+        added = cart.addJigBuild(jigLine, count);
+      } else if (!shouldUseJigBuild || !jigLine) {
+        var line = buildCartLine(product, variant);
+        if (!line || !cart || !cart.addExactVariant) return;
+        added = cart.addExactVariant(line, count);
+      } else {
+        return;
+      }
       if (added && cart.showToast) cart.showToast(count + ' × ' + product.title + ' added to cart');
       if (added && cart.openCart) cart.openCart();
     });

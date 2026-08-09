@@ -310,6 +310,20 @@ test('CatalogEnvelope v2 classifies the hidden add-on only from validated type/t
   assert.equal(envelope.products[0].presentation.kind, 'hidden-add-on');
 });
 
+test('CatalogEnvelope v2 enables jig rattle presentation for taxonomic jigs without explicit tag', () => {
+  const product = fixtureProduct({
+    id: 'gid://shopify/Product/113',
+    handle: 'taxonomy-jig',
+    title: 'Taxonomy Jig',
+    productType: 'Jig',
+    tags: ['new', 'feature-flag:legacy']
+  });
+
+  const envelope = normalizeCatalogEnvelope([product]);
+
+  assert.equal(envelope.products[0].presentation.rattleEnabled, true);
+});
+
 test('CatalogEnvelope v2 admits a hidden Rattle Add-on without customer-facing media', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/114',

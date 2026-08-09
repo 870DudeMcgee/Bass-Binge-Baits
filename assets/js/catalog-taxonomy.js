@@ -42,7 +42,7 @@
 
     if (
       tags.some(function (tag) { return /^(category-)?(apparel|merch|gear)$/.test(tag); }) ||
-      /apparel|merch|accessor|shirt|tee|t-shirt|hoodie|windbreaker|beanie|hat|cap|headwear|water-bottle|tumbler|magnet|mouse-pad/.test(type + ' ' + identity)
+      /apparel|merch|accessor|shirt|tee|t-shirt|hoodie|windbreaker|beanie|hat|cap|headwear|water-bottle|tumbler|magnet|mouse-pad|tote|bag|duffel|backpack/.test(type + ' ' + identity)
     ) return 'apparel';
 
     if (
