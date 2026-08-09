@@ -140,6 +140,13 @@
     }
   }
 
+  function formatRattlePriceLabel(label, priceDelta) {
+    if (!priceDelta) return String(label || '');
+    var amount = Number(priceDelta);
+    if (!Number.isFinite(amount) || amount === 0) return String(label || '');
+    return String(label || '') + ' (+ $' + amount.toFixed(2) + ')';
+  }
+
   function mount(product, cart) {
     if (typeof document === 'undefined' || !product) return null;
 
@@ -604,9 +611,7 @@
             rattleInput.disabled = rattle.available === false;
 
             rattleText.className = 'weight-label';
-            rattleText.textContent = rattle.priceDelta
-              ? rattle.label + ' (+ $' + rattle.priceDelta.toFixed(2) + ')'
-              : rattle.label;
+            rattleText.textContent = formatRattlePriceLabel(rattle.label, rattle.priceDelta);
 
             rattleInput.addEventListener('change', function () {
               if (rattleInput.checked) {
@@ -734,6 +739,7 @@
     optionValueState: optionValueState,
     orderedMedia: orderedMedia,
     buildCartLine: buildCartLine,
+    formatRattlePriceLabel: formatRattlePriceLabel,
     mount: mount
   };
 });
