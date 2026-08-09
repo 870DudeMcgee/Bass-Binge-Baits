@@ -157,8 +157,9 @@
     var quantityInput = document.querySelector('[data-quantity-input]');
     var quantityDecrease = document.querySelector('[data-quantity-decrease]');
     var quantityIncrease = document.querySelector('[data-quantity-increase]');
-    var catalog = root && root.BassBingeCatalog;
-    var taxonomy = root && root.BassBingeTaxonomy;
+    var scope = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : {});
+    var catalog = scope && scope.BassBingeCatalog;
+    var taxonomy = scope && scope.BassBingeTaxonomy;
     var admittedProduct = catalog && catalog.getAdmittedProduct
       ? catalog.getAdmittedProduct(product.handle)
       : null;
