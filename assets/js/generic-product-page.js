@@ -128,6 +128,11 @@
     };
   }
 
+  function catalogProductKey(product) {
+    if (!product) return null;
+    return product.key || product.handle || null;
+  }
+
   function formatMoney(money) {
     if (!money) return '';
     try {
@@ -259,13 +264,14 @@
 
     function buildJigLine() {
       var admitted = admittedProductForRender();
-      if (!catalog || !admitted || !admitted.key) return null;
+      var productKey = catalogProductKey(admitted);
+      if (!catalog || !productKey) return null;
 
       var keys = buildKeysFromSelection();
       var rattle = currentRattleOption();
 
       return catalog.getJigBuild({
-        productKey: admitted.key,
+        productKey: productKey,
         colorKey: keys.colorKey,
         weightKey: keys.weightKey,
         rattleKey: rattle && rattle.key ? rattle.key : 'no'
@@ -743,6 +749,7 @@
     optionValueState: optionValueState,
     orderedMedia: orderedMedia,
     buildCartLine: buildCartLine,
+    catalogProductKey: catalogProductKey,
     formatRattlePriceLabel: formatRattlePriceLabel,
     afterReady: afterReady,
     mount: mount

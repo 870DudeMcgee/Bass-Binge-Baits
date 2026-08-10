@@ -55,6 +55,17 @@ test('a color-only product cart line preserves exact Shopify identity and money'
   });
 });
 
+test('generic jig builds use the Shopify handle when no legacy key exists', () => {
+  assert.equal(
+    renderer.catalogProductKey({ handle: '7-16-oz-pee-wee-flip' }),
+    '7-16-oz-pee-wee-flip'
+  );
+  assert.equal(
+    renderer.catalogProductKey({ key: 'legacy-key', handle: 'shopify-handle' }),
+    'legacy-key'
+  );
+});
+
 test('rattle price label formatting tolerates numeric and non-numeric deltas', () => {
   assert.equal(renderer.formatRattlePriceLabel('No', null), 'No');
   assert.equal(renderer.formatRattlePriceLabel('Yes', 0.75), 'Yes (+ $0.75)');
