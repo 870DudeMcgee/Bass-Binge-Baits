@@ -56,6 +56,88 @@ test('the browser collection replaces fallback cards with the admitted live proj
   );
 });
 
+test('legacy rattle payload hydrates the admitted product for generic rendering', () => {
+  const applied = browserCatalog.applyRemoteCatalog({
+    schemaVersion: 2,
+    generationId: 'generation-admitted-rattle',
+    products: [{
+      handle: 'rattle-admitted',
+      presentation: { kind: 'ordinary' },
+      pagePath: 'products/rattle-admitted',
+      title: 'Rattle Admitted Jig',
+      variants: [{
+        id: 'gid://shopify/ProductVariant/910',
+        title: 'Rattle Admitted Jig - Single',
+        selectedOptions: [{ name: 'Color', value: 'Black' }],
+        price: { amount: '5.00', currencyCode: 'USD' },
+        availableForSale: true,
+        imageId: 'gid://shopify/Image/410'
+      }],
+      media: [{
+        id: 'gid://shopify/MediaImage/410',
+        type: 'image',
+        alt: 'Rattle Admitted Jig',
+        image: {
+          url: 'https://cdn.shopify.com/rattle-admitted-jig.jpg',
+          id: 'gid://shopify/Image/410'
+        }
+      }],
+      weights: [{ key: 'none', label: '5/8 oz' }],
+      colors: [{ key: 'black', name: 'Black', image: 'https://cdn.shopify.com/rattle-admitted-jig.jpg' }]
+    }],
+    legacy: {
+      ok: true,
+      source: 'shopify',
+      fetchedAt: '2026-07-26T15:00:00.000Z',
+      products: [{
+        key: 'rattle-admitted',
+        handle: 'rattle-admitted',
+        rattle: {
+          available: true,
+          defaultKey: 'no',
+          options: [{
+            key: 'no',
+            label: 'No',
+            priceDelta: 0
+          }]
+        },
+        pagePath: 'products/rattle-admitted'
+      }],
+      currentDrop: null,
+      rattle: {
+        available: true,
+        price: 1,
+        currencyCode: 'USD',
+        merchandiseId: 'gid://shopify/ProductVariant/999',
+        variantId: 999,
+        quantityAvailable: 20
+      },
+      errors: []
+    }
+  });
+
+  assert.equal(applied, true);
+  const admitted = browserCatalog.getAdmittedProduct('rattle-admitted');
+  const rattleOptions = browserCatalog.getRattleOptions(admitted);
+
+  assert.equal(admitted.rattle.available, true);
+  assert.equal(admitted.rattle.defaultKey, 'no');
+  assert.equal(admitted.rattle.options.length, 2);
+  assert.equal(admitted.rattle.options[1].key, 'yes');
+  assert.deepEqual(admitted.rattle.options, [{
+      key: 'no',
+      label: 'No',
+      priceDelta: 0
+    }, {
+      key: 'yes',
+      label: 'Yes',
+      priceDelta: 1
+    }]);
+  assert.equal(rattleOptions.length, 2);
+  assert.equal(rattleOptions[1].key, 'yes');
+  assert.equal(rattleOptions[1].priceDelta, 1);
+});
+
 test('the Heartlander drop appears exactly once in the shop and remains the homepage drop', () => {
   const heartlanderCard = {
     key: 'limited-drop-heartlander-peewee-football-hd',

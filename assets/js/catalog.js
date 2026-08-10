@@ -292,6 +292,22 @@
         product.pagePath &&
         admittedHandles.has(product.handle);
     });
+
+    var legacyByHandle = {};
+    projection.products.forEach(function (legacyProduct) {
+      if (!legacyProduct || !legacyProduct.handle) return;
+      legacyByHandle[normalizeKey(legacyProduct.handle)] = legacyProduct;
+    });
+
+    function hydrateRattleFromLegacy(productToMutate) {
+      if (!productToMutate || !productToMutate.handle) return;
+      var admitted = legacyByHandle[normalizeKey(productToMutate.handle)];
+      if (!admitted || !admitted.rattle || productToMutate.rattle) return;
+      productToMutate.rattle = admitted.rattle;
+    }
+
+    ADMITTED_PRODUCTS.forEach(hydrateRattleFromLegacy);
+    PRODUCTS.forEach(hydrateRattleFromLegacy);
     if (
       projection.currentDrop &&
       projection.currentDrop.handle &&
@@ -299,6 +315,7 @@
       !PRODUCTS.some(function (product) { return product.handle === projection.currentDrop.handle; })
     ) {
       PRODUCTS.unshift(projection.currentDrop);
+      hydrateRattleFromLegacy(PRODUCTS[0]);
     }
     RATTLE_ADD_ON = projection.rattle || null;
     PRODUCTS.forEach(function (product) {
