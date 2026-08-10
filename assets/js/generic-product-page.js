@@ -147,6 +147,10 @@
     return String(label || '') + ' (+ $' + amount.toFixed(2) + ')';
   }
 
+  function afterReady(ready, callback) {
+    return Promise.resolve(ready).then(callback, callback);
+  }
+
   function mount(product, cart) {
     if (typeof document === 'undefined' || !product) return null;
 
@@ -740,6 +744,7 @@
     orderedMedia: orderedMedia,
     buildCartLine: buildCartLine,
     formatRattlePriceLabel: formatRattlePriceLabel,
+    afterReady: afterReady,
     mount: mount
   };
 });
@@ -747,13 +752,18 @@
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   var productData = document.getElementById('generic-product-data');
   if (productData && window.BassBingeGenericProduct) {
-    try {
-      window.BassBingeGenericProduct.mount(
-        JSON.parse(productData.textContent),
-        window.BassBingeCart
-      );
-    } catch (error) {
-      console.error('Generic product renderer failed', { message: error.message });
-    }
+    window.BassBingeGenericProduct.afterReady(
+      window.BassBingeCatalog && window.BassBingeCatalog.ready,
+      function () {
+        try {
+          window.BassBingeGenericProduct.mount(
+            JSON.parse(productData.textContent),
+            window.BassBingeCart
+          );
+        } catch (error) {
+          console.error('Generic product renderer failed', { message: error.message });
+        }
+      }
+    );
   }
 }

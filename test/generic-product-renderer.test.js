@@ -62,6 +62,24 @@ test('rattle price label formatting tolerates numeric and non-numeric deltas', (
   assert.equal(renderer.formatRattlePriceLabel('Yes', 'not-a-number'), 'Yes');
 });
 
+test('generic rendering waits for catalog readiness before mounting rattle controls', async () => {
+  let resolveCatalog;
+  let mountCalls = 0;
+  const catalogReady = new Promise((resolve) => {
+    resolveCatalog = resolve;
+  });
+  const mounted = renderer.afterReady(catalogReady, () => {
+    mountCalls += 1;
+  });
+
+  await Promise.resolve();
+  assert.equal(mountCalls, 0);
+
+  resolveCatalog();
+  await mounted;
+  assert.equal(mountCalls, 1);
+});
+
 test('arbitrary option names resolve exact tuples without assuming jig fields', () => {
   const product = {
     handle: 'utility-box',
