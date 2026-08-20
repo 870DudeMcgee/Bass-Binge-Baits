@@ -11,6 +11,17 @@
   'use strict';
 
   var CATEGORIES = ['all', 'jigs', 'trailers', 'apparel'];
+  var DEPARTMENTS = ['fishing', 'lifestyle-and-gear'];
+  var SUBCATEGORIES = ['jigs', 'trailers', 'apparel', 'headwear', 'drinkware', 'bags', 'accessories'];
+  var PRODUCT_TYPE_SUBCATEGORY = {
+    jig: 'jigs',
+    trailer: 'trailers',
+    apparel: 'apparel',
+    headwear: 'headwear',
+    drinkware: 'drinkware',
+    bag: 'bags',
+    accessory: 'accessories'
+  };
 
   function normalizeKey(value) {
     return String(value || '')
@@ -25,12 +36,20 @@
     return (Array.isArray(product && product.tags) ? product.tags : []).map(normalizeKey);
   }
 
-  function categoryForProduct(product) {
+  function tagNamesSubcategory(tags, subcategory) {
+    var singular = subcategory.replace(/s$/, '');
+    return tags.some(function (tag) {
+      return tag === subcategory || tag === singular ||
+        tag === 'category-' + subcategory || tag === 'category-' + singular;
+    });
+  }
+
+  function subcategoryForProduct(product) {
     if (!product) return 'jigs';
-    if (CATEGORIES.indexOf(product.category) > 0) return product.category;
 
     var type = normalizeKey(product.productType);
     var tags = normalizedTags(product);
+    var explicitSubcategory = normalizeKey(product.subcategory || product.category);
     var identity = normalizeKey([
       product.handle,
       product.key,
@@ -40,18 +59,49 @@
       return normalizeKey(typeof option === 'string' ? option : option && option.name);
     });
 
-    if (
-      tags.some(function (tag) { return /^(category-)?(apparel|merch|gear)$/.test(tag); }) ||
-      /apparel|merch|accessor|shirt|tee|t-shirt|hoodie|windbreaker|beanie|hat|cap|headwear|water-bottle|tumbler|magnet|mouse-pad|tote|bag|duffel|backpack/.test(type + ' ' + identity)
-    ) return 'apparel';
+    if (PRODUCT_TYPE_SUBCATEGORY[type]) return PRODUCT_TYPE_SUBCATEGORY[type];
+    if (SUBCATEGORIES.includes(explicitSubcategory)) return explicitSubcategory;
 
-    if (
-      tags.some(function (tag) { return /^(category-)?(trailer|trailers|soft-plastic|soft-plastics)$/.test(tag); }) ||
-      /trailer|soft-plastic|chopped-craw|craw-pack/.test(type + ' ' + identity)
-    ) return 'trailers';
+    if (tagNamesSubcategory(tags, 'headwear')) return 'headwear';
+    if (tagNamesSubcategory(tags, 'drinkware')) return 'drinkware';
+    if (tagNamesSubcategory(tags, 'bags')) return 'bags';
+    if (tagNamesSubcategory(tags, 'accessories')) return 'accessories';
+    if (tagNamesSubcategory(tags, 'apparel') || tags.includes('merch') || tags.includes('gear')) return 'apparel';
+    if (tagNamesSubcategory(tags, 'trailers') || tags.includes('soft-plastic') || tags.includes('soft-plastics')) return 'trailers';
+    if (tagNamesSubcategory(tags, 'jigs')) return 'jigs';
+
+    if (/trailer|soft-plastic|chopped-craw|craw-pack/.test(identity)) return 'trailers';
+    if (/beanie|hat|cap|headwear/.test(identity)) return 'headwear';
+    if (/water-bottle|tumbler|drinkware/.test(identity)) return 'drinkware';
+    if (/tote|bag|duffel|backpack/.test(identity)) return 'bags';
+    if (/accessor|magnet|mouse-pad|rattle-add-on/.test(identity)) return 'accessories';
+    if (/apparel|merch|shirt|tee|t-shirt|hoodie|sweatshirt|windbreaker|raglan/.test(identity)) return 'apparel';
 
     if (optionNames.includes('size') && tags.includes('apparel')) return 'apparel';
     return 'jigs';
+  }
+
+  function departmentForSubcategory(subcategory) {
+    return subcategory === 'jigs' || subcategory === 'trailers'
+      ? 'fishing'
+      : 'lifestyle-and-gear';
+  }
+
+  function classificationForProduct(product) {
+    var subcategory = subcategoryForProduct(product);
+    return {
+      department: departmentForSubcategory(subcategory),
+      subcategory: subcategory
+    };
+  }
+
+  function departmentForProduct(product) {
+    return classificationForProduct(product).department;
+  }
+
+  function categoryForProduct(product) {
+    var subcategory = subcategoryForProduct(product);
+    return subcategory === 'jigs' || subcategory === 'trailers' ? subcategory : 'apparel';
   }
 
   function shopCategoryFromPath(pathname) {
@@ -98,7 +148,12 @@
 
   return {
     categories: CATEGORIES.slice(),
+    departments: DEPARTMENTS.slice(),
+    subcategories: SUBCATEGORIES.slice(),
     normalizeKey: normalizeKey,
+    classificationForProduct: classificationForProduct,
+    departmentForProduct: departmentForProduct,
+    subcategoryForProduct: subcategoryForProduct,
     categoryForProduct: categoryForProduct,
     shopCategoryFromPath: shopCategoryFromPath,
     categoryLabel: categoryLabel,

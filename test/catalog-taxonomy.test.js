@@ -4,14 +4,90 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const taxonomy = require('../assets/js/catalog-taxonomy.js');
 
-test('classifies the established catalog and tagged merchandise', () => {
-  assert.equal(taxonomy.categoryForProduct({ title: 'PeeWee Football Jig' }), 'jigs');
-  assert.equal(taxonomy.categoryForProduct({ handle: 'chopped-craw-6-pack' }), 'trailers');
-  assert.equal(taxonomy.categoryForProduct({ title: 'Bass Binge Logo Tee', productType: 'Apparel' }), 'apparel');
-  assert.equal(taxonomy.categoryForProduct({ title: 'Performance Hat', tags: ['category-apparel'] }), 'apparel');
-  assert.equal(taxonomy.categoryForProduct({ title: 'Flip straw water bottle', productType: 'Accessories' }), 'apparel');
-  assert.equal(taxonomy.categoryForProduct({ title: 'Magnet' }), 'apparel');
-  assert.equal(taxonomy.categoryForProduct({ title: 'Mouse pad' }), 'apparel');
+test('maps every approved Shopify product type to its department and subcategory', () => {
+  const cases = [
+    ['Jig', 'fishing', 'jigs'],
+    ['Trailer', 'fishing', 'trailers'],
+    ['Apparel', 'lifestyle-and-gear', 'apparel'],
+    ['Headwear', 'lifestyle-and-gear', 'headwear'],
+    ['Drinkware', 'lifestyle-and-gear', 'drinkware'],
+    ['Bag', 'lifestyle-and-gear', 'bags'],
+    ['Accessory', 'lifestyle-and-gear', 'accessories']
+  ];
+
+  cases.forEach(([productType, department, subcategory]) => {
+    const classification = taxonomy.classificationForProduct({
+      title: 'Misleading Jig Hat Bottle',
+      productType
+    });
+    assert.deepEqual(classification, { department, subcategory });
+  });
+});
+
+test('classifies all 36 current products while Shopify product types are migrated', () => {
+  const currentProducts = {
+    apparel: [
+      'Bass Binge Hoodie',
+      'Bass Binge Baits Hoodie',
+      'Bass Binge Baits Premium Sweatshirt',
+      'Lake Life classic tee',
+      'Heavyweight Hooded Sweatshirt | Independent Trading Co. IND4000',
+      'Retro 3/4 sleeve raglan shirt',
+      'Retro Bass Binge Baits ringer t-shirt',
+      "Women's Relaxed T-Shirt",
+      'Short-Sleeve T-Shirt',
+      'Hooded long-sleeve tee',
+      'Bass Binge Baits windbreaker'
+    ],
+    headwear: [
+      'Bass Binge Baits hat',
+      'Bass Binge Baits Trucker Cap',
+      'Retro Foam trucker hat',
+      'Coastal Washed Cap',
+      'Bass Binge Baits Embroidered Beanie',
+      'Bass Binge Baits camo trucker hat'
+    ],
+    drinkware: [
+      'Stainless steel water bottle',
+      'Flip straw water bottle',
+      'Stainless steel tumbler'
+    ],
+    bags: [
+      'Lake Life Clear tote bag',
+      'Bass Binge Baits Tote bag'
+    ],
+    accessories: ['Magnet', 'Mouse pad', 'Rattle Add-on'],
+    trailers: ['Chopped Craw (6 pack)'],
+    jigs: [
+      '5/16 Pee Wee Flip',
+      '7/16 oz. Pee Wee Flip',
+      '5/8 oz. Heavy Cover Football',
+      'Pee Wee Football +',
+      '5/16 oz. Finesse Jig +',
+      '5/8 oz PeeWee Football HD — Heartlander',
+      '5/16 PeeWee Spider HD (finesse cut)',
+      '7/16 oz. PeeWee Football Jig',
+      '3/4 Heavy Cover Football Jig',
+      '1/2 oz. PeeWee Football HD'
+    ]
+  };
+  const classified = Object.entries(currentProducts).flatMap(([subcategory, titles]) =>
+    titles.map((title) => ({ title, subcategory: taxonomy.subcategoryForProduct({ title }) }))
+  );
+
+  assert.equal(classified.length, 36);
+  classified.forEach(({ title, subcategory }) => {
+    const expected = Object.entries(currentProducts).find(([, titles]) => titles.includes(title))[0];
+    assert.equal(subcategory, expected, title);
+  });
+});
+
+test('keeps legacy category consumers stable until the shop UI adopts departments', () => {
+  assert.equal(taxonomy.categoryForProduct({ productType: 'Jig' }), 'jigs');
+  assert.equal(taxonomy.categoryForProduct({ productType: 'Trailer' }), 'trailers');
+  ['Apparel', 'Headwear', 'Drinkware', 'Bag', 'Accessory'].forEach((productType) => {
+    assert.equal(taxonomy.categoryForProduct({ productType }), 'apparel');
+  });
 });
 
 test('maps category shop paths without inventing unknown categories', () => {
