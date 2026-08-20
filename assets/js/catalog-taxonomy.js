@@ -49,7 +49,8 @@
 
     var type = normalizeKey(product.productType);
     var tags = normalizedTags(product);
-    var explicitSubcategory = normalizeKey(product.subcategory || product.category);
+    var explicitSubcategory = normalizeKey(product.subcategory);
+    var legacyCategory = normalizeKey(product.category);
     var identity = normalizeKey([
       product.handle,
       product.key,
@@ -61,6 +62,7 @@
 
     if (PRODUCT_TYPE_SUBCATEGORY[type]) return PRODUCT_TYPE_SUBCATEGORY[type];
     if (SUBCATEGORIES.includes(explicitSubcategory)) return explicitSubcategory;
+    if (legacyCategory !== 'apparel' && SUBCATEGORIES.includes(legacyCategory)) return legacyCategory;
 
     if (tagNamesSubcategory(tags, 'headwear')) return 'headwear';
     if (tagNamesSubcategory(tags, 'drinkware')) return 'drinkware';
@@ -77,6 +79,7 @@
     if (/accessor|magnet|mouse-pad|rattle-add-on/.test(identity)) return 'accessories';
     if (/apparel|merch|shirt|tee|t-shirt|hoodie|sweatshirt|windbreaker|raglan/.test(identity)) return 'apparel';
 
+    if (legacyCategory === 'apparel') return 'apparel';
     if (optionNames.includes('size') && tags.includes('apparel')) return 'apparel';
     return 'jigs';
   }

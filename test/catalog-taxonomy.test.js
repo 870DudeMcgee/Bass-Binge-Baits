@@ -82,6 +82,24 @@ test('classifies all 36 current products while Shopify product types are migrate
   });
 });
 
+test('refines the live legacy apparel bucket into merchandise subcategories', () => {
+  const cases = [
+    ['bass-binge-hoodie', 'Bass Binge Hoodie', 'apparel'],
+    ['bass-binge-baits-hat', 'Bass Binge Baits hat', 'headwear'],
+    ['stainless-steel-water-bottle', 'Stainless steel water bottle', 'drinkware'],
+    ['lake-life-clear-tote-bag', 'Lake Life Clear tote bag', 'bags'],
+    ['magnet', 'Magnet', 'accessories']
+  ];
+
+  cases.forEach(([handle, title, expected]) => {
+    assert.equal(
+      taxonomy.subcategoryForProduct({ handle, title, category: 'apparel', productType: '', tags: [] }),
+      expected,
+      title
+    );
+  });
+});
+
 test('keeps legacy category consumers stable until the shop UI adopts departments', () => {
   assert.equal(taxonomy.categoryForProduct({ productType: 'Jig' }), 'jigs');
   assert.equal(taxonomy.categoryForProduct({ productType: 'Trailer' }), 'trailers');
