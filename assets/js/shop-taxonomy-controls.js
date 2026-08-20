@@ -51,6 +51,42 @@
     };
   }
 
+  function createShopRelevantFilters(options) {
+    var document = options.document;
+    var onReset = typeof options.onReset === 'function' ? options.onReset : function () {};
+    var controls = Array.from(document.querySelectorAll('[data-shop-filter-control]'));
+
+    function sync(selection, products) {
+      var activeProducts = Array.isArray(products) ? products : [];
+      var prices = activeProducts.map(function (product) { return Number(product.price); });
+      var underMatches = prices.some(function (price) { return price < 5.25; });
+      var underExcludes = prices.some(function (price) { return price >= 5.25; });
+      var fiveMatches = prices.some(function (price) { return price === 5; });
+      var fiveExcludes = prices.some(function (price) { return price !== 5; });
+
+      var relevant = {
+        'jig-profile': selection.subcategory === 'jigs',
+        color: activeProducts.some(function (product) { return product.hasColor; }),
+        price: (underMatches && underExcludes) || (fiveMatches && fiveExcludes),
+        availability: activeProducts.some(function (product) { return !product.checkoutReady; }),
+        size: selection.subcategory === 'apparel' && activeProducts.some(function (product) { return product.hasSize; })
+      };
+      var visible = [];
+
+      controls.forEach(function (control) {
+        var name = control.dataset.shopFilterControl;
+        var isRelevant = Boolean(relevant[name]);
+        control.hidden = !isRelevant;
+        if (isRelevant) visible.push(name);
+        else onReset(name);
+      });
+
+      return visible;
+    }
+
+    return { sync: sync };
+  }
+
   function createShopTaxonomyControls(options) {
     var document = options.document;
     var taxonomy = options.taxonomy;
@@ -126,6 +162,7 @@
 
   return {
     createShopFilterPanel: createShopFilterPanel,
+    createShopRelevantFilters: createShopRelevantFilters,
     createShopTaxonomyControls: createShopTaxonomyControls
   };
 });

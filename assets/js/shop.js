@@ -17,7 +17,6 @@
   var priceFilter = document.querySelector('[data-price-filter]');
   var availabilityFilter = document.querySelector('[data-availability-filter]');
   var sizeFilter = document.querySelector('[data-size-filter]');
-  var sizeFilterWrap = document.querySelector('[data-size-filter-wrap]');
   var legacyCategory = taxonomy.shopCategoryFromPath(root.location && root.location.pathname);
   var activeFilter = 'all';
   var activeColor = 'all';
@@ -37,6 +36,10 @@
       populateSizeFilter();
       applyProductFilters();
     }
+  });
+  var relevantFilters = shopTaxonomyControls.createShopRelevantFilters({
+    document: document,
+    onReset: resetFilterControl
   });
   shopTaxonomyControls.createShopFilterPanel({ document: document });
 
@@ -81,11 +84,56 @@
     if (kicker) kicker.textContent = copy[0];
     if (title) title.textContent = copy[1];
     if (intro) intro.textContent = copy[2];
-    var selection = taxonomyControls.getSelection();
-    var jigFilters = document.querySelector('[data-jig-filters]');
-    if (jigFilters) jigFilters.hidden = selection.subcategory !== 'jigs';
-    if (sizeFilterWrap) sizeFilterWrap.hidden = selection.subcategory !== 'apparel';
     document.body.dataset.shopCategory = currentShopKey();
+    syncRelevantFilters();
+  }
+
+  function resetFilterControl(name) {
+    if (name === 'jig-profile') {
+      activeFilter = 'all';
+      filterButtons.forEach(function (button) {
+        var selected = button.dataset.productFilter === 'all';
+        button.classList.toggle('active', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+    }
+    if (name === 'color') {
+      activeColor = 'all';
+      if (colorFilter) colorFilter.value = 'all';
+    }
+    if (name === 'price') {
+      activePrice = 'all';
+      if (priceFilter) priceFilter.value = 'all';
+    }
+    if (name === 'availability') {
+      activeAvailability = 'all';
+      if (availabilityFilter) availabilityFilter.value = 'all';
+    }
+    if (name === 'size') {
+      activeSize = 'all';
+      if (sizeFilter) sizeFilter.value = 'all';
+    }
+  }
+
+  function activeProductFilterData() {
+    return catalog.listProducts().filter(function (product) {
+      return product.shopVisible !== false && isCurrentCategory(product);
+    }).map(function (product) {
+      var admitted = catalog.getAdmittedProduct(product.handle);
+      var optionNames = (admitted && admitted.options || []).map(function (option) {
+        return taxonomy.normalizeKey(option.name);
+      });
+      return {
+        hasColor: Boolean(product.colors.length || optionNames.some(function (name) { return name.indexOf('color') >= 0; })),
+        hasSize: optionNames.includes('size'),
+        price: Number(product.basePrice),
+        checkoutReady: hasCheckoutableDefault(product)
+      };
+    });
+  }
+
+  function syncRelevantFilters() {
+    relevantFilters.sync(taxonomyControls.getSelection(), activeProductFilterData());
   }
 
   function selectedColor(product, select) {

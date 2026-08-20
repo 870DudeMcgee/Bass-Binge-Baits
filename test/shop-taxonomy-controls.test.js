@@ -6,10 +6,12 @@ const path = require('node:path');
 const test = require('node:test');
 
 const taxonomy = require('../assets/js/catalog-taxonomy.js');
+const shopTaxonomyControls = require('../assets/js/shop-taxonomy-controls.js');
 const {
   createShopFilterPanel,
+  createShopRelevantFilters,
   createShopTaxonomyControls
-} = require('../assets/js/shop-taxonomy-controls.js');
+} = shopTaxonomyControls;
 const shopHtml = fs.readFileSync(path.resolve(__dirname, '..', 'shop.html'), 'utf8');
 
 class FakeButton {
@@ -102,6 +104,20 @@ function makeHarness() {
   return { document, departments, subcategories, subcategoryGroup };
 }
 
+function makeRelevantFiltersHarness() {
+  const controls = ['jig-profile', 'color', 'price', 'availability', 'size'].map((name) => ({
+    dataset: { shopFilterControl: name },
+    hidden: false
+  }));
+  const document = {
+    querySelectorAll(selector) {
+      return selector === '[data-shop-filter-control]' ? controls : [];
+    }
+  };
+
+  return { controls, document };
+}
+
 test('department and subcategory buttons filter products on the same shop view', () => {
   const harness = makeHarness();
   let changes = 0;
@@ -137,6 +153,41 @@ test('department and subcategory buttons filter products on the same shop view',
   assert.equal(controls.matchesProduct({ productType: 'Apparel' }), false);
   assert.equal(controls.matchesProduct({ productType: 'Headwear' }), true);
   assert.equal(changes, 2);
+});
+
+test('active taxonomy exposes at most four relevant filters and resets hidden constraints', () => {
+  const harness = makeRelevantFiltersHarness();
+  const resets = [];
+  const filters = createShopRelevantFilters({
+    document: harness.document,
+    onReset(name) { resets.push(name); }
+  });
+
+  const jigFilters = filters.sync(
+    { department: 'fishing', subcategory: 'jigs' },
+    [
+      { hasColor: true, hasSize: false, price: 5, checkoutReady: true },
+      { hasColor: true, hasSize: false, price: 10, checkoutReady: false }
+    ]
+  );
+
+  assert.deepEqual(jigFilters, ['jig-profile', 'color', 'price', 'availability']);
+  assert.equal(jigFilters.length <= 4, true);
+  assert.equal(harness.controls.find((control) => control.dataset.shopFilterControl === 'size').hidden, true);
+  assert.deepEqual(resets, ['size']);
+
+  resets.length = 0;
+  const apparelFilters = filters.sync(
+    { department: 'lifestyle-and-gear', subcategory: 'apparel' },
+    [
+      { hasColor: true, hasSize: true, price: 25, checkoutReady: true },
+      { hasColor: true, hasSize: true, price: 30, checkoutReady: true }
+    ]
+  );
+
+  assert.deepEqual(apparelFilters, ['color', 'size']);
+  assert.equal(apparelFilters.length <= 4, true);
+  assert.deepEqual(resets, ['jig-profile', 'price', 'availability']);
 });
 
 test('Filters button exposes one accessible same-page panel', () => {
@@ -188,6 +239,10 @@ test('shop markup keeps one main Shop link and exposes exactly the approved cont
   assert.match(
     shopHtml,
     /id="shop-filter-panel"[^>]*data-shop-filters-panel[^>]*aria-hidden="true"[^>]*inert[^]*data-jig-filters[^]*shop-refiners/
+  );
+  assert.deepEqual(
+    Array.from(shopHtml.matchAll(/data-shop-filter-control="([^"]+)"/g), (match) => match[1]),
+    ['jig-profile', 'color', 'price', 'availability', 'size']
   );
   assert.match(
     shopHtml,

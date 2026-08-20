@@ -85,20 +85,20 @@
           </label>
           <button class="btn btn-secondary shop-filter-toggle" id="shop-filter-toggle" type="button" data-shop-filters-toggle aria-controls="shop-filter-panel" aria-expanded="false">Filters</button>
           <div class="shop-filter-panel" id="shop-filter-panel" data-shop-filters-panel role="region" aria-labelledby="shop-filter-toggle" aria-hidden="true" inert>
-            <div class="shop-filters shop-secondary-control" aria-label="Filter by jig type" data-jig-filters>
+            <div class="shop-filters shop-secondary-control" aria-label="Filter by jig type" data-jig-filters data-shop-filter-control="jig-profile" hidden>
               <button class="filter-chip active" type="button" data-product-filter="all" aria-pressed="true">All Jigs</button>
               <button class="filter-chip" type="button" data-product-filter="football">Football</button>
               <button class="filter-chip" type="button" data-product-filter="peewee">PeeWee</button>
               <button class="filter-chip" type="button" data-product-filter="heavy">Heavy Cover</button>
             </div>
             <div class="shop-refiners shop-secondary-control" aria-label="Additional product filters">
-              <label>
+              <label data-shop-filter-control="color" hidden>
                 <span>Color</span>
                 <select data-color-filter>
                   <option value="all">All checkout-ready colors</option>
                 </select>
               </label>
-              <label>
+              <label data-shop-filter-control="price" hidden>
                 <span>Price</span>
                 <select data-price-filter>
                   <option value="all">All prices</option>
@@ -106,14 +106,14 @@
                   <option value="5">Exactly $5.00</option>
                 </select>
               </label>
-              <label>
+              <label data-shop-filter-control="availability" hidden>
                 <span>Availability</span>
                 <select data-availability-filter>
                   <option value="checkout-ready">Checkout-ready only</option>
                   <option value="all">Show all colors</option>
                 </select>
               </label>
-              <label data-size-filter-wrap hidden>
+              <label data-size-filter-wrap data-shop-filter-control="size" hidden>
                 <span>Size</span>
                 <select data-size-filter>
                   <option value="all">All sizes</option>
