@@ -1933,9 +1933,14 @@ select:focus,
 }
 
 .co-brand-badge strong {
+  display: block;
   color: var(--ink);
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.co-brand-badge .co-brand-detail {
+  display: block;
 }
 
 @media (max-width: 900px) {

@@ -103,7 +103,7 @@ test('a color-only Shopify product is quick-addable without inventing a jig weig
   const product = {
     handle: 'chopped-craw-6-pack',
     title: 'Chopped Craw (6 pack)',
-    descriptionHtml: '<p>Soft plastic craws, pack of 6.</p>',
+    descriptionHtml: '<p>Jewell Baits Craw trimmed perfectly for finesse needs.</p>',
     vendor: 'Bass Binge Baits',
     productType: '',
     media: [{
@@ -140,6 +140,7 @@ test('a color-only Shopify product is quick-addable without inventing a jig weig
 
   assert.equal(projected.detailOnly, false);
   assert.equal(projected.category, 'trailers');
+  assert.equal(projected.description, 'Jewel Bait Company Craw trimmed perfectly for finesse needs.');
   assert.equal(projected.defaultWeightKey, null);
   assert.deepEqual(projected.weights, []);
   assert.deepEqual(

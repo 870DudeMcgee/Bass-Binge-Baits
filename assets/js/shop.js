@@ -506,10 +506,12 @@
   }
 
   function createProductCard(product) {
+    var productCategory = taxonomy.categoryForProduct(product);
+    var isJewelCraw = product.handle === 'chopped-craw-6-pack';
     var card = document.createElement('article');
     card.className = 'product-card';
     card.dataset.shopProduct = product.key;
-    card.dataset.productCategory = taxonomy.categoryForProduct(product);
+    card.dataset.productCategory = productCategory;
 
     var media = document.createElement('div');
     media.className = 'product-media';
@@ -541,16 +543,22 @@
 
     if (product.description) {
       var desc = document.createElement('p');
-      desc.textContent = product.description;
+      desc.textContent = isJewelCraw
+        ? product.description.replace(/\bJewell? Baits\b/gi, 'Jewel Bait Company')
+        : product.description;
       card.appendChild(desc);
     }
 
-    if (taxonomy.categoryForProduct(product) === 'jigs') {
+    var isJig = productCategory === 'jigs';
+    if (isJig || isJewelCraw) {
       var coBrand = document.createElement('div');
       coBrand.className = 'co-brand-badge';
       coBrand.innerHTML = '<img src="' + catalog.assetPath('assets/img/jewel-bait-logo.png') + '" alt="Jewel Bait Company" />' +
-        '<div><strong>Built with Jewel Bait Company jigheads</strong>' +
-        '<span class="co-brand-detail">Crafting quality fishing components in the Ozarks</span></div>';
+        (isJewelCraw
+          ? '<div><strong>Jewel Finesse Craw</strong>' +
+            '<span class="co-brand-detail">Made by Jewel Bait Company for finesse presentations</span></div>'
+          : '<div><strong>Built with Jewel Bait Company jigheads</strong>' +
+            '<span class="co-brand-detail">Crafting quality fishing components in the Ozarks</span></div>');
       card.appendChild(coBrand);
     }
 

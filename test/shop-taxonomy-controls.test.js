@@ -13,6 +13,7 @@ const {
   createShopTaxonomyControls
 } = shopTaxonomyControls;
 const shopHtml = fs.readFileSync(path.resolve(__dirname, '..', 'shop.html'), 'utf8');
+const shopJs = fs.readFileSync(path.resolve(__dirname, '..', 'assets/js/shop.js'), 'utf8');
 
 class FakeButton {
   constructor(dataset) {
@@ -248,4 +249,13 @@ test('shop markup keeps one main Shop link and exposes exactly the approved cont
     shopHtml,
     /catalog-taxonomy\.js[^]*shop-taxonomy-controls\.js[^]*shop\.js/
   );
+});
+
+test('Chopped Craw shop cards reuse the established Jewel co-brand treatment', () => {
+  assert.match(shopJs, /chopped-craw-6-pack/);
+  assert.match(shopJs, /Jewell\? Baits/);
+  assert.match(shopJs, /Jewel Bait Company/);
+  assert.match(shopJs, /assets\/img\/jewel-bait-logo\.png/);
+  assert.match(shopJs, /Jewel Finesse Craw/);
+  assert.match(shopJs, /Made by Jewel Bait Company for finesse presentations/);
 });
