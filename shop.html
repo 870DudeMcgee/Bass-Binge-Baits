@@ -83,41 +83,43 @@
             <span>Find a product</span>
             <input type="search" data-product-search placeholder="Search products" autocomplete="off" />
           </label>
-          <button class="btn btn-secondary shop-filter-toggle" type="button" data-shop-filters-toggle aria-expanded="false">Filters</button>
-          <div class="shop-filters shop-secondary-control" aria-label="Filter by jig type" data-jig-filters>
-            <button class="filter-chip active" type="button" data-product-filter="all" aria-pressed="true">All Jigs</button>
-            <button class="filter-chip" type="button" data-product-filter="football">Football</button>
-            <button class="filter-chip" type="button" data-product-filter="peewee">PeeWee</button>
-            <button class="filter-chip" type="button" data-product-filter="heavy">Heavy Cover</button>
-          </div>
-          <div class="shop-refiners shop-secondary-control" aria-label="Additional product filters">
-            <label>
-              <span>Color</span>
-              <select data-color-filter>
-                <option value="all">All checkout-ready colors</option>
-              </select>
-            </label>
-            <label>
-              <span>Price</span>
-              <select data-price-filter>
-                <option value="all">All prices</option>
-                <option value="under-525">Under $5.25</option>
-                <option value="5">Exactly $5.00</option>
-              </select>
-            </label>
-            <label>
-              <span>Availability</span>
-              <select data-availability-filter>
-                <option value="checkout-ready">Checkout-ready only</option>
-                <option value="all">Show all colors</option>
-              </select>
-            </label>
-            <label data-size-filter-wrap hidden>
-              <span>Size</span>
-              <select data-size-filter>
-                <option value="all">All sizes</option>
-              </select>
-            </label>
+          <button class="btn btn-secondary shop-filter-toggle" id="shop-filter-toggle" type="button" data-shop-filters-toggle aria-controls="shop-filter-panel" aria-expanded="false">Filters</button>
+          <div class="shop-filter-panel" id="shop-filter-panel" data-shop-filters-panel role="region" aria-labelledby="shop-filter-toggle" aria-hidden="true" inert>
+            <div class="shop-filters shop-secondary-control" aria-label="Filter by jig type" data-jig-filters>
+              <button class="filter-chip active" type="button" data-product-filter="all" aria-pressed="true">All Jigs</button>
+              <button class="filter-chip" type="button" data-product-filter="football">Football</button>
+              <button class="filter-chip" type="button" data-product-filter="peewee">PeeWee</button>
+              <button class="filter-chip" type="button" data-product-filter="heavy">Heavy Cover</button>
+            </div>
+            <div class="shop-refiners shop-secondary-control" aria-label="Additional product filters">
+              <label>
+                <span>Color</span>
+                <select data-color-filter>
+                  <option value="all">All checkout-ready colors</option>
+                </select>
+              </label>
+              <label>
+                <span>Price</span>
+                <select data-price-filter>
+                  <option value="all">All prices</option>
+                  <option value="under-525">Under $5.25</option>
+                  <option value="5">Exactly $5.00</option>
+                </select>
+              </label>
+              <label>
+                <span>Availability</span>
+                <select data-availability-filter>
+                  <option value="checkout-ready">Checkout-ready only</option>
+                  <option value="all">Show all colors</option>
+                </select>
+              </label>
+              <label data-size-filter-wrap hidden>
+                <span>Size</span>
+                <select data-size-filter>
+                  <option value="all">All sizes</option>
+                </select>
+              </label>
+            </div>
           </div>
           <button class="btn btn-secondary shop-cart-shortcut" type="button" data-cart-open>
             View Cart <span data-cart-summary-count>0 items</span>

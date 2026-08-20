@@ -15,6 +15,42 @@
     'lifestyle-and-gear': 'Lifestyle & Gear'
   };
 
+  function createShopFilterPanel(options) {
+    var document = options.document;
+    var toggle = document.querySelector('[data-shop-filters-toggle]');
+    var panel = document.querySelector('[data-shop-filters-panel]');
+    var shopTools = document.querySelector('.shop-tools');
+
+    if (!toggle || !panel || !shopTools) return null;
+
+    function setOpen(open) {
+      toggle.setAttribute('aria-controls', panel.id);
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.textContent = open ? 'Hide filters' : 'Filters';
+      panel.setAttribute('aria-hidden', String(!open));
+      if (open) panel.removeAttribute('inert');
+      else panel.setAttribute('inert', '');
+      shopTools.classList.toggle('filters-open', open);
+    }
+
+    toggle.addEventListener('click', function () {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || toggle.getAttribute('aria-expanded') !== 'true') return;
+      setOpen(false);
+      if (typeof toggle.focus === 'function') toggle.focus();
+    });
+
+    setOpen(false);
+
+    return {
+      close: function () { setOpen(false); },
+      open: function () { setOpen(true); }
+    };
+  }
+
   function createShopTaxonomyControls(options) {
     var document = options.document;
     var taxonomy = options.taxonomy;
@@ -89,6 +125,7 @@
   }
 
   return {
+    createShopFilterPanel: createShopFilterPanel,
     createShopTaxonomyControls: createShopTaxonomyControls
   };
 });

@@ -18,8 +18,6 @@
   var availabilityFilter = document.querySelector('[data-availability-filter]');
   var sizeFilter = document.querySelector('[data-size-filter]');
   var sizeFilterWrap = document.querySelector('[data-size-filter-wrap]');
-  var filterToggle = document.querySelector('[data-shop-filters-toggle]');
-  var shopTools = document.querySelector('.shop-tools');
   var legacyCategory = taxonomy.shopCategoryFromPath(root.location && root.location.pathname);
   var activeFilter = 'all';
   var activeColor = 'all';
@@ -40,6 +38,7 @@
       applyProductFilters();
     }
   });
+  shopTaxonomyControls.createShopFilterPanel({ document: document });
 
   function isCurrentCategory(product) {
     return taxonomyControls.matchesProduct(product);
@@ -646,15 +645,6 @@
     sizeFilter.addEventListener('change', function () {
       activeSize = sizeFilter.value;
       applyProductFilters();
-    });
-  }
-
-  if (filterToggle && shopTools) {
-    filterToggle.addEventListener('click', function () {
-      var expanded = filterToggle.getAttribute('aria-expanded') === 'true';
-      filterToggle.setAttribute('aria-expanded', String(!expanded));
-      shopTools.classList.toggle('filters-open', !expanded);
-      filterToggle.textContent = expanded ? 'Filters' : 'Hide filters';
     });
   }
 

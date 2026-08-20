@@ -6,7 +6,10 @@ const path = require('node:path');
 const test = require('node:test');
 
 const taxonomy = require('../assets/js/catalog-taxonomy.js');
-const { createShopTaxonomyControls } = require('../assets/js/shop-taxonomy-controls.js');
+const {
+  createShopFilterPanel,
+  createShopTaxonomyControls
+} = require('../assets/js/shop-taxonomy-controls.js');
 const shopHtml = fs.readFileSync(path.resolve(__dirname, '..', 'shop.html'), 'utf8');
 
 class FakeButton {
@@ -25,9 +28,47 @@ class FakeButton {
     this.attributes[name] = String(value);
   }
 
+  getAttribute(name) {
+    return this.attributes[name] || null;
+  }
+
+  removeAttribute(name) {
+    delete this.attributes[name];
+  }
+
   click() {
     this.listeners.click();
   }
+}
+
+function makeFilterPanelHarness() {
+  const toggle = new FakeButton({});
+  toggle.textContent = 'Filters';
+  const panel = new FakeButton({});
+  panel.id = 'shop-filter-panel';
+  const shopTools = {
+    classes: new Set(),
+    classList: {
+      toggle(name, force) {
+        if (force) shopTools.classes.add(name);
+        else shopTools.classes.delete(name);
+      }
+    }
+  };
+  const document = {
+    listeners: {},
+    querySelector(selector) {
+      if (selector === '[data-shop-filters-toggle]') return toggle;
+      if (selector === '[data-shop-filters-panel]') return panel;
+      if (selector === '.shop-tools') return shopTools;
+      return null;
+    },
+    addEventListener(type, listener) {
+      this.listeners[type] = listener;
+    }
+  };
+
+  return { document, panel, shopTools, toggle };
 }
 
 function makeHarness() {
@@ -98,6 +139,31 @@ test('department and subcategory buttons filter products on the same shop view',
   assert.equal(changes, 2);
 });
 
+test('Filters button exposes one accessible same-page panel', () => {
+  const harness = makeFilterPanelHarness();
+  createShopFilterPanel({ document: harness.document });
+
+  assert.equal(harness.toggle.attributes['aria-controls'], 'shop-filter-panel');
+  assert.equal(harness.toggle.attributes['aria-expanded'], 'false');
+  assert.equal(harness.panel.attributes['aria-hidden'], 'true');
+  assert.equal(harness.panel.attributes.inert, '');
+
+  harness.toggle.click();
+
+  assert.equal(harness.toggle.attributes['aria-expanded'], 'true');
+  assert.equal(harness.toggle.textContent, 'Hide filters');
+  assert.equal(harness.panel.attributes['aria-hidden'], 'false');
+  assert.equal(harness.panel.attributes.inert, undefined);
+  assert.equal(harness.shopTools.classes.has('filters-open'), true);
+
+  harness.document.listeners.keydown({ key: 'Escape' });
+
+  assert.equal(harness.toggle.attributes['aria-expanded'], 'false');
+  assert.equal(harness.panel.attributes['aria-hidden'], 'true');
+  assert.equal(harness.panel.attributes.inert, '');
+  assert.equal(harness.shopTools.classes.has('filters-open'), false);
+});
+
 test('shop markup keeps one main Shop link and exposes exactly the approved controls', () => {
   const mainNavigation = shopHtml.match(/<nav class="nav-links"[\s\S]*?<\/nav>/)[0];
   const departmentValues = Array.from(
@@ -116,6 +182,13 @@ test('shop markup keeps one main Shop link and exposes exactly the approved cont
     ['jigs', 'trailers', 'apparel', 'headwear', 'drinkware', 'bags', 'accessories']
   );
   assert.doesNotMatch(shopHtml, /data-shop-category-link/);
+  assert.equal((shopHtml.match(/data-shop-filters-toggle/g) || []).length, 1);
+  assert.equal((shopHtml.match(/data-shop-filters-panel/g) || []).length, 1);
+  assert.match(shopHtml, /data-shop-filters-toggle[^>]*aria-controls="shop-filter-panel"/);
+  assert.match(
+    shopHtml,
+    /id="shop-filter-panel"[^>]*data-shop-filters-panel[^>]*aria-hidden="true"[^>]*inert[^]*data-jig-filters[^]*shop-refiners/
+  );
   assert.match(
     shopHtml,
     /catalog-taxonomy\.js[^]*shop-taxonomy-controls\.js[^]*shop\.js/

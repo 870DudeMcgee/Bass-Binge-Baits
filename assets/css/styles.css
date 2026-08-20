@@ -1096,8 +1096,9 @@ body.product-zoom-open {
 }
 
 .shop-tools {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(220px, 0.8fr) minmax(280px, 1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
   gap: var(--space-3);
   align-items: end;
   margin-top: var(--space-4);
@@ -1109,7 +1110,7 @@ body.product-zoom-open {
 }
 
 body[data-shop-category="apparel"] .shop-tools {
-  grid-template-columns: minmax(220px, 0.8fr) minmax(440px, 1.4fr) minmax(220px, 0.8fr);
+  grid-template-columns: minmax(240px, 1fr) auto auto;
 }
 
 .shop-taxonomy-nav {
@@ -1155,7 +1156,39 @@ body[data-shop-category="apparel"] .shop-tools {
 }
 
 .shop-filter-toggle {
-  display: none;
+  display: inline-flex;
+  justify-content: center;
+  min-width: 116px;
+}
+
+.shop-filter-panel {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  width: min(460px, 100%);
+  max-height: min(70vh, 560px);
+  gap: var(--space-3);
+  overflow: auto;
+  padding: var(--space-3);
+  border: 1px solid rgba(17, 40, 59, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 42px rgba(17, 40, 59, 0.2);
+  opacity: 0;
+  transform: translateY(-0.65rem);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+}
+
+.shop-tools.filters-open .shop-filter-panel {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .product-card > p:not(.quick-add-note) {
@@ -1228,12 +1261,12 @@ body[data-shop-category="apparel"] .shop-tools {
 
 .shop-refiners {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem;
 }
 
 body[data-shop-category="apparel"] .shop-refiners {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .shop-refiners label {
@@ -2081,15 +2114,6 @@ select:focus,
 
   body[data-shop-category="apparel"] .shop-tools {
     grid-template-columns: 1fr;
-  }
-
-  .shop-filter-toggle {
-    display: inline-flex;
-    justify-content: center;
-  }
-
-  .shop-tools:not(.filters-open) .shop-secondary-control {
-    display: none;
   }
 
   .shop-refiners {
