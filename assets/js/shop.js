@@ -4,8 +4,9 @@
   var catalog = root.BassBingeCatalog;
   var cart = root.BassBingeCart;
   var taxonomy = root.BassBingeTaxonomy;
+  var shopTaxonomyControls = root.BassBingeShopTaxonomyControls;
 
-  if (!catalog || !cart || !taxonomy) return;
+  if (!catalog || !cart || !taxonomy || !shopTaxonomyControls) return;
 
   function init() {
 
@@ -19,38 +20,73 @@
   var sizeFilterWrap = document.querySelector('[data-size-filter-wrap]');
   var filterToggle = document.querySelector('[data-shop-filters-toggle]');
   var shopTools = document.querySelector('.shop-tools');
-  var currentCategory = taxonomy.shopCategoryFromPath(root.location && root.location.pathname);
+  var legacyCategory = taxonomy.shopCategoryFromPath(root.location && root.location.pathname);
   var activeFilter = 'all';
   var activeColor = 'all';
   var activePrice = 'all';
   var activeAvailability = 'checkout-ready';
   var activeSize = 'all';
+  var initialDepartment = legacyCategory === 'apparel' ? 'lifestyle-and-gear' : 'fishing';
+  var initialSubcategory = legacyCategory === 'all' ? null : legacyCategory;
+  var taxonomyControls = shopTaxonomyControls.createShopTaxonomyControls({
+    document: document,
+    taxonomy: taxonomy,
+    initialDepartment: initialDepartment,
+    initialSubcategory: initialSubcategory,
+    onChange: function () {
+      configureShopView();
+      populateColorFilter();
+      populateSizeFilter();
+      applyProductFilters();
+    }
+  });
 
   function isCurrentCategory(product) {
-    return currentCategory === 'all' || taxonomy.categoryForProduct(product) === currentCategory;
+    return taxonomyControls.matchesProduct(product);
+  }
+
+  function currentShopKey() {
+    var selection = taxonomyControls.getSelection();
+    return selection.subcategory || selection.department;
+  }
+
+  function currentShopLabel() {
+    return {
+      fishing: 'Fishing products',
+      'lifestyle-and-gear': 'Lifestyle & Gear products',
+      jigs: 'Jigs',
+      trailers: 'Trailers',
+      apparel: 'Apparel',
+      headwear: 'Headwear',
+      drinkware: 'Drinkware',
+      bags: 'Bags',
+      accessories: 'Accessories'
+    }[currentShopKey()];
   }
 
   function configureShopView() {
     var copy = {
-      all: ['Shop', 'Find the right gear for your next day on the water.', 'Browse jigs, trailers, and Bass Binge apparel and gear.'],
+      fishing: ['Shop Fishing', 'Build your box with proven Bass Binge profiles.', 'Browse jigs and trailers without leaving the shop.'],
+      'lifestyle-and-gear': ['Shop Lifestyle & Gear', 'Rep Bass Binge on and off the water.', 'Browse apparel, headwear, drinkware, bags, and accessories.'],
       jigs: ['Shop Jigs', 'Build your box with proven Bass Binge profiles.', 'Choose a profile, weight, and checkout-ready color for the water you fish.'],
       trailers: ['Shop Jig Trailers', 'Complete your finesse presentation.', 'Pair a Chopped Craw with a + Series jig or stock up for your favorite finesse rig.'],
-      apparel: ['Shop Apparel & Gear', 'Rep Bass Binge on and off the water.', 'Choose options on each product page, then check out securely with Shopify.']
-    }[currentCategory];
+      apparel: ['Shop Apparel', 'Rep Bass Binge on and off the water.', 'Choose options on each product page, then check out securely with Shopify.'],
+      headwear: ['Shop Headwear', 'Top off your Bass Binge kit.', 'Choose your headwear, then check out securely with Shopify.'],
+      drinkware: ['Shop Drinkware', 'Keep Bass Binge close between casts.', 'Choose your drinkware, then check out securely with Shopify.'],
+      bags: ['Shop Bags', 'Carry your Bass Binge gear.', 'Choose your bag, then check out securely with Shopify.'],
+      accessories: ['Shop Accessories', 'Round out your Bass Binge setup.', 'Choose your accessories, then check out securely with Shopify.']
+    }[currentShopKey()];
     var kicker = document.querySelector('[data-shop-kicker]');
     var title = document.querySelector('[data-shop-title]');
     var intro = document.querySelector('[data-shop-intro]');
     if (kicker) kicker.textContent = copy[0];
     if (title) title.textContent = copy[1];
     if (intro) intro.textContent = copy[2];
-    document.querySelectorAll('[data-shop-category-link]').forEach(function (link) {
-      if (link.dataset.shopCategoryLink === currentCategory) link.setAttribute('aria-current', 'page');
-      else link.removeAttribute('aria-current');
-    });
+    var selection = taxonomyControls.getSelection();
     var jigFilters = document.querySelector('[data-jig-filters]');
-    if (jigFilters) jigFilters.hidden = currentCategory !== 'jigs';
-    if (sizeFilterWrap) sizeFilterWrap.hidden = currentCategory !== 'apparel';
-    document.body.dataset.shopCategory = currentCategory;
+    if (jigFilters) jigFilters.hidden = selection.subcategory !== 'jigs';
+    if (sizeFilterWrap) sizeFilterWrap.hidden = selection.subcategory !== 'apparel';
+    document.body.dataset.shopCategory = currentShopKey();
   }
 
   function selectedColor(product, select) {
@@ -178,7 +214,7 @@
   }
 
   function populateSizeFilter() {
-    if (!sizeFilter || currentCategory !== 'apparel') return;
+    if (!sizeFilter || taxonomyControls.getSelection().subcategory !== 'apparel') return;
     var sizes = {};
     catalog.listProducts().filter(isCurrentCategory).forEach(function (product) {
       var admitted = catalog.getAdmittedProduct(product.handle);
@@ -533,11 +569,11 @@
       var matchesSearch = !query || haystack.indexOf(query) >= 0;
       var matchesCategory = product && isCurrentCategory(product);
       categoryProductCount += matchesCategory ? 1 : 0;
-      var matchesFilter = currentCategory !== 'jigs' || activeFilter === 'all' || haystack.indexOf(activeFilter) >= 0;
+      var matchesFilter = taxonomyControls.getSelection().subcategory !== 'jigs' || activeFilter === 'all' || haystack.indexOf(activeFilter) >= 0;
       var matchesColor = activeColor === 'all' || (product && hasColor(product, activeColor, activeAvailability === 'checkout-ready'));
       var matchesPrice = !product || priceMatches(product);
       var matchesAvailability = activeAvailability !== 'checkout-ready' || (product && hasCheckoutableDefault(product));
-      var matchesSize = !product || sizeMatches(product);
+      var matchesSize = taxonomyControls.getSelection().subcategory !== 'apparel' || !product || sizeMatches(product);
       var isVisible = matchesCategory && matchesSearch && matchesFilter && matchesColor && matchesPrice && matchesAvailability && matchesSize;
 
       card.hidden = !isVisible;
@@ -546,10 +582,8 @@
 
     if (productEmpty) {
       productEmpty.textContent = categoryProductCount
-        ? 'No ' + taxonomy.categoryLabel(currentCategory).toLowerCase() + ' match those filters.'
-        : currentCategory === 'apparel'
-          ? 'Apparel and gear are being prepared for online checkout. Please check back soon.'
-          : 'No ' + taxonomy.categoryLabel(currentCategory).toLowerCase() + ' are currently available online.';
+        ? 'No ' + currentShopLabel().toLowerCase() + ' match those filters.'
+        : 'No ' + currentShopLabel().toLowerCase() + ' are currently available online.';
       productEmpty.hidden = visibleCount > 0;
     }
   }

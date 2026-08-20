@@ -24,7 +24,7 @@
       href="https://fonts.googleapis.com/css2?family=Alegreya:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/assets/css/styles.css?v=20260802-shopcategories" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=20260820-shop-taxonomy" />
   </head>
   <body>
     <header class="site-header">
@@ -62,12 +62,21 @@
         <p class="hero-origin-sub">Made in Bull Shoals, AR— tested against the hardest water.</p>
         <p data-shop-intro>Browse jigs, trailers, and Bass Binge apparel and gear. Shopify handles secure payment, shipping, tax, and order confirmation.</p>
 
-        <nav class="shop-category-nav" aria-label="Shop categories">
-          <a href="/shop" data-shop-category-link="all">All Products</a>
-          <a href="/shop/jigs" data-shop-category-link="jigs">Jigs</a>
-          <a href="/shop/trailers" data-shop-category-link="trailers">Jig Trailers</a>
-          <a href="/shop/apparel" data-shop-category-link="apparel">Apparel &amp; Gear</a>
-        </nav>
+        <div class="shop-taxonomy-nav">
+          <div class="shop-department-nav" role="group" aria-label="Shop departments">
+            <button type="button" data-shop-department-button data-shop-department="fishing" aria-pressed="true">Fishing</button>
+            <button type="button" data-shop-department-button data-shop-department="lifestyle-and-gear" aria-pressed="false">Lifestyle &amp; Gear</button>
+          </div>
+          <div class="shop-subcategory-nav" role="group" aria-label="Fishing subcategories" data-shop-subcategory-controls>
+            <button class="filter-chip" type="button" data-shop-department="fishing" data-shop-subcategory="jigs" aria-pressed="false">Jigs</button>
+            <button class="filter-chip" type="button" data-shop-department="fishing" data-shop-subcategory="trailers" aria-pressed="false">Trailers</button>
+            <button class="filter-chip" type="button" data-shop-department="lifestyle-and-gear" data-shop-subcategory="apparel" aria-pressed="false" hidden>Apparel</button>
+            <button class="filter-chip" type="button" data-shop-department="lifestyle-and-gear" data-shop-subcategory="headwear" aria-pressed="false" hidden>Headwear</button>
+            <button class="filter-chip" type="button" data-shop-department="lifestyle-and-gear" data-shop-subcategory="drinkware" aria-pressed="false" hidden>Drinkware</button>
+            <button class="filter-chip" type="button" data-shop-department="lifestyle-and-gear" data-shop-subcategory="bags" aria-pressed="false" hidden>Bags</button>
+            <button class="filter-chip" type="button" data-shop-department="lifestyle-and-gear" data-shop-subcategory="accessories" aria-pressed="false" hidden>Accessories</button>
+          </div>
+        </div>
 
         <div class="shop-tools" aria-label="Shop controls">
           <label class="shop-search">
@@ -297,8 +306,9 @@
 
     <script src="/assets/js/catalog-taxonomy.js?v=20260802" defer></script>
     <script src="/assets/js/catalog.js?v=20260802-categories" defer></script>
+    <script src="/assets/js/shop-taxonomy-controls.js?v=20260820" defer></script>
     <script src="/assets/js/cart-checkout.js" defer></script>
     <script src="/assets/js/main.js?v=20260802-shopcategories" defer></script>
-    <script src="/assets/js/shop.js?v=20260802-categories" defer></script>
+    <script src="/assets/js/shop.js?v=20260820-shop-taxonomy" defer></script>
   </body>
 </html>

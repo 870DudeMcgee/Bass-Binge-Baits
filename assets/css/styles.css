@@ -1112,14 +1112,19 @@ body[data-shop-category="apparel"] .shop-tools {
   grid-template-columns: minmax(220px, 0.8fr) minmax(440px, 1.4fr) minmax(220px, 0.8fr);
 }
 
-.shop-category-nav {
+.shop-taxonomy-nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-2);
   margin-top: var(--space-4);
 }
 
-.shop-category-nav a {
+.shop-department-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.shop-department-nav button {
   display: grid;
   place-items: center;
   min-height: 64px;
@@ -1132,14 +1137,21 @@ body[data-shop-category="apparel"] .shop-tools {
   font-size: 1.1rem;
   font-weight: 700;
   text-align: center;
+  cursor: pointer;
 }
 
-.shop-category-nav a:hover,
-.shop-category-nav a:focus-visible,
-.shop-category-nav a[aria-current="page"] {
+.shop-department-nav button:hover,
+.shop-department-nav button:focus-visible,
+.shop-department-nav button[aria-pressed="true"] {
   border-color: var(--ink);
   background: var(--ink);
   color: var(--cream);
+}
+
+.shop-subcategory-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .shop-filter-toggle {
@@ -1254,6 +1266,7 @@ body[data-shop-category="apparel"] .shop-refiners {
 }
 
 .filter-chip.active,
+.filter-chip[aria-pressed="true"],
 .filter-chip:hover,
 .filter-chip:focus-visible {
   background: var(--ink);
@@ -2068,10 +2081,6 @@ select:focus,
 
   body[data-shop-category="apparel"] .shop-tools {
     grid-template-columns: 1fr;
-  }
-
-  .shop-category-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .shop-filter-toggle {
