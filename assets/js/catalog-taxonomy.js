@@ -25,33 +25,70 @@
     return (Array.isArray(product && product.tags) ? product.tags : []).map(normalizeKey);
   }
 
+  function hasAnyTerm(value, terms) {
+    var normalized = '-' + normalizeKey(value) + '-';
+    return terms.some(function (term) {
+      return normalized.includes('-' + normalizeKey(term) + '-');
+    });
+  }
+
+  function shopifyCategoryText(product) {
+    var category = product && product.shopifyCategory;
+    if (!category && product && product.category && typeof product.category === 'object') {
+      category = product.category;
+    }
+    if (!category || typeof category !== 'object') return '';
+    return [category].concat(Array.isArray(category.ancestors) ? category.ancestors : [])
+      .map(function (entry) { return entry && entry.name; })
+      .filter(Boolean)
+      .join(' ');
+  }
+
   function categoryForProduct(product) {
     if (!product) return 'jigs';
     if (CATEGORIES.indexOf(product.category) > 0) return product.category;
 
     var type = normalizeKey(product.productType);
     var tags = normalizedTags(product);
+    var shopifyCategory = shopifyCategoryText(product);
     var identity = normalizeKey([
       product.handle,
       product.key,
       product.title
     ].filter(Boolean).join(' '));
-    var optionNames = (product.optionNames || product.options || []).map(function (option) {
-      return normalizeKey(typeof option === 'string' ? option : option && option.name);
-    });
 
-    if (
-      tags.some(function (tag) { return /^(category-)?(apparel|merch|gear)$/.test(tag); }) ||
-      /apparel|merch|accessor|shirt|tee|t-shirt|hoodie|windbreaker|beanie|hat|cap|headwear|water-bottle|tumbler|magnet|mouse-pad/.test(type + ' ' + identity)
-    ) return 'apparel';
+    if (tags.some(function (tag) { return /^(category-)?(apparel|merch|gear)$/.test(tag); })) return 'apparel';
+    if (tags.some(function (tag) { return /^(category-)?(trailer|trailers|soft-plastic|soft-plastics)$/.test(tag); })) return 'trailers';
+    if (tags.some(function (tag) { return /^(category-)?jigs?$/.test(tag); })) return 'jigs';
 
-    if (
-      tags.some(function (tag) { return /^(category-)?(trailer|trailers|soft-plastic|soft-plastics)$/.test(tag); }) ||
-      /trailer|soft-plastic|chopped-craw|craw-pack/.test(type + ' ' + identity)
-    ) return 'trailers';
+    if (hasAnyTerm(shopifyCategory, ['soft-plastic-bait', 'soft-plastic-baits'])) return 'trailers';
+    if (hasAnyTerm(shopifyCategory, ['artificial-fishing-jig', 'artificial-fishing-jigs'])) return 'jigs';
+    if (hasAnyTerm(shopifyCategory, [
+      'apparel', 'clothing', 'drinkware', 'coffee', 'cup', 'cups', 'drink-sleeve',
+      'drink-sleeves', 'bottle-sleeve', 'bottle-sleeves', 'bag', 'bags'
+    ])) return 'apparel';
 
-    if (optionNames.includes('size') && tags.includes('apparel')) return 'apparel';
-    return 'jigs';
+    if (hasAnyTerm(type, [
+      'apparel', 'merch', 'gear', 'accessory', 'accessories', 'clothing', 'drinkware'
+    ])) return 'apparel';
+    if (hasAnyTerm(type, ['trailer', 'trailers', 'soft-plastic', 'soft-plastics'])) return 'trailers';
+    if (hasAnyTerm(type, ['jig', 'jigs'])) return 'jigs';
+
+    if (hasAnyTerm(identity, [
+      'apparel', 'merch', 'accessory', 'accessories', 'shirt', 'tee', 't-shirt',
+      'hoodie', 'sweatshirt', 'windbreaker', 'beanie', 'hat', 'cap', 'headwear',
+      'water-bottle', 'bottle', 'tumbler', 'magnet', 'mouse-pad', 'mug', 'cup',
+      'drinkware', 'koozie', 'can-cooler', 'drink-sleeve', 'bag', 'tote',
+      'keychain', 'sticker', 'decal', 'coaster'
+    ])) return 'apparel';
+    if (hasAnyTerm(identity, [
+      'trailer', 'trailers', 'soft-plastic', 'soft-plastics', 'chopped-craw', 'craw-pack'
+    ])) return 'trailers';
+    if (hasAnyTerm(identity, [
+      'jig', 'jigs', 'football', 'spider', 'finesse-jig', 'pee-wee-flip'
+    ])) return 'jigs';
+
+    return 'apparel';
   }
 
   function shopCategoryFromPath(pathname) {

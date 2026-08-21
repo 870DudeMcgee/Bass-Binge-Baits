@@ -51,6 +51,59 @@ test('CatalogEnvelope v2 preserves a Color-only product and exact variant money'
   assert.equal(envelope.outcomes.accepted.length, 1);
 });
 
+test('CatalogEnvelope v2 preserves Shopify standard taxonomy for storefront classification', () => {
+  const product = fixtureProduct({
+    category: {
+      id: 'gid://shopify/TaxonomyCategory/hg-11-10-5-2',
+      name: 'Coffee & Tea Cups',
+      ancestors: [
+        { id: 'gid://shopify/TaxonomyCategory/hg-11-10-5', name: 'Drinkware' },
+        { id: 'gid://shopify/TaxonomyCategory/hg', name: 'Home & Garden' }
+      ]
+    }
+  });
+
+  const envelope = normalizeCatalogEnvelope([product]);
+
+  assert.deepEqual(envelope.products[0].shopifyCategory, product.category);
+});
+
+test('live catalog ingestion requests Shopify taxonomy and routes a mug to Apparel & Gear', async () => {
+  const product = fixtureProduct({
+    handle: 'mug-with-color-inside-1',
+    title: 'Collector Vessel',
+    productType: '',
+    tags: [],
+    category: {
+      id: 'gid://shopify/TaxonomyCategory/hg-11-10-5-2',
+      name: 'Coffee & Tea Cups',
+      ancestors: [
+        { id: 'gid://shopify/TaxonomyCategory/hg-11-10-5', name: 'Drinkware' },
+        { id: 'gid://shopify/TaxonomyCategory/hg', name: 'Home & Garden' }
+      ]
+    }
+  });
+  const queries = [];
+
+  const catalog = await loadFreshCatalog({ headers: {} }, {
+    authenticated: true,
+    logger: { warn() {} },
+    storefrontRequest: async (query) => {
+      queries.push(query);
+      return {
+        products: {
+          edges: [{ cursor: 'mug-cursor', node: product }],
+          pageInfo: { hasNextPage: false, endCursor: 'mug-cursor' }
+        }
+      };
+    }
+  });
+
+  assert.match(queries[0], /category\s*\{\s*id\s+name\s+ancestors\s*\{\s*id\s+name\s*\}\s*\}/);
+  assert.equal(catalog.legacy.products[0].category, 'apparel');
+  assert.deepEqual(catalog.legacy.products[0].shopifyCategory, product.category);
+});
+
 test('CatalogEnvelope v2 removes Shopify default-title scaffolding for a product with no meaningful options', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/102',
