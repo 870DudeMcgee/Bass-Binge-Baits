@@ -36,6 +36,25 @@
     return (Array.isArray(product && product.tags) ? product.tags : []).map(normalizeKey);
   }
 
+  function hasAnyTerm(value, terms) {
+    var normalized = '-' + normalizeKey(value) + '-';
+    return terms.some(function (term) {
+      return normalized.includes('-' + normalizeKey(term) + '-');
+    });
+  }
+
+  function shopifyCategoryText(product) {
+    var category = product && product.shopifyCategory;
+    if (!category && product && product.category && typeof product.category === 'object') {
+      category = product.category;
+    }
+    if (!category || typeof category !== 'object') return '';
+    return [category].concat(Array.isArray(category.ancestors) ? category.ancestors : [])
+      .map(function (entry) { return entry && entry.name; })
+      .filter(Boolean)
+      .join(' ');
+  }
+
   function tagNamesSubcategory(tags, subcategory) {
     var singular = subcategory.replace(/s$/, '');
     return tags.some(function (tag) {
@@ -51,16 +70,13 @@
     var tags = normalizedTags(product);
     var explicitSubcategory = normalizeKey(product.subcategory);
     var legacyCategory = normalizeKey(product.category);
+    var shopifyCategory = shopifyCategoryText(product);
     var identity = normalizeKey([
       product.handle,
       product.key,
       product.title
     ].filter(Boolean).join(' '));
-    var optionNames = (product.optionNames || product.options || []).map(function (option) {
-      return normalizeKey(typeof option === 'string' ? option : option && option.name);
-    });
 
-    if (PRODUCT_TYPE_SUBCATEGORY[type]) return PRODUCT_TYPE_SUBCATEGORY[type];
     if (SUBCATEGORIES.includes(explicitSubcategory)) return explicitSubcategory;
     if (legacyCategory !== 'apparel' && SUBCATEGORIES.includes(legacyCategory)) return legacyCategory;
 
@@ -72,16 +88,31 @@
     if (tagNamesSubcategory(tags, 'trailers') || tags.includes('soft-plastic') || tags.includes('soft-plastics')) return 'trailers';
     if (tagNamesSubcategory(tags, 'jigs')) return 'jigs';
 
-    if (/trailer|soft-plastic|chopped-craw|craw-pack/.test(identity)) return 'trailers';
-    if (/beanie|hat|cap|headwear/.test(identity)) return 'headwear';
-    if (/water-bottle|tumbler|drinkware/.test(identity)) return 'drinkware';
-    if (/tote|bag|duffel|backpack/.test(identity)) return 'bags';
-    if (/accessor|magnet|mouse-pad|rattle-add-on/.test(identity)) return 'accessories';
-    if (/apparel|merch|shirt|tee|t-shirt|hoodie|sweatshirt|windbreaker|raglan/.test(identity)) return 'apparel';
+    if (hasAnyTerm(shopifyCategory, ['soft-plastic-bait', 'soft-plastic-baits'])) return 'trailers';
+    if (hasAnyTerm(shopifyCategory, ['artificial-fishing-jig', 'artificial-fishing-jigs'])) return 'jigs';
+    if (hasAnyTerm(shopifyCategory, ['headwear', 'hat', 'hats', 'cap', 'caps', 'beanie', 'beanies'])) return 'headwear';
+    if (hasAnyTerm(shopifyCategory, [
+      'drinkware', 'coffee', 'tea', 'cup', 'cups', 'mug', 'mugs', 'drink-sleeve',
+      'drink-sleeves', 'bottle-sleeve', 'bottle-sleeves'
+    ])) return 'drinkware';
+    if (hasAnyTerm(shopifyCategory, ['bag', 'bags', 'tote', 'totes', 'backpack', 'backpacks', 'luggage'])) return 'bags';
+    if (hasAnyTerm(shopifyCategory, ['apparel', 'clothing', 'shirt', 'shirts', 'outerwear', 'sweater', 'sweaters'])) return 'apparel';
+
+    if (PRODUCT_TYPE_SUBCATEGORY[type]) return PRODUCT_TYPE_SUBCATEGORY[type];
+
+    if (hasAnyTerm(identity, ['trailer', 'trailers', 'soft-plastic', 'soft-plastics', 'chopped-craw', 'craw-pack'])) return 'trailers';
+    if (hasAnyTerm(identity, ['beanie', 'hat', 'cap', 'headwear'])) return 'headwear';
+    if (hasAnyTerm(identity, [
+      'water-bottle', 'bottle', 'tumbler', 'drinkware', 'mug', 'mugs', 'cup', 'cups',
+      'koozie', 'koozies', 'can-cooler', 'drink-sleeve', 'beverage-holder'
+    ])) return 'drinkware';
+    if (hasAnyTerm(identity, ['tote', 'bag', 'duffel', 'backpack'])) return 'bags';
+    if (hasAnyTerm(identity, ['accessory', 'accessories', 'magnet', 'mouse-pad', 'rattle-add-on', 'keychain', 'sticker', 'decal', 'coaster'])) return 'accessories';
+    if (hasAnyTerm(identity, ['apparel', 'merch', 'shirt', 'tee', 't-shirt', 'hoodie', 'sweatshirt', 'windbreaker', 'raglan'])) return 'apparel';
+    if (hasAnyTerm(identity, ['jig', 'jigs', 'football', 'spider', 'finesse-jig', 'pee-wee-flip'])) return 'jigs';
 
     if (legacyCategory === 'apparel') return 'apparel';
-    if (optionNames.includes('size') && tags.includes('apparel')) return 'apparel';
-    return 'jigs';
+    return 'accessories';
   }
 
   function departmentForSubcategory(subcategory) {

@@ -324,6 +324,29 @@ test('CatalogEnvelope v2 enables jig rattle presentation for taxonomic jigs with
   assert.equal(envelope.products[0].presentation.rattleEnabled, true);
 });
 
+test('CatalogEnvelope v2 preserves Shopify taxonomy and blocks jig-only presentation on drinkware', () => {
+  const product = fixtureProduct({
+    id: 'gid://shopify/Product/115',
+    handle: 'collector-vessel',
+    title: 'Collector Vessel',
+    productType: '',
+    tags: [],
+    category: {
+      id: 'gid://shopify/TaxonomyCategory/hg-11-10-5-2',
+      name: 'Coffee & Tea Cups',
+      ancestors: [
+        { id: 'gid://shopify/TaxonomyCategory/hg-11-10-5', name: 'Drinkware' },
+        { id: 'gid://shopify/TaxonomyCategory/hg', name: 'Home & Garden' }
+      ]
+    }
+  });
+
+  const envelope = normalizeCatalogEnvelope([product]);
+
+  assert.deepEqual(envelope.products[0].shopifyCategory, product.category);
+  assert.equal(envelope.products[0].presentation.rattleEnabled, false);
+});
+
 test('CatalogEnvelope v2 admits a hidden Rattle Add-on without customer-facing media', () => {
   const product = fixtureProduct({
     id: 'gid://shopify/Product/114',

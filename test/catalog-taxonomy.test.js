@@ -24,7 +24,7 @@ test('maps every approved Shopify product type to its department and subcategory
   });
 });
 
-test('classifies all 36 current products while Shopify product types are migrated', () => {
+test('classifies the current catalog while Shopify product types are migrated', () => {
   const currentProducts = {
     apparel: [
       'Bass Binge Hoodie',
@@ -50,7 +50,10 @@ test('classifies all 36 current products while Shopify product types are migrate
     drinkware: [
       'Stainless steel water bottle',
       'Flip straw water bottle',
-      'Stainless steel tumbler'
+      'Stainless steel tumbler',
+      'Can cooler',
+      'Mug with Color Inside',
+      'White glossy mug'
     ],
     bags: [
       'Lake Life Clear tote bag',
@@ -75,11 +78,36 @@ test('classifies all 36 current products while Shopify product types are migrate
     titles.map((title) => ({ title, subcategory: taxonomy.subcategoryForProduct({ title }) }))
   );
 
-  assert.equal(classified.length, 36);
+  assert.equal(classified.length, 39);
   classified.forEach(({ title, subcategory }) => {
     const expected = Object.entries(currentProducts).find(([, titles]) => titles.includes(title))[0];
     assert.equal(subcategory, expected, title);
   });
+});
+
+test('uses Shopify standard taxonomy before marketing-title heuristics', () => {
+  assert.deepEqual(taxonomy.classificationForProduct({
+    title: 'Collector Vessel',
+    shopifyCategory: {
+      name: 'Coffee & Tea Cups',
+      ancestors: [{ name: 'Drinkware' }, { name: 'Kitchen & Dining' }]
+    }
+  }), { department: 'lifestyle-and-gear', subcategory: 'drinkware' });
+  assert.deepEqual(taxonomy.classificationForProduct({
+    title: 'Coffee Cup Football Jig',
+    shopifyCategory: { name: 'Artificial Fishing Jigs', ancestors: [] }
+  }), { department: 'fishing', subcategory: 'jigs' });
+  assert.deepEqual(taxonomy.classificationForProduct({
+    title: 'Football Jig Mug',
+    shopifyCategory: { name: 'Coffee & Tea Cups', ancestors: [{ name: 'Drinkware' }] }
+  }), { department: 'lifestyle-and-gear', subcategory: 'drinkware' });
+});
+
+test('unknown sellable products never silently inherit jig-only presentation', () => {
+  assert.deepEqual(
+    taxonomy.classificationForProduct({ title: 'Bass Binge Thing' }),
+    { department: 'lifestyle-and-gear', subcategory: 'accessories' }
+  );
 });
 
 test('refines the live legacy apparel bucket into merchandise subcategories', () => {
