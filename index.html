@@ -24,7 +24,7 @@
       href="https://fonts.googleapis.com/css2?family=Alegreya:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/css/styles.css?v=20260719-socialimages6" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20260904-catches" />
   </head>
   <body>
     <header class="site-header">
@@ -119,6 +119,64 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <section class="section catch-gallery" aria-labelledby="catch-gallery-title" data-catch-gallery>
+        <div class="container">
+          <div class="section-header-row">
+            <div>
+              <p class="section-kicker">From the Bass Binge community</p>
+              <h2 class="section-title" id="catch-gallery-title">Good days. Great catches.</h2>
+              <p>A few moments from the water, shared by our anglers.</p>
+            </div>
+            <div class="catch-controls" data-catch-controls hidden>
+              <button class="icon-button" type="button" data-catch-previous aria-label="Previous catch photos" aria-controls="catch-track">←</button>
+              <button class="icon-button" type="button" data-catch-next aria-label="Next catch photos" aria-controls="catch-track">→</button>
+            </div>
+          </div>
+          <div class="catch-track" id="catch-track" tabindex="0" role="region" aria-label="Customer catch photos. Scroll to explore all six photos.">
+              <a class="catch-card" href="assets/img/catches/6-Photo-6.jpg" data-catch-photo aria-label="Enlarge catch photo 1: An angler holding a bass on a boat beside a wooded shoreline">
+                <span class="catch-photo"><img src="assets/img/catches/6-Photo-6.jpg" alt="An angler holding a bass on a boat beside a wooded shoreline" loading="lazy" decoding="async" width="960" height="1280" /></span>
+                <span class="catch-card-label"><span>On the water</span><span aria-hidden="true">↗</span></span>
+              </a>
+              <a class="catch-card" href="assets/img/catches/3-Photo-3.jpg" data-catch-photo aria-label="Enlarge catch photo 2: Close-up of an angler holding a bass with a skirted jig in its mouth">
+                <span class="catch-photo catch-photo--letterboxed"><img src="assets/img/catches/3-Photo-3.jpg" alt="Close-up of an angler holding a bass with a skirted jig in its mouth" loading="lazy" decoding="async" width="590" height="1280" /></span>
+                <span class="catch-card-label"><span>On the water</span><span aria-hidden="true">↗</span></span>
+              </a>
+              <a class="catch-card" href="assets/img/catches/2-Photo-2.jpg" data-catch-photo aria-label="Enlarge catch photo 3: An angler showing a bass on a boat in clear lake water">
+                <span class="catch-photo catch-photo--letterboxed"><img src="assets/img/catches/2-Photo-2.jpg" alt="An angler showing a bass on a boat in clear lake water" loading="lazy" decoding="async" width="590" height="1280" /></span>
+                <span class="catch-card-label"><span>On the water</span><span aria-hidden="true">↗</span></span>
+              </a>
+              <a class="catch-card" href="assets/img/catches/4-Photo-4.jpg" data-catch-photo aria-label="Enlarge catch photo 4: An angler in a blue hoodie holding a bass on the lake">
+                <span class="catch-photo catch-photo--letterboxed"><img src="assets/img/catches/4-Photo-4.jpg" alt="An angler in a blue hoodie holding a bass on the lake" loading="lazy" decoding="async" width="590" height="1280" /></span>
+                <span class="catch-card-label"><span>On the water</span><span aria-hidden="true">↗</span></span>
+              </a>
+              <a class="catch-card" href="assets/img/catches/5-Photo-5.jpg" data-catch-photo aria-label="Enlarge catch photo 5: An angler wearing a headlamp holding a bass at night">
+                <span class="catch-photo"><img src="assets/img/catches/5-Photo-5.jpg" alt="An angler wearing a headlamp holding a bass at night" loading="lazy" decoding="async" width="960" height="1280" /></span>
+                <span class="catch-card-label"><span>On the water</span><span aria-hidden="true">↗</span></span>
+              </a>
+              <a class="catch-card" href="assets/img/catches/1-Photo-1.jpg" data-catch-photo aria-label="Enlarge catch photo 6: A bass with a skirted jig held above a rocky riverbank">
+                <span class="catch-photo"><img src="assets/img/catches/1-Photo-1.jpg" alt="A bass with a skirted jig held above a rocky riverbank" loading="lazy" decoding="async" width="591" height="1280" /></span>
+                <span class="catch-card-label"><span>On the water</span><span aria-hidden="true">↗</span></span>
+              </a>
+          </div>
+          <div class="catch-gallery-footer">
+            <span>Six catches from the community · Tap a photo for a closer look</span>
+            <a class="text-button" href="/contact">Share your catch →</a>
+          </div>
+        </div>
+        <dialog class="catch-lightbox" aria-label="Customer catch photo viewer" data-catch-dialog>
+          <div class="catch-lightbox-toolbar">
+            <span data-catch-counter aria-live="polite"></span>
+            <button class="icon-button" type="button" data-catch-close aria-label="Close photo viewer" autofocus>✕</button>
+          </div>
+          <div class="catch-lightbox-photo" data-catch-large-frame><img data-catch-large alt="" /></div>
+          <div class="catch-lightbox-footer">
+            <button class="icon-button" type="button" data-catch-large-previous aria-label="Previous catch photo">←</button>
+            <span>Out on the water</span>
+            <button class="icon-button" type="button" data-catch-large-next aria-label="Next catch photo">→</button>
+          </div>
+        </dialog>
       </section>
 
       <section class="section section-tight">
@@ -246,6 +304,7 @@
     <script src="assets/js/catalog.js?v=20260802-categories" defer></script>
     <script src="assets/js/cart-checkout.js?v=20260719-drop" defer></script>
     <script src="assets/js/limited-drop-gallery.js?v=20260727" defer></script>
+    <script src="assets/js/catch-gallery.js?v=20260904" defer></script>
     <script src="assets/js/main.js?v=20260727" defer></script>
   </body>
 </html>
