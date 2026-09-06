@@ -156,6 +156,41 @@
     return Promise.resolve(ready).then(callback, callback);
   }
 
+  function galleryMediaNode(doc, item, label, thumbnail) {
+    var node;
+    var imageUrl = item && item.image && item.image.url;
+    if (imageUrl && (!item.type || item.type === 'image')) {
+      node = doc.createElement('img');
+      node.src = imageUrl;
+      node.alt = thumbnail ? '' : label;
+      node.draggable = false;
+      node.addEventListener('error', function () {
+        var fallback = doc.createElement('span');
+        fallback.className = thumbnail ? 'product-gallery-media-label' : 'generic-media-placeholder';
+        fallback.textContent = thumbnail ? 'Image' : label + ' image unavailable';
+        node.replaceWith(fallback);
+      });
+      return node;
+    }
+    var sources = item && Array.isArray(item.sources) ? item.sources : [];
+    var source = sources.find(function (candidate) {
+      return candidate.url && (candidate.mimeType === 'video/mp4' || candidate.format === 'mp4');
+    }) || sources.find(function (candidate) { return candidate.url; });
+    if (!thumbnail && item && item.type === 'video' && source) {
+      node = doc.createElement('video');
+      node.controls = true;
+      node.playsInline = true;
+      node.preload = 'metadata';
+      node.src = source.url;
+      node.setAttribute('aria-label', label + ' video');
+      return node;
+    }
+    node = doc.createElement('span');
+    node.className = thumbnail ? 'product-gallery-media-label' : 'generic-media-placeholder';
+    node.textContent = thumbnail && item && item.type === 'video' ? '▶ Video' : thumbnail ? 'Media' : label + ' media unavailable';
+    return node;
+  }
+
   function mount(product, cart) {
     if (typeof document === 'undefined' || !product) return null;
 
@@ -489,6 +524,8 @@
       if (track) Array.from(track.children).forEach(function (slide, slideIndex) {
         slide.classList.toggle('active', slideIndex === mediaIndex);
         slide.hidden = slideIndex !== mediaIndex;
+        var video = slide.querySelector('video');
+        if (video && slide.hidden) video.pause();
       });
       if (thumbs) Array.from(thumbs.children).forEach(function (thumb, thumbIndex) {
         thumb.classList.toggle('active', thumbIndex === mediaIndex);
@@ -505,20 +542,9 @@
     }
 
     function appendMedia(slide, item) {
-      var node;
       var label = item && item.alt || product.title;
-      if (item && item.type === 'image' && item.image && item.image.url) {
-        node = document.createElement('img');
-        node.src = item.image.url;
-        node.alt = label;
-        node.loading = 'eager';
-        node.draggable = false;
-        node.addEventListener('load', updateZoomScales);
-      } else {
-        node = document.createElement('div');
-        node.className = 'generic-media-placeholder';
-        node.textContent = label + ' media unavailable';
-      }
+      var node = galleryMediaNode(document, item, label, false);
+      if (node.tagName === 'IMG') node.addEventListener('load', updateZoomScales);
       slide.appendChild(node);
     }
 
@@ -529,15 +555,12 @@
       media.forEach(function (item, index) {
         var slide = document.createElement('div');
         var thumb = document.createElement('button');
-        var image = document.createElement('img');
         slide.className = 'product-gallery-slide';
         appendMedia(slide, item);
         thumb.type = 'button';
         thumb.className = 'product-gallery-thumb';
-        thumb.setAttribute('aria-label', 'View ' + product.title + ' image ' + (index + 1));
-        image.src = item.image && item.image.url || '';
-        image.alt = '';
-        thumb.appendChild(image);
+        thumb.setAttribute('aria-label', 'View ' + product.title + ' ' + (item.type === 'video' ? 'video' : 'image') + ' ' + (index + 1));
+        thumb.appendChild(galleryMediaNode(document, item, product.title, true));
         thumb.addEventListener('click', function () { showMedia(index); });
         if (track) track.appendChild(slide);
         if (thumbs) thumbs.appendChild(thumb);
@@ -752,6 +775,7 @@
     catalogProductKey: catalogProductKey,
     formatRattlePriceLabel: formatRattlePriceLabel,
     afterReady: afterReady,
+    galleryMediaNode: galleryMediaNode,
     mount: mount
   };
 });

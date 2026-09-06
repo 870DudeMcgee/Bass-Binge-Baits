@@ -130,3 +130,27 @@ test('arbitrary option names resolve exact tuples without assuming jig fields', 
     { exists: true, available: true }
   );
 });
+
+function mediaDocument() {
+  return { createElement(tag) {
+    return { tagName:tag.toUpperCase(), events:{}, setAttribute(key,value) {this[key]=value;}, addEventListener(key,fn) {this.events[key]=fn;}, replaceWith(node) {this.replacement=node;} };
+  }};
+}
+
+test('Shopify videos render controls with an MP4 source and a non-image thumbnail', () => {
+  const item={type:'video',sources:[{url:'https://example.com/video.m3u8',format:'m3u8'},{url:'https://example.com/video.mp4',mimeType:'video/mp4'}]};
+  const doc=mediaDocument();
+  const video=renderer.galleryMediaNode(doc,item,'Heartlander',false);
+  assert.equal(video.tagName,'VIDEO');assert.equal(video.src,'https://example.com/video.mp4');
+  assert.equal(video.controls,true);assert.equal(video.playsInline,true);assert.equal(video.preload,'metadata');
+  const thumbnail=renderer.galleryMediaNode(doc,item,'Heartlander',true);
+  assert.equal(thumbnail.tagName,'SPAN');assert.equal(thumbnail.textContent,'▶ Video');assert.equal(thumbnail.src,undefined);
+});
+
+test('failed image thumbnails get readable fallback and absent media never gets empty image src', () => {
+  const doc=mediaDocument();
+  const image=renderer.galleryMediaNode(doc,{type:'image',image:{url:'https://example.com/missing.jpg'}},'Jig',true);
+  image.events.error();assert.equal(image.replacement.textContent,'Image');
+  const missing=renderer.galleryMediaNode(doc,{type:'video',sources:[]},'Jig',false);
+  assert.equal(missing.tagName,'SPAN');assert.equal(missing.src,undefined);
+});
