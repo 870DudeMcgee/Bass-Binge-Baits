@@ -20,15 +20,7 @@ const canonicalUrls = {
   'contact.html': 'https://www.bassbingebaits.com/contact',
   'privacy.html': 'https://www.bassbingebaits.com/privacy'
 };
-const establishedProductPages = [
-  'finesse-jig.html',
-  'heavy-cover-football.html',
-  'limited-drop.html',
-  'pee-wee-football.html',
-  'peewee-football-hd.html',
-  'peewee-football.html',
-  'peewee-spider-hd.html'
-];
+
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -79,11 +71,7 @@ function assertEstablishedProductRoutes() {
   const staticProductFiles = fs.existsSync(productDirectory)
     ? fs.readdirSync(productDirectory).filter((filename) => filename.endsWith('.html'))
     : [];
-  establishedProductPages.forEach((filename) => {
-    if (!staticProductFiles.includes(filename)) {
-      fail(`products/ is missing the established storefront page ${filename}`);
-    }
-  });
+  if (staticProductFiles.length) fail('Static product files shadow the admitted product route');
 }
 
 function assertGenericProductRewrite() {
@@ -201,7 +189,10 @@ function assertCanonicalIndexing() {
 }
 
 function assertCanonicalSitemap() {
-  const sitemap = read('sitemap.xml');
+  const { renderSitemap } = require('../lib/sitemap-route.js');
+  const sitemap = renderSitemap({ schemaVersion: 2, products: [] });
+  const config = JSON.parse(read('vercel.json'));
+  if (fs.existsSync(path.join(root, 'sitemap.xml')) || !config.rewrites.some(rule => rule.source === '/sitemap.xml' && rule.destination === '/api/sitemap')) fail('Sitemap must use the current admitted catalog');
   const locations = Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g), (match) => match[1]);
   const expected = Object.values(canonicalUrls);
 

@@ -110,25 +110,9 @@ test('a color-only Shopify product renders an option-capable product-page shell'
   assert.doesNotMatch(response.body, /\/assets\/js\/product-page\.js/);
 });
 
-test('the curated Heartlander page loads ordered Shopify media before its product renderer', () => {
-  const root = path.resolve(__dirname, '..');
-  const heartlanderPage = fs.readFileSync(
-    path.join(root, 'products', 'limited-drop.html'),
-    'utf8'
-  );
-  const productRenderer = fs.readFileSync(
-    path.join(root, 'assets', 'js', 'product-page.js'),
-    'utf8'
-  );
-
-  assert.match(
-    heartlanderPage,
-    /limited-drop-gallery\.js[\s\S]*product-page\.js/
-  );
-  assert.match(
-    productRenderer,
-    /getAdmittedProduct\(product\.handle\)[\s\S]*mediaItems\(admittedProduct\)/
-  );
+test('Heartlander uses current ordered Shopify media in the generic renderer', () => {
+  const renderer = fs.readFileSync(path.resolve(__dirname, '../assets/js/generic-product-page.js'), 'utf8');
+  assert.match(renderer, /media = orderedMedia\(product, variant\)/);
 });
 
 test('absent, quarantined, and malformed handles return a real not-found response', async () => {
@@ -172,37 +156,17 @@ test('the hidden rattle add-on never resolves through the customer product route
   assert.equal(response.statusCode, 404);
 });
 
-test('an established static SEO shell stays behind the live-catalog admission gate', () => {
+test('all product URLs use the current admitted server renderer', () => {
   const root = path.resolve(__dirname, '..');
   const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
-  const staticPage = fs.readFileSync(
-    path.join(root, 'products', 'heavy-cover-football.html'),
-    'utf8'
-  );
-
-  assert.match(staticPage, /<title>3\/4 Heavy Cover Football \| Bass Binge Baits<\/title>/);
-  assert.match(staticPage, /<main class="product-page" hidden>/);
-  assert.ok(config.rewrites.some((rewrite) => rewrite.source === '/shop/:category(jigs|trailers|apparel)' && rewrite.destination === '/shop'));
-  assert.ok(config.rewrites.some((rewrite) => JSON.stringify(rewrite) === JSON.stringify({
-    source: '/products/:handle',
-    destination: '/api/product?handle=:handle'
-  })));
-});
-
-test('every established product page places quantity before Add to Cart', () => {
-  const root = path.resolve(__dirname, '..');
-  const productDir = path.join(root, 'products');
-  const pages = fs.readdirSync(productDir).filter((name) => name.endsWith('.html'));
-
-  assert.ok(pages.length > 0);
-  for (const page of pages) {
-    const html = fs.readFileSync(path.join(productDir, page), 'utf8');
-    assert.match(
-      html,
-      /data-quantity-decrease[\s\S]*data-quantity-input[\s\S]*data-quantity-increase[\s\S]*data-add-cart/,
-      page
-    );
-  }
+  const directory = path.join(root, 'products');
+  assert.equal(fs.existsSync(directory) ? fs.readdirSync(directory).filter(name => name.endsWith('.html')).length : 0, 0);
+  assert.ok(config.rewrites.some(rule => rule.source === '/products/:handle' && rule.destination === '/api/product?handle=:handle'));
+  const { renderGenericProductPage } = require('../lib/generic-product-route.js');
+  const html = renderGenericProductPage({ handle: 'jig', title: 'Jig', descriptionHtml: '<p>Live description</p>' });
+  assert.match(html, /<main class="product-page">/);
+  assert.match(html, /data-quantity-decrease[\s\S]*data-quantity-input[\s\S]*data-quantity-increase[\s\S]*data-add-cart disabled/);
+  assert.match(html, /Live description/);
 });
 
 test('Shopify cart request normalization preserves exact variant GID and money', () => {

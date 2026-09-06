@@ -51,7 +51,7 @@ test('known Shopify products retain the established page route, swatches, and as
   const projected = normalizeDiscoveredProduct(product);
 
   assert.equal(projected.key, 'finesse-jig');
-  assert.equal(projected.pagePath, 'products/finesse-jig');
+  assert.equal(projected.pagePath, 'products/5-16-oz-finesse-jig');
   assert.equal(projected.detailOnly, false);
   assert.equal(projected.category, 'jigs');
   assert.deepEqual(projected.weights, [{ key: '5-16', label: '5/16', priceDelta: 0 }]);

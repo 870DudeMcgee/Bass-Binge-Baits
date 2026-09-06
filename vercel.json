@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/shop/:category(jigs|trailers|apparel)",
       "destination": "/shop"
     },
@@ -44,6 +48,38 @@
           "value": "public, max-age=0, must-revalidate"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/products/peewee-football",
+      "destination": "/products/7-16-oz-peewee-football-jig",
+      "permanent": true
+    },
+    {
+      "source": "/products/peewee-football-hd",
+      "destination": "/products/premium-football-jig",
+      "permanent": true
+    },
+    {
+      "source": "/products/peewee-spider-hd",
+      "destination": "/products/5-16-peewee-spider-hd-finesse-cut",
+      "permanent": true
+    },
+    {
+      "source": "/products/heavy-cover-football",
+      "destination": "/products/3-4-oz-football-jig",
+      "permanent": true
+    },
+    {
+      "source": "/products/finesse-jig",
+      "destination": "/products/5-16-oz-finesse-jig",
+      "permanent": true
+    },
+    {
+      "source": "/products/:handle.html",
+      "destination": "/products/:handle",
+      "permanent": true
     }
   ]
 }
