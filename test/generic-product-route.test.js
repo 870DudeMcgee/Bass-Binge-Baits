@@ -312,3 +312,15 @@ test('Shopify cart request normalization preserves the exact Heartlander variant
     price: { amount: '5.99', currencyCode: 'USD' }
   }]);
 });
+
+test('legacy jig color labels produce complete color variation data', () => {
+  const { productStructuredData } = require('../lib/generic-product-route');
+  for (const [handle, name] of [['3-4-oz-football-jig', '3/4 oz.'], ['pee-wee-football', 'Pee Wee + colors']]) {
+    const product = { id: handle, handle, title: 'Jig', options: [{ name }], variants: ['Fruit Fly', 'Craw Essence'].map((value, index) => ({
+      id: String(900 + index), selectedOptions: [{ name, value }], availableForSale: true, price: { amount: '5.0', currencyCode: 'USD' }
+    })) };
+    const data = productStructuredData(product, 'Jig', null, 'https://www.bassbingebaits.com/products/' + handle);
+    assert.deepEqual(data.variesBy, ['https://schema.org/color']);
+    assert.deepEqual(data.hasVariant.map(item => item.color), ['Fruit Fly', 'Craw Essence']);
+  }
+});
