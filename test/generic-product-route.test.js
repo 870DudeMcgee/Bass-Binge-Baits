@@ -110,9 +110,119 @@ test('a color-only Shopify product renders an option-capable product-page shell'
   assert.doesNotMatch(response.body, /\/assets\/js\/product-page\.js/);
 });
 
-test('Heartlander uses current ordered Shopify media in the generic renderer', () => {
-  const renderer = fs.readFileSync(path.resolve(__dirname, '../assets/js/generic-product-page.js'), 'utf8');
-  assert.match(renderer, /media = orderedMedia\(product, variant\)/);
+test('variant deep links keep an unavailable Shopify variant selected in server HTML and JSON-LD', async () => {
+  const product = {
+    handle: 'limited-craw',
+    title: 'Limited <Craw>',
+    descriptionHtml: '<p>Two color options.</p>',
+    vendor: 'Bass Binge Baits',
+    media: [
+      { id: 'green-image', type: 'image', image: { url: 'https://cdn.shopify.com/limited-craw-green.jpg' } },
+      { id: 'purple-image', type: 'image', image: { url: 'https://cdn.shopify.com/limited-craw-purple.jpg' } }
+    ],
+    options: [{ name: 'Color', values: [{ name: 'Green' }, { name: 'Purple' }] }],
+    variants: [
+      {
+        id: 'gid://shopify/ProductVariant/101',
+        selectedOptions: [{ name: 'Color', value: 'Green' }],
+        price: { amount: '4.00', currencyCode: 'USD' },
+        availableForSale: true,
+        imageId: 'green-image'
+      },
+      {
+        id: 'gid://shopify/ProductVariant/202',
+        selectedOptions: [{ name: 'Color', value: 'Purple' }],
+        price: { amount: '6.50', currencyCode: 'USD' },
+        availableForSale: false,
+        imageId: 'purple-image'
+      }
+    ],
+    presentation: { kind: 'ordinary' }
+  };
+  const handler = createGenericProductHandler({
+    getCatalog: async () => ({ schemaVersion: 2, products: [product], quarantine: [] })
+  });
+
+  const selected = responseRecorder();
+  await handler({ method: 'GET', query: { handle: product.handle, variant: '202' }, headers: {} }, selected);
+  assert.equal(selected.statusCode, 200);
+  assert.match(selected.body, /data-price-display>\$6\.50<\/p>/);
+  assert.match(selected.body, /This option is unavailable\.<\/p>/);
+  assert.match(selected.body, /data-add-cart disabled>Unavailable<\/button>/);
+  assert.match(selected.body, /<meta property="og:image" content="https:\/\/cdn\.shopify\.com\/limited-craw-purple\.jpg" \/>/);
+  assert.match(selected.body, /<div class="product-gallery-slide active"><img src="https:\/\/cdn\.shopify\.com\/limited-craw-purple\.jpg"/);
+  const jsonLd = JSON.parse(selected.body.match(/<script id="generic-product-jsonld" type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+  assert.equal(jsonLd['@type'], 'ProductGroup');
+  assert.equal(jsonLd['@id'], 'https://www.bassbingebaits.com/products/limited-craw#product-group');
+  assert.equal(jsonLd.productGroupID, 'limited-craw');
+  assert.deepEqual(jsonLd.variesBy, ['https://schema.org/color']);
+  assert.equal(jsonLd.hasVariant.length, 2);
+  assert.deepEqual(
+    jsonLd.hasVariant.map((variant) => ({
+      id: variant['@id'],
+      group: variant.inProductGroupWithID,
+      name: variant.name,
+      description: variant.description,
+      image: variant.image,
+      color: variant.color
+    })),
+    [
+      {
+        id: 'https://www.bassbingebaits.com/products/limited-craw?variant=101#product',
+        group: 'limited-craw',
+        name: 'Limited <Craw> - Green',
+        description: 'Two color options.',
+        image: 'https://cdn.shopify.com/limited-craw-green.jpg',
+        color: 'Green'
+      },
+      {
+        id: 'https://www.bassbingebaits.com/products/limited-craw?variant=202#product',
+        group: 'limited-craw',
+        name: 'Limited <Craw> - Purple',
+        description: 'Two color options.',
+        image: 'https://cdn.shopify.com/limited-craw-purple.jpg',
+        color: 'Purple'
+      }
+    ]
+  );
+  assert.deepEqual(jsonLd.hasVariant.map((variant) => variant.offers), [
+    {
+      '@type': 'Offer',
+      url: 'https://www.bassbingebaits.com/products/limited-craw?variant=101',
+      priceCurrency: 'USD',
+      price: '4.00',
+      itemCondition: 'https://schema.org/NewCondition',
+      availability: 'https://schema.org/InStock'
+    },
+    {
+      '@type': 'Offer',
+      url: 'https://www.bassbingebaits.com/products/limited-craw?variant=202',
+      priceCurrency: 'USD',
+      price: '6.50',
+      itemCondition: 'https://schema.org/NewCondition',
+      availability: 'https://schema.org/OutOfStock'
+    }
+  ]);
+  assert.doesNotMatch(selected.body, /<Craw>/);
+
+  const invalid = responseRecorder();
+  await handler({ method: 'GET', query: { handle: product.handle, variant: 'not-a-variant' }, headers: {} }, invalid);
+  assert.equal(invalid.statusCode, 200);
+  assert.match(invalid.body, /data-price-display>\$4\.00<\/p>/);
+});
+
+test('Heartlander selects the current Shopify variant image ahead of the remaining media', () => {
+  const renderer = require('../assets/js/generic-product-page.js');
+  const product = {
+    title: 'Heartlander',
+    media: [
+      { id: 'other', type: 'image', image: { url: 'https://cdn.shopify.com/other.jpg' } },
+      { id: 'selected', type: 'image', image: { url: 'https://cdn.shopify.com/heartlander.jpg' } }
+    ]
+  };
+  const media = renderer.orderedMedia(product, { imageId: 'selected' });
+  assert.equal(media[0].id, 'selected');
+  assert.deepEqual(media.map((item) => item.id), ['selected', 'other']);
 });
 
 test('absent, quarantined, and malformed handles return a real not-found response', async () => {

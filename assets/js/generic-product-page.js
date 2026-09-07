@@ -31,9 +31,63 @@
       }, {});
   }
 
-  function initialSelection(product) {
+  function variantNumericId(variant) {
+    var match = String(variant && variant.id || '').match(/(?:^|\/)(\d+)$/);
+    return match ? match[1] : null;
+  }
+
+  function variantForId(product, id) {
+    if (!/^\d+$/.test(String(id || ''))) return null;
+    return (product && Array.isArray(product.variants) ? product.variants : []).find(function (variant) {
+      return variantNumericId(variant) === String(id);
+    }) || null;
+  }
+
+  function requestedVariantId(location) {
+    if (!location || !location.search) return null;
+    try {
+      return new URLSearchParams(location.search).get('variant');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function createVariantNavigation(product, scope, onSelection) {
+    var target = scope || {};
+    var handler = function () {
+      onSelection(initialSelection(product, requestedVariantId(target.location)));
+    };
+
+    if (typeof target.addEventListener === 'function') {
+      target.addEventListener('popstate', handler);
+    }
+
+    return {
+      push: function (variant) {
+        var numericId, url;
+        if (!target.location || !target.history || typeof target.history.pushState !== 'function') return;
+        numericId = variantNumericId(variant);
+        if (!numericId || requestedVariantId(target.location) === numericId) return;
+        try {
+          url = new URL(target.location.href);
+          url.searchParams.set('variant', numericId);
+          target.history.pushState({ variant: numericId }, '', url.pathname + url.search + url.hash);
+        } catch (error) {
+          // A product can still be purchased if a browser lacks URL support.
+        }
+      },
+      destroy: function () {
+        if (typeof target.removeEventListener === 'function') {
+          target.removeEventListener('popstate', handler);
+        }
+      }
+    };
+  }
+
+  function initialSelection(product, variantId) {
     var variants = product && Array.isArray(product.variants) ? product.variants : [];
-    return selectionForVariant(variants.find(function (variant) {
+    var requested = variantForId(product, variantId);
+    return selectionForVariant(requested || variants.find(function (variant) {
       return variant.availableForSale;
     }) || variants[0]);
   }
@@ -214,7 +268,12 @@
     var admittedProduct = catalog && catalog.getAdmittedProduct
       ? catalog.getAdmittedProduct(product.handle)
       : null;
-    var selection = initialSelection(product);
+    var selection = initialSelection(product, requestedVariantId(scope.location));
+    var variantNavigation = createVariantNavigation(product, scope, function (nextSelection) {
+      selection = nextSelection;
+      intent = {};
+      renderAll();
+    });
     var selectedRattle = 'no';
     var intent = {};
     var media = [];
@@ -604,7 +663,7 @@
             }
             if (!reachable) return;
             selection = reachable;
-            renderAll();
+            renderAll(true);
           });
           label.appendChild(input);
           label.appendChild(text);
@@ -667,11 +726,8 @@
     function renderCommerce(variant) {
       var shouldUseJigBuild = shouldRenderRattleControls();
       var jigLine = shouldUseJigBuild ? buildJigLine() : null;
-      var checkoutable = jigLine
-        ? Boolean(jigLine.isCheckoutable)
-        : shouldUseJigBuild
-          ? Boolean(variant && variant.availableForSale)
-          : Boolean(variant && variant.availableForSale);
+      var checkoutable = Boolean(variant && variant.availableForSale) &&
+        (!jigLine || Boolean(jigLine.isCheckoutable));
 
       if (price) {
         if (jigLine && typeof catalog.formatMoney === 'function') {
@@ -694,11 +750,12 @@
       }
     }
 
-    function renderAll() {
+    function renderAll(pushUrl) {
       var variant = currentVariant();
       renderOptions();
       renderGallery(variant);
       renderCommerce(variant);
+      if (pushUrl) variantNavigation.push(variant);
       return variant;
     }
 
@@ -747,6 +804,7 @@
       var added = null;
       var jigLine = buildJigLine();
       var variant = currentVariant();
+      if (!variant || !variant.availableForSale) return;
       if (shouldUseJigBuild && jigLine && typeof cart.addJigBuild === 'function') {
         if (!jigLine.isCheckoutable) return;
         added = cart.addJigBuild(jigLine, count);
@@ -763,11 +821,18 @@
 
     renderAll();
     if (main) main.hidden = false;
-    return { getSelection: function () { return Object.assign({}, selection); } };
+    return {
+      getSelection: function () { return Object.assign({}, selection); },
+      destroy: variantNavigation.destroy
+    };
   }
 
   return {
     initialSelection: initialSelection,
+    variantForId: variantForId,
+    variantNumericId: variantNumericId,
+    requestedVariantId: requestedVariantId,
+    createVariantNavigation: createVariantNavigation,
     resolveVariant: resolveVariant,
     optionValueState: optionValueState,
     orderedMedia: orderedMedia,

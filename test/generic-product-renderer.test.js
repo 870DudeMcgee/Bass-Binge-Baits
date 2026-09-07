@@ -37,6 +37,71 @@ test('a color-only product resolves an exact Shopify variant without a fake jig 
   );
 });
 
+test('a numeric variant URL selects that exact variant, including a sold-out option', () => {
+  const product = {
+    ...craw,
+    variants: craw.variants.map((variant, index) => ({
+      ...variant,
+      availableForSale: index === 0
+    }))
+  };
+
+  assert.deepEqual(renderer.initialSelection(product, '1002'), { Color: 'PBJ' });
+  assert.equal(renderer.variantForId(product, '1002').id, 'gid://shopify/ProductVariant/1002');
+  assert.equal(renderer.variantForId(product, 'unknown'), null);
+  assert.equal(renderer.variantNumericId(product.variants[1]), '1002');
+  assert.equal(renderer.requestedVariantId({ search: '?variant=1002&source=shopping' }), '1002');
+});
+
+test('variant navigation preserves the initial URL, pushes shopper changes, and restores history selections', () => {
+  const listeners = {};
+  const pushes = [];
+  const selections = [];
+  const scope = {
+    location: {
+      href: 'https://www.bassbingebaits.com/products/chopped-craw-6-pack?source=shopping#details',
+      search: '?source=shopping'
+    },
+    history: {
+      pushState(state, title, url) {
+        pushes.push({ state, title, url });
+        const next = new URL(url, scope.location.href);
+        scope.location.href = next.href;
+        scope.location.search = next.search;
+      }
+    },
+    addEventListener(type, listener) { listeners[type] = listener; },
+    removeEventListener(type, listener) {
+      if (listeners[type] === listener) delete listeners[type];
+    }
+  };
+  const navigation = renderer.createVariantNavigation(craw, scope, (selection) => {
+    selections.push(selection);
+  });
+
+  assert.deepEqual(pushes, []);
+  navigation.push(craw.variants[1]);
+  assert.deepEqual(pushes, [{
+    state: { variant: '1002' },
+    title: '',
+    url: '/products/chopped-craw-6-pack?source=shopping&variant=1002#details'
+  }]);
+
+  scope.location.href = 'https://www.bassbingebaits.com/products/chopped-craw-6-pack';
+  scope.location.search = '';
+  listeners.popstate();
+  scope.location.href = 'https://www.bassbingebaits.com/products/chopped-craw-6-pack?variant=1002';
+  scope.location.search = '?variant=1002';
+  listeners.popstate();
+  assert.deepEqual(selections, [
+    { Color: 'Green Pumpkin' },
+    { Color: 'PBJ' }
+  ]);
+
+  navigation.destroy();
+  assert.equal(listeners.popstate, undefined);
+});
+
 test('a color-only product cart line preserves exact Shopify identity and money', () => {
   const variant = renderer.resolveVariant(craw, { Color: 'PBJ' });
 
