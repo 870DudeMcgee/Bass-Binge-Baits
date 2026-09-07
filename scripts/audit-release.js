@@ -11,14 +11,16 @@ const staticPages = [
   'shop.html',
   'about.html',
   'contact.html',
-  'privacy.html'
+  'privacy.html',
+  'returns.html'
 ];
 const canonicalUrls = {
   'index.html': 'https://www.bassbingebaits.com/',
   'shop.html': 'https://www.bassbingebaits.com/shop',
   'about.html': 'https://www.bassbingebaits.com/about',
   'contact.html': 'https://www.bassbingebaits.com/contact',
-  'privacy.html': 'https://www.bassbingebaits.com/privacy'
+  'privacy.html': 'https://www.bassbingebaits.com/privacy',
+  'returns.html': 'https://www.bassbingebaits.com/returns'
 };
 
 

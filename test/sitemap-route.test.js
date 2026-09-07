@@ -9,8 +9,9 @@ function response() {
 }
 test('sitemap follows admitted products including sold-out items, excludes hidden add-ons, and deduplicates', () => {
   const xml=renderSitemap({schemaVersion:2, products:[{handle:'new-product',availableForSale:false},{handle:'new-product'},{handle:'rattle',presentation:{kind:'hidden-add-on'}}]});
-  assert.equal((xml.match(/<loc>/g)||[]).length,6);
+  assert.equal((xml.match(/<loc>/g)||[]).length,7);
   assert.match(xml,/products\/new-product/);
+  assert.match(xml,/https:\/\/www\.bassbingebaits\.com\/returns/);
   assert.doesNotMatch(xml,/rattle|lastmod/);
 });
 test('catalog errors fail with retryable 503 rather than a successful empty sitemap', async () => {
