@@ -12,7 +12,7 @@ const {
   createShopRelevantFilters,
   createShopTaxonomyControls
 } = shopTaxonomyControls;
-const shopHtml = fs.readFileSync(path.resolve(__dirname, '..', 'shop.html'), 'utf8');
+const shopHtml = fs.readFileSync(path.resolve(__dirname, '..', 'lib/shop-template.html'), 'utf8');
 const shopJs = fs.readFileSync(path.resolve(__dirname, '..', 'assets/js/shop.js'), 'utf8');
 
 class FakeButton {

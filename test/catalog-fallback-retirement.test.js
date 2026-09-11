@@ -49,15 +49,15 @@ test('commerce consumers contain no executable browser or server catalog fallbac
 
 test('static commerce markup stays hidden until the admitted catalog projection renders', () => {
   assert.match(
-    source('shop.html'),
-    /class="card-grid shop-grid shop-product-grid" hidden/
+    source('lib/shop-template.html'),
+    /<!-- SHOP_PRODUCT_CARDS -->/
   );
   assert.match(
     source('index.html'),
     /data-limited-drop-card hidden/
   );
 
-  for (const filename of fs.readdirSync(path.join(root, 'products'))) {
+  for (const filename of (fs.existsSync(path.join(root, 'products')) ? fs.readdirSync(path.join(root, 'products')) : [])) {
     if (!filename.endsWith('.html')) continue;
     assert.match(
       source(path.join('products', filename)),

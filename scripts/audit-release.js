@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const failures = [];
 const staticPages = [
   'index.html',
-  'shop.html',
+  'lib/shop-template.html',
   'about.html',
   'contact.html',
   'privacy.html',
@@ -16,7 +16,7 @@ const staticPages = [
 ];
 const canonicalUrls = {
   'index.html': 'https://www.bassbingebaits.com/',
-  'shop.html': 'https://www.bassbingebaits.com/shop',
+  'lib/shop-template.html': 'https://www.bassbingebaits.com/shop',
   'about.html': 'https://www.bassbingebaits.com/about',
   'contact.html': 'https://www.bassbingebaits.com/contact',
   'privacy.html': 'https://www.bassbingebaits.com/privacy',

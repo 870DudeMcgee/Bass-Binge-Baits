@@ -7,8 +7,12 @@
       "destination": "/api/sitemap"
     },
     {
+      "source": "/shop",
+      "destination": "/api/shop"
+    },
+    {
       "source": "/shop/:category(jigs|trailers|apparel)",
-      "destination": "/shop"
+      "destination": "/api/shop"
     },
     {
       "source": "/products/:handle",

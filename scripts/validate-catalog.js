@@ -31,7 +31,7 @@ if (!catalog.status || catalog.status.source !== 'unavailable') {
 const browserCatalog = read('assets/js/catalog.js');
 const productPage = read('assets/js/product-page.js');
 const serverCatalog = read('lib/shopify-catalog.js');
-const shop = read('shop.html');
+const shop = read('lib/shop-template.html');
 const home = read('index.html');
 
 if (!/var PRODUCTS = \[\];/.test(browserCatalog)) {
@@ -52,14 +52,14 @@ reject(
   'Server catalog still imports the browser catalog as commerce authority'
 );
 
-if (!/class="card-grid shop-grid shop-product-grid" hidden/.test(shop)) {
-  fail('Shop fallback cards are visible before live catalog admission');
+if (!shop.includes('<!-- SHOP_PRODUCT_CARDS -->') || /data-server-product=|data-shop-product=/.test(shop)) {
+  fail('Shop template must contain a marker and no static catalog cards');
 }
 if (!/data-limited-drop-card hidden/.test(home)) {
   fail('Homepage limited-drop commerce is visible before live catalog admission');
 }
 
-const productPages = fs.readdirSync(path.join(root, 'products'))
+const productPages = (fs.existsSync(path.join(root, 'products')) ? fs.readdirSync(path.join(root, 'products')) : [])
   .filter((filename) => filename.endsWith('.html'));
 productPages.forEach((filename) => {
   const relativePath = path.join('products', filename);
