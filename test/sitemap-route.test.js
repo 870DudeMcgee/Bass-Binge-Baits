@@ -8,11 +8,20 @@ function response() {
   return { headers: {}, setHeader(k,v) {this.headers[k] = v;}, status(code) {this.code=code;return this;}, send(body) {this.body=body;return this;} };
 }
 test('sitemap follows admitted products including sold-out items, excludes hidden add-ons, and deduplicates', () => {
-  const xml=renderSitemap({schemaVersion:2, products:[{handle:'new-product',availableForSale:false},{handle:'new-product'},{handle:'rattle',presentation:{kind:'hidden-add-on'}}]});
+  const xml=renderSitemap({schemaVersion:2, products:[
+    {handle:'new-product',availableForSale:false,media:[{type:'image',image:{url:'https://cdn.example/front?a=1&b=2'}},{type:'image',image:{url:'data:image/png;base64,unsafe'}},{type:'video',image:{url:'https://cdn.example/not-an-image.jpg'}}],variants:[{image:{url:'https://cdn.example/variant-only.jpg'}}]},
+    {handle:'new-product',media:[{type:'image',image:{url:'https://cdn.example/front?a=1&b=2'}}],variants:[{image:{url:'https://cdn.example/variant-only.jpg'}}]},
+    {handle:'rattle',presentation:{kind:'hidden-add-on'},media:[{type:'image',image:{url:'https://cdn.example/hidden.jpg'}}]},
+  ]});
   assert.equal((xml.match(/<loc>/g)||[]).length,7);
   assert.match(xml,/products\/new-product/);
   assert.match(xml,/https:\/\/www\.bassbingebaits\.com\/returns/);
-  assert.doesNotMatch(xml,/rattle|lastmod/);
+  assert.match(xml,/xmlns:image="http:\/\/www\.google\.com\/schemas\/sitemap-image\/1\.1"/);
+  assert.match(xml,/<image:loc>https:\/\/cdn\.example\/front\?a=1&amp;b=2<\/image:loc>/);
+  assert.match(xml,/<image:loc>https:\/\/cdn\.example\/variant-only\.jpg<\/image:loc>/);
+  assert.equal((xml.match(/variant-only\.jpg/g)||[]).length,1);
+  assert.equal((xml.match(/front\?a=1&amp;b=2/g)||[]).length,1);
+  assert.doesNotMatch(xml,/rattle|hidden\.jpg|not-an-image|base64|lastmod/);
 });
 test('catalog errors fail with retryable 503 rather than a successful empty sitemap', async () => {
   for(const getCatalog of [async()=>{throw Error('offline');},async()=>null]) {

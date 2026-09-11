@@ -5,6 +5,25 @@ const { renderGoogleProductFeed, createGoogleProductFeedHandler } = require('../
 const product = { id:'gid://shopify/Product/44', handle:'3-4-oz-football-jig', title:'Jig & Craw', descriptionHtml:'<p>Hand <strong>poured</strong> & tested\u0001.</p>', vendor:'Bass Binge', presentation:{kind:'ordinary'}, media:[{type:'image', image:{url:'https://cdn.example/jig?a=1&b=2'}}], options:[{name:'3/4 oz.'}], variants:[{id:'gid://shopify/ProductVariant/101', availableForSale:false, price:{amount:'5.50',currencyCode:'USD'}, selectedOptions:[{name:'3/4 oz.',value:'Green Pumpkin'}]}] };
 function response() { return {headers:{},setHeader(k,v){this.headers[k]=v;},status(c){this.code=c;return this;},send(b){this.body=b;return this;}}; }
 test('renders admitted variants with exact links, price, stock, custom color mapping, and XML escaping', () => { const xml=renderGoogleProductFeed({schemaVersion:2,products:[product]}); assert.match(xml,/<g:id>101<\/g:id>/); assert.match(xml,/<g:item_group_id>44<\/g:item_group_id>/); assert.match(xml,/products\/3-4-oz-football-jig\?variant=101/); assert.match(xml,/<g:price>5\.50 USD<\/g:price>/); assert.match(xml,/<g:availability>out_of_stock/); assert.match(xml,/<g:color>Green Pumpkin<\/g:color>/); assert.match(xml,/Jig &amp; Craw/); assert.doesNotMatch(xml,/\u0001/); });
+test('adds at most ten real deduplicated catalog images and excludes each offer primary image', () => {
+  const media = Array.from({length:12},(_,index)=>({type:'image',image:{url:`https://cdn.example/catalog-${index+1}.jpg?a=1&b=2`}}));
+  media.push({type:'video',image:{url:'https://cdn.example/video-poster.jpg'}});
+  media.push({type:'image',image:{url:'data:image/png;base64,unsafe'}});
+  const variant = {...product.variants[0],image:{url:'https://cdn.example/variant-primary.jpg'}};
+  const feed=renderGoogleProductFeed({schemaVersion:2,products:[{...product,media,variants:[variant,{...variant,id:'gid://shopify/ProductVariant/102',image:{url:'https://cdn.example/variant-only.jpg'}}]}]});
+  const firstItem=feed.match(/<item>[\s\S]*?<\/item>/)[0];
+  assert.match(firstItem,/<g:image_link>https:\/\/cdn\.example\/variant-primary\.jpg<\/g:image_link>/);
+  assert.equal((firstItem.match(/<g:additional_image_link>/g)||[]).length,10);
+  assert.doesNotMatch(firstItem,/<g:additional_image_link>https:\/\/cdn\.example\/variant-primary\.jpg/);
+  assert.equal((firstItem.match(/catalog-1\.jpg/g)||[]).length,1);
+  assert.match(firstItem,/catalog-1\.jpg\?a=1&amp;b=2/);
+  assert.doesNotMatch(firstItem,/video-poster|base64|catalog-11|catalog-12/);
+
+  const variantDiscovery=renderGoogleProductFeed({schemaVersion:2,products:[{...product,media:[media[0],media[0]],variants:[variant,{...variant,id:'gid://shopify/ProductVariant/102',image:{url:'https://cdn.example/variant-only.jpg'}}]}]});
+  const variantDiscoveryFirstItem=variantDiscovery.match(/<item>[\s\S]*?<\/item>/)[0];
+  assert.match(variantDiscoveryFirstItem,/<g:additional_image_link>https:\/\/cdn\.example\/variant-only\.jpg<\/g:additional_image_link>/);
+  assert.equal((variantDiscoveryFirstItem.match(/catalog-1\.jpg/g)||[]).length,1);
+});
 test('excludes the hidden rattle add-on and returns 503 for an empty admitted catalog', async () => { const xml=renderGoogleProductFeed({schemaVersion:2,products:[product,{handle:'rattle',presentation:{kind:'hidden-add-on'},variants:[]}]}); assert.doesNotMatch(xml,/>rattle</); const old=console.error; console.error=()=>{}; const res=response(); await createGoogleProductFeedHandler({getCatalog:async()=>({schemaVersion:2,products:[]})})({method:'GET'},res); console.error=old; assert.equal(res.code,503); });
 test('supports HEAD', async () => { const res=response(); await createGoogleProductFeedHandler({getCatalog:async()=>({schemaVersion:2,products:[product]})})({method:'HEAD'},res); assert.equal(res.code,200); assert.equal(res.body,''); });
 test('uses explicit copy for otherwise unreviewed audiences', () => {
