@@ -38,7 +38,7 @@ const CART_CREATE = `
 `;
 
 const CART_LINES_ADD = `
-  mutation AddBassBingeRattles($cartId: ID!, $lines: [CartLineInput!]!) {
+  mutation AddBassBingeAddOns($cartId: ID!, $lines: [CartLineInput!]!) {
     cartLinesAdd(cartId: $cartId, lines: $lines) {
       cart { ${CART_FIELDS} }
       userErrors { field message code }
@@ -88,6 +88,7 @@ function normalizeLines(body) {
     rattleMerchandiseId: line && line.rattleMerchandiseId
       ? String(line.rattleMerchandiseId)
       : null,
+    collarMerchandiseId: line && line.collarMerchandiseId ? String(line.collarMerchandiseId) : null,
     quantity: line && line.quantity,
     configurationId: String(line && line.configurationId || `line-${index}`).slice(0, 120),
     price: normalizeMoney(line && line.price)
@@ -99,6 +100,7 @@ function normalizeLines(body) {
     !Number.isInteger(line.quantity) ||
     line.quantity < 1 ||
     line.quantity > PUBLIC_CART_POLICY.maxLineQuantity ||
+    (line.collarMerchandiseId && !isVariantGid(line.collarMerchandiseId)) ||
     (line.rattleMerchandiseId && !isVariantGid(line.rattleMerchandiseId))
   )) return null;
 
@@ -156,12 +158,12 @@ function admittedParentFor(line, catalog) {
   return match;
 }
 
-function admittedRattleVariant(catalog) {
+function admittedAddOnVariant(catalog, handle, selectedId) {
   const candidates = [];
   (catalog.products || []).forEach((product) => {
-    if (!product || !product.presentation || product.presentation.kind !== 'hidden-add-on') return;
+    if (!product || product.handle !== handle || !product.presentation || product.presentation.kind !== 'hidden-add-on') return;
     (product.variants || []).forEach((variant) => {
-      candidates.push({ product, variant });
+      if (!selectedId || variant.id === selectedId) candidates.push({ product, variant });
     });
   });
   if (candidates.length !== 1) return null;
@@ -233,7 +235,8 @@ function createShopifyCartHandler(options = {}) {
           message: 'One or more cart lines are no longer available.'
         });
       }
-      const rattleVariant = admittedRattleVariant(catalog);
+      const rattleVariant = admittedAddOnVariant(catalog, 'rattle-add-on', catalog.legacy && catalog.legacy.rattle && catalog.legacy.rattle.merchandiseId);
+      const collarVariant = admittedAddOnVariant(catalog, 'wire-tied-skirt-collar-add-on');
       const invalidRattle = lines.some((line, index) => {
         if (!line.rattleMerchandiseId) return false;
         const presentation = admittedParents[index].product.presentation || {};
@@ -243,7 +246,13 @@ function createShopifyCartHandler(options = {}) {
           presentation.rattleEnabled !== true
         );
       });
-      if (invalidRattle) {
+      const invalidCollar = lines.some((line, index) => line.collarMerchandiseId && (
+        !collarVariant || line.collarMerchandiseId !== collarVariant.id ||
+        !collarVariant.price || Number(collarVariant.price.amount) !== 2 ||
+        collarVariant.price.currencyCode !== 'USD' ||
+        admittedParents[index].product.presentation.rattleEnabled !== true
+      ));
+      if (invalidRattle || invalidCollar) {
         return sendJson(response, 422, {
           ok: false,
           code: 'cart_line_not_admitted',
@@ -264,7 +273,9 @@ function createShopifyCartHandler(options = {}) {
       const parentInput = admittedLines.map((line) => ({
         merchandiseId: line.merchandiseId,
         quantity: line.quantity,
-        attributes: [{ key: '_bass_binge_build', value: line.serverConfigurationId }]
+        attributes: [{ key: '_bass_binge_build', value: line.serverConfigurationId }].concat(
+          line.collarMerchandiseId ? [{ key: 'Wire-tied skirt collar', value: 'Yes' }] : []
+        )
       }));
       const createData = await requestStorefront(
         CART_CREATE,
@@ -283,24 +294,24 @@ function createShopifyCartHandler(options = {}) {
       }
 
       let cart = createPayload.cart;
-      const rattleLines = admittedLines
-        .filter((line) => line.rattleMerchandiseId)
-        .map((line) => {
+      const addOnLines = admittedLines
+        .filter((line) => line.rattleMerchandiseId || line.collarMerchandiseId)
+        .flatMap((line) => {
           const parent = cart.lines.nodes.find((candidate) =>
             getConfigurationId(candidate) === line.serverConfigurationId
           );
           if (!parent) throw new Error('Created cart is missing an admitted parent line');
-          return {
-            merchandiseId: line.rattleMerchandiseId,
+          return [line.rattleMerchandiseId, line.collarMerchandiseId].filter(Boolean).map((merchandiseId) => ({
+            merchandiseId,
             quantity: line.quantity,
             parent: { lineId: parent.id }
-          };
+          }));
         });
 
-      if (rattleLines.length) {
+      if (addOnLines.length) {
         const addData = await requestStorefront(
           CART_LINES_ADD,
-          { cartId: cart.id, lines: rattleLines },
+          { cartId: cart.id, lines: addOnLines },
           request
         );
         const addPayload = addData.cartLinesAdd;
@@ -309,7 +320,7 @@ function createShopifyCartHandler(options = {}) {
           return sendJson(response, 422, {
             ok: false,
             code: 'shopify_rattle_rejected',
-            message: addFailure || 'Shopify could not attach the selected rattle.'
+            message: addFailure || 'Shopify could not attach the selected add-ons.'
           });
         }
         cart = addPayload.cart;

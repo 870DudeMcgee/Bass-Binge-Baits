@@ -152,6 +152,7 @@
         colorKey: build.colorKey,
         weightKey: build.weightKey,
         rattleKey: build.rattleKey,
+        collarKey: build.collarKey || 'no',
         quantity: qty
       });
     }
@@ -394,6 +395,7 @@
       return {
         merchandiseId: variantGid(line.build.checkoutMapping),
         price: checkoutMoney(line.build),
+        collarMerchandiseId: line.build.hasCollar ? variantGid(line.build.collarMapping) : null,
         rattleMerchandiseId: line.build.hasRattle
           ? variantGid(line.build.rattleMapping)
           : null,
@@ -563,6 +565,20 @@
       childLabel.textContent = '↳ Rattle Add-on × ' + line.quantity;
       childPrice.textContent = catalog.formatMoney(
         Number(line.build.rattleMapping.price || 0) * line.quantity
+      );
+      child.appendChild(childLabel);
+      child.appendChild(childPrice);
+      main.appendChild(child);
+    }
+
+    if (line.build.hasCollar && line.build.collarMapping) {
+      var child = document.createElement('div');
+      var childLabel = document.createElement('span');
+      var childPrice = document.createElement('strong');
+      child.className = 'cart-item-child';
+      childLabel.textContent = '↳ Wire-tied skirt collar × ' + line.quantity;
+      childPrice.textContent = catalog.formatMoney(
+        Number(line.build.collarMapping.price || 0) * line.quantity
       );
       child.appendChild(childLabel);
       child.appendChild(childPrice);

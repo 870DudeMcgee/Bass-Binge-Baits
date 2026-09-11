@@ -133,6 +133,51 @@
     return weightOptions[selectedWeight] || weightOptions[0];
   }
 
+  function selectedCollarKey() {
+    var checked = document.querySelector('[name="collar"]:checked');
+    return checked ? checked.value : 'no';
+  }
+
+  function renderCollarOptions() {
+    if (!rattleGroup || document.querySelector('[data-collar-group]')) return;
+    var options = catalog.getCollarOptions(product);
+    if (!options.length) return;
+    var group = document.createElement('fieldset');
+    group.className = 'product-config-selector';
+    group.setAttribute('data-collar-group', '');
+    var legend = document.createElement('legend');
+    legend.className = 'config-label';
+    legend.textContent = 'Wire-tied skirt collar:';
+    group.appendChild(legend);
+    var container = document.createElement('div');
+    container.className = 'weight-options';
+    options.forEach(function (option) {
+      var label = document.createElement('label');
+      label.className = 'weight-option' + (option.key === 'no' ? ' active' : '');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'collar';
+      input.value = option.key;
+      input.checked = option.key === 'no';
+      input.disabled = !option.available;
+      var span = document.createElement('span');
+      span.className = 'weight-label';
+      span.textContent = option.key === 'yes' ? 'Yes (+$2.00)' : 'No';
+      input.addEventListener('change', function () {
+        Array.from(container.children).forEach(function (item) {
+          item.classList.toggle('active', item.querySelector('input').checked);
+        });
+        updateOptionAvailability();
+        updatePrice();
+      });
+      label.appendChild(input);
+      label.appendChild(span);
+      container.appendChild(label);
+    });
+    group.appendChild(container);
+    rattleGroup.insertAdjacentElement('afterend', group);
+  }
+
   function selectedRattleKey() {
     if (!rattleAvailable) return 'no';
 
@@ -152,6 +197,7 @@
       productKey: product.key,
       colorKey: color && color.key,
       weightKey: weight && weight.key,
+      collarKey: selectedCollarKey(),
       rattleKey: rattleKey || 'no'
     });
   }
@@ -168,6 +214,7 @@
       productKey: product.key,
       colorKey: color.key,
       weightKey: weight.key,
+      collarKey: selectedCollarKey(),
       rattleKey: rattle.key
     });
   }
@@ -422,6 +469,7 @@
     renderSwatches();
     renderWeights();
     renderRattleOptions();
+    renderCollarOptions();
     updateOptionAvailability();
     updateColorDisplay();
     return;
@@ -1229,6 +1277,7 @@
   renderSwatches();
   renderWeights();
   renderRattleOptions();
+  renderCollarOptions();
   updateGallery(currentSlide);
   updateOptionAvailability();
   updateColorDisplay();

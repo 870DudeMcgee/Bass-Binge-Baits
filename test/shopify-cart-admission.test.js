@@ -431,3 +431,66 @@ test('the public cart endpoint rejects requests beyond its 50-line limit before 
   assert.equal(catalogCalls, 0);
   assert.equal(storefrontCalls, 0);
 });
+
+function withCollar(catalog) {
+  catalog.products.push({
+    id: 'gid://shopify/Product/300', handle: 'wire-tied-skirt-collar-add-on',
+    availableForSale: true, presentation: {kind: 'hidden-add-on'},
+    variants: [{id: 'gid://shopify/ProductVariant/3001', availableForSale: true,
+      quantityAvailable: null, price: {amount: '2.00', currencyCode: 'USD'}}]
+  });
+  return catalog;
+}
+
+test('collar only and collar plus rattle preserve parent quantities and fulfillment choice', async (t) => {
+  for (const hasRattle of [false, true]) await t.test(String(hasRattle), async () => {
+    const catalog = withCollar(withRattle(admittedCatalog()));
+    // The live rattle product now has multiple variants; only the projected one is selected.
+    catalog.products[1].variants.push({...catalog.products[1].variants[0], id: 'gid://shopify/ProductVariant/2002'});
+    catalog.legacy = {rattle: {merchandiseId: 'gid://shopify/ProductVariant/2001'}};
+    const calls = [];
+    const handler = createShopifyCartHandler({getCatalog: async () => catalog,
+      createConfigurationId: ({index}) => 'build-' + index,
+      storefrontRequest: async (query, variables) => {
+        calls.push(variables);
+        const cart = {id: 'cart', checkoutUrl: 'https://example.com/checkout', lines: {nodes:
+          (variables.input?.lines || []).map((line, index) => ({id: 'parent-' + index, ...line}))}};
+        return variables.input ? {cartCreate: {cart}} : {cartLinesAdd: {cart}};
+      }});
+    const response = responseRecorder();
+    await handler(cartRequest([
+      ordinaryLine({configurationId: 'with-collar', quantity: 3, collarMerchandiseId: 'gid://shopify/ProductVariant/3001',
+        rattleMerchandiseId: hasRattle ? 'gid://shopify/ProductVariant/2001' : null}),
+      ordinaryLine({configurationId: 'plain', quantity: 2})
+    ]), response);
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(calls[1].lines.map(line => line.merchandiseId), hasRattle ?
+      ['gid://shopify/ProductVariant/2001', 'gid://shopify/ProductVariant/3001'] : ['gid://shopify/ProductVariant/3001']);
+    for (const child of calls[1].lines) {
+      assert.equal(child.quantity, 3);
+      assert.deepEqual(child.parent, {lineId: 'parent-0'});
+    }
+    assert.ok(calls[0].input.lines[0].attributes.some(a => a.key === 'Wire-tied skirt collar' && a.value === 'Yes'));
+    assert.equal(calls[0].input.lines[1].attributes.length, 1);
+  });
+});
+
+test('invalid, missing, sold out, ineligible, and mispriced collars fail before Shopify', async (t) => {
+  const cases = {
+    missing: c => c.products.pop(),
+    soldOut: c => c.products[2].variants[0].availableForSale = false,
+    ineligible: c => c.products[0].presentation.rattleEnabled = false,
+    mispriced: c => c.products[2].variants[0].price.amount = '3.00',
+    wrongCurrency: c => c.products[2].variants[0].price.currencyCode = 'CAD',
+    quarantined: c => c.quarantine.push({severity: 'product-quarantined', handle: 'wire-tied-skirt-collar-add-on'}),
+    wrongChild: () => {}
+  };
+  for (const [name, mutate] of Object.entries(cases)) await t.test(name, async () => {
+    const catalog = withCollar(withRattle(admittedCatalog())); mutate(catalog);
+    let calls = 0;
+    const handler = createShopifyCartHandler({getCatalog: async () => catalog, storefrontRequest: async () => {calls++;}});
+    const response = responseRecorder();
+    await handler(cartRequest([ordinaryLine({collarMerchandiseId: name === 'wrongChild' ? 'gid://shopify/ProductVariant/2001' : 'gid://shopify/ProductVariant/3001'})]), response);
+    assert.equal(response.statusCode, 422); assert.equal(calls, 0);
+  });
+});

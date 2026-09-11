@@ -275,6 +275,7 @@
       renderAll();
     });
     var selectedRattle = 'no';
+    var selectedCollar = 'no';
     var intent = {};
     var media = [];
     var mediaIndex = 0;
@@ -368,6 +369,7 @@
         productKey: productKey,
         colorKey: keys.colorKey,
         weightKey: keys.weightKey,
+        collarKey: selectedCollar,
         rattleKey: rattle && rattle.key ? rattle.key : 'no'
       });
     }
@@ -720,6 +722,52 @@
         rattleFieldset.appendChild(rattleLegend);
         rattleFieldset.appendChild(rattleValues);
         optionsRoot.appendChild(rattleFieldset);
+
+        var collarOptions = catalog.getCollarOptions ? catalog.getCollarOptions(admittedProductForRender()) : [];
+        var collarFieldset = document.createElement('fieldset');
+        var collarLegend = document.createElement('legend');
+        var collarValues = document.createElement('div');
+
+        collarFieldset.className = 'product-config-selector generic-option-group';
+        collarFieldset.setAttribute('data-collar-group', 'generic');
+        collarLegend.className = 'config-label';
+        collarLegend.textContent = 'Wire-tied skirt collar:';
+        collarValues.className = 'weight-options';
+
+        (collarOptions.length ? collarOptions : [{ key: 'no', label: 'No', available: true }])
+          .forEach(function (collar) {
+            var collarLabel = document.createElement('label');
+            var collarInput = document.createElement('input');
+            var collarText = document.createElement('span');
+
+            collarLabel.className = 'weight-option';
+            collarLabel.classList.toggle('active', selectedCollar === collar.key);
+            collarLabel.classList.toggle('is-unavailable', collar.available === false);
+
+            collarInput.type = 'radio';
+            collarInput.name = 'collar';
+            collarInput.value = collar.key;
+            collarInput.checked = selectedCollar === collar.key;
+            collarInput.disabled = collar.available === false;
+
+            collarText.className = 'weight-label';
+            collarText.textContent = formatRattlePriceLabel(collar.label, collar.priceDelta);
+
+            collarInput.addEventListener('change', function () {
+              if (collarInput.checked) {
+                selectedCollar = collar.key;
+                renderAll();
+              }
+            });
+
+            collarLabel.appendChild(collarInput);
+            collarLabel.appendChild(collarText);
+            collarValues.appendChild(collarLabel);
+          });
+
+        collarFieldset.appendChild(collarLegend);
+        collarFieldset.appendChild(collarValues);
+        optionsRoot.appendChild(collarFieldset);
       }
     }
 
@@ -727,7 +775,7 @@
       var shouldUseJigBuild = shouldRenderRattleControls();
       var jigLine = shouldUseJigBuild ? buildJigLine() : null;
       var checkoutable = Boolean(variant && variant.availableForSale) &&
-        (!jigLine || Boolean(jigLine.isCheckoutable));
+        (jigLine ? Boolean(jigLine.isCheckoutable) : (selectedRattle === 'no' && selectedCollar === 'no'));
 
       if (price) {
         if (jigLine && typeof catalog.formatMoney === 'function') {
@@ -808,7 +856,7 @@
       if (shouldUseJigBuild && jigLine && typeof cart.addJigBuild === 'function') {
         if (!jigLine.isCheckoutable) return;
         added = cart.addJigBuild(jigLine, count);
-      } else if (!shouldUseJigBuild || !jigLine) {
+      } else if (!shouldUseJigBuild || (!jigLine && selectedRattle === 'no' && selectedCollar === 'no')) {
         var line = buildCartLine(product, variant);
         if (!line || !cart || !cart.addExactVariant) return;
         added = cart.addExactVariant(line, count);

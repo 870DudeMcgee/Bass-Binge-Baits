@@ -13,6 +13,7 @@
   var PRODUCTS = [];
   var ADMITTED_PRODUCTS = [];
   var RATTLE_ADD_ON = null;
+  var COLLAR_ADD_ON = null;
   var CATALOG_STATUS = {
     source: 'unavailable',
     fetchedAt: null,
@@ -83,6 +84,15 @@
       : NO_RATTLE_OPTIONS;
   }
 
+  function getCollarOptions(product) {
+    var admitted = product && getAdmittedProduct(product.handle || product.key);
+    if (!admitted || !admitted.presentation || !admitted.presentation.rattleEnabled) return [];
+    return [
+      { key: 'no', label: 'No', priceDelta: 0, available: true },
+      { key: 'yes', label: 'Yes', priceDelta: 2, available: Boolean(COLLAR_ADD_ON && COLLAR_ADD_ON.available) }
+    ];
+  }
+
   function getRattleOption(product, rattleKey) {
     var defaultKey = product && product.rattle ? product.rattle.defaultKey : 'no';
     var key = normalizeKey(rattleKey || defaultKey || 'no');
@@ -116,6 +126,7 @@
       variantId: variant.variantId,
       title: variant.title,
       price: variant.price,
+      money: variant.money || null,
       available: variant.available
     };
   }
@@ -133,6 +144,12 @@
       getWeight(product, product.defaultWeightKey) ||
       weights[0];
     var rattle = getRattleOption(product, selection.rattleKey);
+    var collarKey = selection.collarKey || 'no';
+    if (collarKey !== 'yes' && collarKey !== 'no') return null;
+    var hasCollar = collarKey === 'yes';
+    var collarAvailable = getCollarOptions(product).some(function (option) {
+      return option.key === 'yes' && option.available;
+    });
     if (!color || (hasWeightOptions && !weight) || !rattle) return null;
     var checkoutMapping = getCheckoutMapping(product, color, weight, rattle);
     var jigPrice = checkoutMapping && Number.isFinite(Number(checkoutMapping.price))
@@ -143,7 +160,7 @@
       ? Number(RATTLE_ADD_ON.price || 0)
       : 0;
     return {
-      id: [product.key, color.key, hasWeightOptions ? weight.key : 'none', rattle.key].join(':'),
+      id: [product.key, color.key, hasWeightOptions ? weight.key : 'none', rattle.key].join(':') + (hasCollar ? ':collar' : ''),
       productKey: product.key,
       productTitle: product.title,
       colorKey: color.key,
@@ -153,11 +170,16 @@
       rattleKey: rattle.key,
       rattleLabel: rattle.label,
       hasRattle: rattle.key === 'yes',
-      price: jigPrice + rattlePrice,
+      collarKey: collarKey,
+      hasCollar: hasCollar,
+      collarMapping: hasCollar ? COLLAR_ADD_ON : null,
+      price: jigPrice + rattlePrice + (hasCollar ? 2 : 0),
       image: color.image,
       checkoutMapping: checkoutMapping,
+      money: checkoutMapping.money,
       rattleMapping: rattle.key === 'yes' ? RATTLE_ADD_ON : null,
       isCheckoutable: Boolean(
+        (!hasCollar || collarAvailable) &&
         checkoutMapping &&
         (checkoutMapping.merchandiseId || checkoutMapping.variantId) &&
         (rattle.key !== 'yes' || (RATTLE_ADD_ON && RATTLE_ADD_ON.available))
@@ -249,6 +271,7 @@
     PRODUCTS = [];
     ADMITTED_PRODUCTS = [];
     RATTLE_ADD_ON = null;
+    COLLAR_ADD_ON = null;
     CATALOG_STATUS = {
       source: 'unavailable',
       fetchedAt: null,
@@ -294,7 +317,7 @@
     });
 
     var legacyByHandle = {};
-    projection.products.forEach(function (legacyProduct) {
+    projection.products.concat(projection.currentDrop ? [projection.currentDrop] : []).forEach(function (legacyProduct) {
       if (!legacyProduct || !legacyProduct.handle) return;
       legacyByHandle[normalizeKey(legacyProduct.handle)] = legacyProduct;
     });
@@ -318,6 +341,8 @@
       hydrateRattleFromLegacy(PRODUCTS[0]);
     }
     RATTLE_ADD_ON = projection.rattle || null;
+    COLLAR_ADD_ON = projection.collar || null;
+    if (COLLAR_ADD_ON && (Number(COLLAR_ADD_ON.price) !== 2 || COLLAR_ADD_ON.currencyCode !== 'USD')) COLLAR_ADD_ON.available = false;
     PRODUCTS.forEach(function (product) {
       if (!product.rattle || !product.rattle.available || !RATTLE_ADD_ON) return;
       product.rattle.options = [
@@ -461,6 +486,7 @@
     getColor: getColor,
     getColorByName: getColorByName,
     getWeight: getWeight,
+    getCollarOptions: getCollarOptions,
     getRattleOptions: getRattleOptions,
     getRattleOption: getRattleOption,
     getCheckoutMapping: getCheckoutMapping,

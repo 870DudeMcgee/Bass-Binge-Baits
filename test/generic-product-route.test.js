@@ -311,6 +311,7 @@ test('Shopify cart request normalization preserves exact variant GID and money',
   }), [{
     merchandiseId: 'gid://shopify/ProductVariant/1001',
     rattleMerchandiseId: null,
+    collarMerchandiseId: null,
     quantity: 2,
     configurationId: 'gid://shopify/ProductVariant/1001',
     price: { amount: '6.75', currencyCode: 'USD' }
@@ -328,6 +329,7 @@ test('Shopify cart request normalization preserves the exact Heartlander variant
   }), [{
     merchandiseId: 'gid://shopify/ProductVariant/51000785633447',
     rattleMerchandiseId: null,
+    collarMerchandiseId: null,
     quantity: 1,
     configurationId: 'gid://shopify/ProductVariant/51000785633447',
     price: { amount: '5.99', currencyCode: 'USD' }
