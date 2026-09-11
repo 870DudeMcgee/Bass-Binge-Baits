@@ -145,3 +145,12 @@ test('unknown products stay in the feed while the readiness command reports ever
 test('shared return policy preserves unused condition', () => {
   assert.equal(require('../lib/product-policies').merchantReturnPolicy().itemCondition, 'https://schema.org/NewCondition');
 });
+
+// Regression: this verified Shopify product was previously absent from the map.
+test('Buffet Craw publishes the verified general-profile shipping', () => {
+  const candidate = {...product, handle:'bass-binge-buffet-craw-8-pack'};
+  const feed = renderGoogleProductFeed({schemaVersion:2,products:[candidate]});
+  assert.match(feed, /<g:price>8\.99 USD<\/g:price>/);
+  assert.match(feed, /<g:price_threshold>50 USD<\/g:price_threshold>/);
+  assert.equal(schemaOffer(candidate).shippingDetails.shippingRate.value, '8.99');
+});

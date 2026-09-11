@@ -41,3 +41,15 @@ the discovery source. An indexing request is pending the live test. A current
 organic result points to the shop.app representation instead of the brand URL.
 That is a separate crawling/canonical-discovery issue and is not resolved merely
 by adding shipping or return policy markup.
+
+
+## Buffet Craw assignment verified September 11
+
+After owner passkey verification, Shopify General profile `104202043559`
+showed Bass Binge Buffet Craw 8 pack and all six colors assigned. Its Base shop
+Domestic zone lists 50 of 62 states, Standard $8.99, free from $50, and 3–5
+business-day transit. The product now uses the existing bait policy in
+`lib/product-policies.js`, shared by the feed and Offer schema. No Shopify
+rates or assignments were changed. Existing published bait handling remains
+1–3 business days. This resolves the previously unknown assignment above;
+Google approval and organic indexing remain separate outcomes.
