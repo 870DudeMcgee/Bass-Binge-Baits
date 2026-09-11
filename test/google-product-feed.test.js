@@ -1,7 +1,11 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { renderGoogleProductFeed, createGoogleProductFeedHandler } = require('../lib/google-product-feed.js');
+const { productStructuredData } = require('../lib/generic-product-route.js');
+const { BAIT_HANDLES, BAIT_REGIONS, BUSINESS_DAYS, MUG_HANDLES, MUG_RATES, PRINTFUL_RATES } = require('../lib/product-policies.js');
 const product = { id:'gid://shopify/Product/44', handle:'3-4-oz-football-jig', title:'Jig & Craw', descriptionHtml:'<p>Hand <strong>poured</strong> & tested\u0001.</p>', vendor:'Bass Binge', presentation:{kind:'ordinary'}, media:[{type:'image', image:{url:'https://cdn.example/jig?a=1&b=2'}}], options:[{name:'3/4 oz.'}], variants:[{id:'gid://shopify/ProductVariant/101', availableForSale:false, price:{amount:'5.50',currencyCode:'USD'}, selectedOptions:[{name:'3/4 oz.',value:'Green Pumpkin'}]}] };
 function response() { return {headers:{},setHeader(k,v){this.headers[k]=v;},status(c){this.code=c;return this;},send(b){this.body=b;return this;}}; }
 test('renders admitted variants with exact links, price, stock, custom color mapping, and XML escaping', () => { const xml=renderGoogleProductFeed({schemaVersion:2,products:[product]}); assert.match(xml,/<g:id>101<\/g:id>/); assert.match(xml,/<g:item_group_id>44<\/g:item_group_id>/); assert.match(xml,/products\/3-4-oz-football-jig\?variant=101/); assert.match(xml,/<g:price>5\.50 USD<\/g:price>/); assert.match(xml,/<g:availability>out_of_stock/); assert.match(xml,/<g:color>Green Pumpkin<\/g:color>/); assert.match(xml,/Jig &amp; Craw/); assert.doesNotMatch(xml,/\u0001/); });
@@ -56,4 +60,88 @@ test('includes reviewed adult apparel audiences without classifying unknown prod
 test('uses the actual T-shirt shipping profile for the heavyweight sweatshirt', () => {
   const feed = renderGoogleProductFeed({ schemaVersion: 2, products: [{ ...product, handle: 'heavyweight-hooded-sweatshirt-independent-trading-co-ind4000-2' }] });
   assert.match(feed, /<g:shipping>[\s\S]*?<g:price>4\.95 USD<\/g:price>/);
+});
+
+function schemaOffer(candidate) {
+  const canonical = `https://www.bassbingebaits.com/products/${candidate.handle}`;
+  return productStructuredData(candidate, candidate.title, candidate.media[0], canonical).offers;
+}
+
+test('shared exact profiles keep feed and sold-out Offer schema shipping in parity', () => {
+  for (const [handle, expectedPrice] of PRINTFUL_RATES) {
+    const candidate = {...product,handle};
+    const feed = renderGoogleProductFeed({schemaVersion:2,products:[candidate]});
+    const details = schemaOffer(candidate).shippingDetails;
+    assert.match(feed,new RegExp(`<g:price>${expectedPrice.replace('.', '\\.')} USD<\\/g:price>`),handle);
+    assert.equal(details.shippingRate.value,expectedPrice,handle);
+    assert.equal(details.shippingDestination.addressCountry,'US',handle);
+    assert.deepEqual(details.deliveryTime.handlingTime,{ '@type':'QuantitativeValue',minValue:2,maxValue:5,unitCode:'DAY' },handle);
+    assert.deepEqual(details.deliveryTime.transitTime,{ '@type':'QuantitativeValue',minValue:1,maxValue:8,unitCode:'DAY' },handle);
+    assert.deepEqual(details.deliveryTime.businessDays.dayOfWeek,BUSINESS_DAYS,handle);
+    assert.equal(schemaOffer(candidate).availability,'https://schema.org/OutOfStock',handle);
+  }
+
+  for (const handle of MUG_HANDLES) {
+    for (const [size, expectedPrice] of Object.entries(MUG_RATES)) {
+      const candidate = {...product,handle,variants:[{...product.variants[0],selectedOptions:[{name:'Size',value:size}]}]};
+      const feed = renderGoogleProductFeed({schemaVersion:2,products:[candidate]});
+      assert.match(feed,new RegExp(`<g:price>${expectedPrice.replace('.', '\\.')} USD<\\/g:price>`),`${handle} ${size}`);
+      const details = schemaOffer(candidate).shippingDetails;
+      assert.equal(details.shippingRate.value,expectedPrice,`${handle} ${size}`);
+      assert.deepEqual(details.deliveryTime.handlingTime,{ '@type':'QuantitativeValue',minValue:2,maxValue:5,unitCode:'DAY' },`${handle} ${size}`);
+      assert.deepEqual(details.deliveryTime.transitTime,{ '@type':'QuantitativeValue',minValue:1,maxValue:8,unitCode:'DAY' },`${handle} ${size}`);
+    }
+  }
+
+  for (const handle of BAIT_HANDLES) {
+    const candidate = {...product,handle};
+    const feed = renderGoogleProductFeed({schemaVersion:2,products:[candidate]});
+    const details = schemaOffer(candidate).shippingDetails;
+    assert.equal((feed.match(/<g:shipping>/g)||[]).length,BAIT_REGIONS.length,handle);
+    assert.deepEqual(details.shippingDestination.map(entry=>entry.addressRegion),BAIT_REGIONS,handle);
+    assert.ok(details.shippingDestination.every(entry=>entry.addressCountry==='US'),handle);
+    assert.equal(details.shippingRate.value,'8.99',handle);
+    assert.deepEqual(details.deliveryTime.handlingTime,{ '@type':'QuantitativeValue',minValue:1,maxValue:3,unitCode:'DAY' },handle);
+    assert.deepEqual(details.deliveryTime.transitTime,{ '@type':'QuantitativeValue',minValue:3,maxValue:5,unitCode:'DAY' },handle);
+    assert.deepEqual(details.deliveryTime.businessDays.dayOfWeek,BUSINESS_DAYS,handle);
+  }
+
+  const returns = schemaOffer({...product,handle:'premium-full-zip-hoodie'}).hasMerchantReturnPolicy;
+  assert.deepEqual(returns,{
+    '@type':'MerchantReturnPolicy',applicableCountry:'US',itemCondition:'https://schema.org/NewCondition',
+    returnPolicyCategory:'https://schema.org/MerchantReturnFiniteReturnWindow',merchantReturnDays:7,
+    returnMethod:'https://schema.org/ReturnByMail',returnFees:'https://schema.org/ReturnFeesCustomerResponsibility',
+    merchantReturnLink:'https://www.bassbingebaits.com/returns'
+  });
+  assert.equal(returns.restockingFee,undefined);
+  assert.equal(returns.refundType,undefined);
+});
+
+test('bait schema applies the settled threshold only to one qualifying item', () => {
+  const candidate = {...product,variants:[{...product.variants[0],price:{amount:'50.00',currencyCode:'USD'}}]};
+  const offer = schemaOffer(candidate);
+  assert.equal(offer.shippingDetails.shippingRate.value,'0.00');
+  const feed = renderGoogleProductFeed({schemaVersion:2,products:[candidate]});
+  assert.match(feed,/<g:price_threshold>50 USD<\/g:price_threshold>/);
+  assert.match(feed,/<g:shipping>[\s\S]*?<g:price>8\.99 USD<\/g:price>/);
+});
+
+test('unknown products stay in the feed while the readiness command reports every public variant', () => {
+  const unknown = {...product,handle:'unverified-public-product',variants:[product.variants[0],{...product.variants[0],id:'gid://shopify/ProductVariant/102'}]};
+  const unmappedMugVariant = {...product,handle:'white-glossy-mug',variants:[{...product.variants[0],id:'gid://shopify/ProductVariant/103',selectedOptions:[{name:'Size',value:'unknown size'}]}]};
+  assert.doesNotMatch(renderGoogleProductFeed({schemaVersion:2,products:[unknown]}),/<g:shipping>/);
+  const catalog = {schemaVersion:2,products:[product,unknown,unmappedMugVariant,{...unknown,handle:'hidden-rattle',presentation:{kind:'hidden-add-on'}}]};
+  const script = path.join(__dirname,'..','scripts','check-product-policy-readiness.js');
+  const failed = spawnSync(process.execPath,[script,'--stdin'],{input:JSON.stringify(catalog),encoding:'utf8'});
+  assert.equal(failed.status,1);
+  assert.match(failed.stderr,/3 public variant\(s\).*unverified-public-product :: gid:\/\/shopify\/ProductVariant\/101.*unverified-public-product :: gid:\/\/shopify\/ProductVariant\/102.*white-glossy-mug :: gid:\/\/shopify\/ProductVariant\/103/s);
+  assert.doesNotMatch(failed.stderr,/hidden-rattle/);
+
+  const passed = spawnSync(process.execPath,[script,'--stdin'],{input:JSON.stringify({schemaVersion:2,products:[product]}),encoding:'utf8'});
+  assert.equal(passed.status,0);
+  assert.match(passed.stdout,/readiness passed/);
+});
+
+test('shared return policy preserves unused condition', () => {
+  assert.equal(require('../lib/product-policies').merchantReturnPolicy().itemCondition, 'https://schema.org/NewCondition');
 });

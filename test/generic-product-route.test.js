@@ -185,6 +185,16 @@ test('variant deep links keep an unavailable Shopify variant selected in server 
       }
     ]
   );
+  const returnPolicy = {
+    '@type': 'MerchantReturnPolicy',
+    itemCondition: 'https://schema.org/NewCondition',
+    applicableCountry: 'US',
+    returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+    merchantReturnDays: 7,
+    returnMethod: 'https://schema.org/ReturnByMail',
+    returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+    merchantReturnLink: 'https://www.bassbingebaits.com/returns'
+  };
   assert.deepEqual(jsonLd.hasVariant.map((variant) => variant.offers), [
     {
       '@type': 'Offer',
@@ -192,7 +202,8 @@ test('variant deep links keep an unavailable Shopify variant selected in server 
       priceCurrency: 'USD',
       price: '4.00',
       itemCondition: 'https://schema.org/NewCondition',
-      availability: 'https://schema.org/InStock'
+      availability: 'https://schema.org/InStock',
+      hasMerchantReturnPolicy: returnPolicy
     },
     {
       '@type': 'Offer',
@@ -200,9 +211,19 @@ test('variant deep links keep an unavailable Shopify variant selected in server 
       priceCurrency: 'USD',
       price: '6.50',
       itemCondition: 'https://schema.org/NewCondition',
-      availability: 'https://schema.org/OutOfStock'
+      availability: 'https://schema.org/OutOfStock',
+      hasMerchantReturnPolicy: returnPolicy
     }
   ]);
+  assert.equal(returnPolicy.restockingFee, undefined);
+  assert.equal(returnPolicy.refundType, undefined);
+  for (const variant of jsonLd.hasVariant) {
+    assert.equal(variant.offers.shippingDetails, undefined, 'unmapped product remains sellable without invented shipping');
+    assert.equal(variant.review, undefined);
+    assert.equal(variant.aggregateRating, undefined);
+    assert.equal(variant.gtin, undefined);
+    assert.equal(variant.mpn, undefined);
+  }
   assert.doesNotMatch(selected.body, /<Craw>/);
 
   const invalid = responseRecorder();
