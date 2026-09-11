@@ -437,7 +437,7 @@ function withCollar(catalog) {
     id: 'gid://shopify/Product/300', handle: 'wire-tied-skirt-collar-add-on',
     availableForSale: true, presentation: {kind: 'hidden-add-on'},
     variants: [{id: 'gid://shopify/ProductVariant/3001', availableForSale: true,
-      quantityAvailable: null, price: {amount: '2.00', currencyCode: 'USD'}}]
+      quantityAvailable: 0, price: {amount: '2.00', currencyCode: 'USD'}}]
   });
   return catalog;
 }

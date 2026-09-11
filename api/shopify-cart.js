@@ -168,11 +168,11 @@ function admittedAddOnVariant(catalog, handle, selectedId) {
   });
   if (candidates.length !== 1) return null;
   const candidate = candidates[0];
+  // Shopify reports zero quantity for untracked upgrades; availableForSale is authoritative.
   if (
     isQuarantined(catalog, candidate.product, candidate.variant) ||
     !candidate.product.availableForSale ||
-    !candidate.variant.availableForSale ||
-    candidate.variant.quantityAvailable === 0
+    !candidate.variant.availableForSale
   ) return null;
   return candidate.variant;
 }
