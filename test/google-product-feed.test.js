@@ -62,6 +62,21 @@ test('uses the actual T-shirt shipping profile for the heavyweight sweatshirt', 
   assert.match(feed, /<g:shipping>[\s\S]*?<g:price>4\.95 USD<\/g:price>/);
 });
 
+test('uses the verified Printful profiles for the five newer products', () => {
+  for (const [handle, expectedPrice] of [
+    ['men-s-columbia-fleece-vest', '8.79'],
+    ['bass-binge-baits-wall-clock', '9.29'],
+    ['gaming-mouse-pad', '10.39'],
+    ['enamel-mug-1', '4.69'],
+    ['enamel-mug', '4.69'],
+  ]) {
+    const details = schemaOffer({ ...product, handle }).shippingDetails;
+    assert.equal(details.shippingRate.value, expectedPrice, handle);
+    assert.deepEqual(details.deliveryTime.handlingTime, { '@type': 'QuantitativeValue', minValue: 2, maxValue: 5, unitCode: 'DAY' }, handle);
+    assert.deepEqual(details.deliveryTime.transitTime, { '@type': 'QuantitativeValue', minValue: 1, maxValue: 8, unitCode: 'DAY' }, handle);
+  }
+});
+
 function schemaOffer(candidate) {
   const canonical = `https://www.bassbingebaits.com/products/${candidate.handle}`;
   return productStructuredData(candidate, candidate.title, candidate.media[0], canonical).offers;
