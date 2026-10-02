@@ -110,6 +110,20 @@ test('unknown sellable products never silently inherit jig-only presentation', (
   );
 });
 
+test('rubber-skirted jig head options refine an untyped soft-plastic classification', () => {
+  const product = {
+    handle: 'assimilation-jig', title: 'Assimilation Jig', productType: '', tags: [],
+    shopifyCategory: { name: 'Artificial Soft Plastic Baits', ancestors: [] },
+    options: [{ name: 'Weight', values: [{ name: '5/8 oz HC Football' }, { name: '7/16 oz PeeWee Flip' }] }]
+  };
+  assert.equal(taxonomy.subcategoryForProduct(product), 'jigs');
+  assert.equal(taxonomy.subcategoryForProduct({ ...product, title: 'Jig Trailer', handle: 'jig-trailer' }), 'trailers');
+  assert.equal(taxonomy.subcategoryForProduct({ ...product, options: [] }), 'trailers');
+  assert.equal(taxonomy.subcategoryForProduct({ ...product, title: 'Buffet Craw', handle: 'buffet-craw' }), 'trailers');
+  assert.equal(taxonomy.subcategoryForProduct({ ...product, productType: 'Trailer' }), 'trailers');
+  assert.equal(taxonomy.subcategoryForProduct({ ...product, tags: ['category:trailers'] }), 'trailers');
+});
+
 test('refines the live legacy apparel bucket into merchandise subcategories', () => {
   const cases = [
     ['bass-binge-hoodie', 'Bass Binge Hoodie', 'apparel'],

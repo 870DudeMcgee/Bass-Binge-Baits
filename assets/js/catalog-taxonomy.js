@@ -88,7 +88,19 @@
     if (tagNamesSubcategory(tags, 'trailers') || tags.includes('soft-plastic') || tags.includes('soft-plastics')) return 'trailers';
     if (tagNamesSubcategory(tags, 'jigs')) return 'jigs';
 
-    if (hasAnyTerm(shopifyCategory, ['soft-plastic-bait', 'soft-plastic-baits'])) return 'trailers';
+    if (hasAnyTerm(shopifyCategory, ['soft-plastic-bait', 'soft-plastic-baits'])) {
+      // Shopify can suggest soft plastics for rubber-skirted jigs. Require both
+      // a jig identity and jig-head weight options before refining that category.
+      var hasJigWeights = (Array.isArray(product.options) ? product.options : []).some(function (option) {
+        return normalizeKey(option.name) === 'weight' &&
+          (Array.isArray(option.values) ? option.values : []).some(function (value) {
+            return hasAnyTerm(typeof value === 'string' ? value : value && value.name, ['football', 'spider', 'flip']);
+          });
+      });
+      if (!type && hasAnyTerm(identity, ['jig', 'jigs']) &&
+          !hasAnyTerm(identity, ['trailer', 'trailers']) && hasJigWeights) return 'jigs';
+      return 'trailers';
+    }
     if (hasAnyTerm(shopifyCategory, ['artificial-fishing-jig', 'artificial-fishing-jigs'])) return 'jigs';
     if (hasAnyTerm(shopifyCategory, ['headwear', 'hat', 'hats', 'cap', 'caps', 'beanie', 'beanies'])) return 'headwear';
     if (hasAnyTerm(shopifyCategory, [
