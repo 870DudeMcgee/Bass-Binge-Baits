@@ -43,8 +43,10 @@ function git(cwd, args) {
 function createFixtureRepository(options = {}) {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'release-preflight-'));
   fs.mkdirSync(path.join(fixtureRoot, 'scripts'));
+  fs.mkdirSync(path.join(fixtureRoot, 'lib'));
   fs.mkdirSync(path.join(fixtureRoot, '.vercel'));
   fs.writeFileSync(path.join(fixtureRoot, 'vercel.json'), JSON.stringify({
+    rewrites: [{ source: '/sitemap.xml', destination: '/api/sitemap' }],
     crons: [{
       path: '/api/catalog-reconcile',
       schedule: options.cron || '0 0 * * *'
@@ -58,9 +60,9 @@ function createFixtureRepository(options = {}) {
     path.join(fixtureRoot, '.vercel', 'project.json'),
     JSON.stringify({ projectName: 'synthetic-project' })
   );
-  fs.writeFileSync(
-    path.join(fixtureRoot, 'sitemap.xml'),
-    '<urlset><url><loc>https://store.synthetic.test/</loc></url></urlset>\n'
+  fs.copyFileSync(
+    path.join(root, 'lib', 'sitemap-route.js'),
+    path.join(fixtureRoot, 'lib', 'sitemap-route.js')
   );
   git(fixtureRoot, ['init', '-q', '-b', 'main']);
   git(fixtureRoot, [
@@ -68,7 +70,7 @@ function createFixtureRepository(options = {}) {
     'vercel.json',
     'scripts/validate-shopify-integration.js',
     '.vercel/project.json',
-    'sitemap.xml'
+    'lib/sitemap-route.js'
   ]);
   git(fixtureRoot, ['commit', '-qm', 'fixture']);
   git(fixtureRoot, [
@@ -148,7 +150,7 @@ function completeReleaseReadinessEvidence(head) {
       status: 'confirmed',
       head,
       details: {
-        domains: ['store.synthetic.test'],
+        domains: ['www.bassbingebaits.com'],
         source: 'vercel-project-inspection'
       }
     },
@@ -690,8 +692,9 @@ test('Shopify catalog readiness records the exact live Heartlander admission fac
   }
 });
 
-test('secret-free external evidence bound to the commit can reach READY_TO_PUSH', () => {
+test('dynamic sitemap without a static file supplies domains for READY_TO_PUSH', () => {
   const fixture = createFixtureRepository();
+  assert.equal(fs.existsSync(path.join(fixture.root, 'sitemap.xml')), false);
   const gatePath = writeExternalGate(fixture.head);
   const result = runExternalPreflight(fixture, gatePath);
 
@@ -701,6 +704,25 @@ test('secret-free external evidence bound to the commit can reach READY_TO_PUSH'
     result.stdout,
     /\[EXTERNAL_RELEASE_GATES\] PASS: EXTERNAL_GATE/
   );
+});
+
+test('missing or broken dynamic sitemap cannot validate production domains', async (t) => {
+  for (const source of [null, "exports.renderSitemap = () => { throw new Error('unavailable'); };\n"]) {
+    await t.test(source === null ? 'missing renderer' : 'broken renderer', () => {
+      const fixture = createFixtureRepository();
+      const sitemapPath = path.join(fixture.root, 'lib', 'sitemap-route.js');
+      if (source === null) fs.unlinkSync(sitemapPath);
+      else fs.writeFileSync(sitemapPath, source);
+      git(fixture.root, ['add', '-A']);
+      git(fixture.root, ['commit', '--amend', '--no-edit', '-q']);
+      fixture.head = git(fixture.root, ['rev-parse', 'HEAD']);
+      const result = runExternalPreflight(fixture, writeExternalGate(fixture.head));
+      assert.equal(result.status, 0);
+      assert.match(result.stdout, /STATE: READY_LOCAL/);
+      assert.match(result.stdout, /\[EXTERNAL_RELEASE_GATES\] MISSING_OR_INVALID: PRODUCTION_DOMAINS/);
+      assert.doesNotMatch(result.stdout, /STATE: READY_TO_PUSH/);
+    });
+  }
 });
 
 test('secret-free external evidence satisfies Vercel-sensitive configuration', () => {

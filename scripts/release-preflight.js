@@ -175,7 +175,9 @@ function inspectLinkedProject(root) {
 
 function inspectCanonicalDomains(root) {
   try {
-    const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+    // Use the dynamic renderer's static routes without fetching a live catalog.
+    const { renderSitemap } = require(path.join(root, 'lib', 'sitemap-route.js'));
+    const sitemap = renderSitemap({ schemaVersion: 2, products: [] });
     return [...new Set(
       [...sitemap.matchAll(/<loc>(https:\/\/[^<]+)<\/loc>/g)]
         .map((match) => new URL(match[1]).hostname)
